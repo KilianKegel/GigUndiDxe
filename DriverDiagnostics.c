@@ -170,7 +170,7 @@ _DisplayBuffersAndDescriptors (
   DEBUGPRINT (DIAG, ("RDT0=%x ", (UINT16) E1000_READ_REG (&GigAdapterInfo->Hw, E1000_RDT (0))));
   DEBUGPRINT (DIAG, ("cur_rx_ind=%X\n", GigAdapterInfo->CurRxInd));
 
-  ReceiveDesc = GigAdapterInfo->RxRing;
+  ReceiveDesc = E1000_RX_DESC (&GigAdapterInfo->RxRing, 0);
   for (j = 0; j < DEFAULT_RX_DESCRIPTORS; j++) {
     DEBUGPRINT (DIAG, ("Buff=%x,", ReceiveDesc->buffer_addr));
     DEBUGPRINT (DIAG, ("Len=%x,", ReceiveDesc->length));
@@ -187,7 +187,7 @@ _DisplayBuffersAndDescriptors (
   DEBUGPRINT (DIAG, ("TDT0=%x ", (UINT16) E1000_READ_REG (&GigAdapterInfo->Hw, E1000_TDT (0))));
   DEBUGPRINT (DIAG, ("cur_tx_ind=%X\n", GigAdapterInfo->CurTxInd));
 
-  TransmitDesc = GigAdapterInfo->TxRing;
+  TransmitDesc = E1000_TX_DESC (&GigAdapterInfo->RxRing, 0);
   for (j = 0; j < DEFAULT_TX_DESCRIPTORS; j++) {
     DEBUGPRINT (DIAG, ("Buff=%x,", TransmitDesc->buffer_addr));
     DEBUGPRINT (DIAG, ("Cmd=%x,", TransmitDesc->lower.flags.cmd));

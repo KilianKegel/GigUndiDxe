@@ -346,13 +346,13 @@ InitAdapterInformationProtocol (
 
   UndiPrivateData->AdapterInformation = gUndiAdapterInfo;
 
-  memset (&InformationType, 0, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR));
+  SetMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR), 0);
   CopyMem (&InformationType.Guid, &MediaStateGuid, sizeof (EFI_GUID));
   InformationType.GetInformationBlock = GetMediaStateInformationBlock;
   InformationType.SetInformationBlock = NULL;
   AddSupportedInformationType (&InformationType);
 
-  memset (&InformationType, 0, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR));
+  SetMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR), 0);
   CopyMem (&InformationType.Guid, &Ipv6SupportInfoGuid, sizeof (EFI_GUID));
   InformationType.GetInformationBlock = GetIpv6SupportInformationBlock;
   InformationType.SetInformationBlock = NULL;

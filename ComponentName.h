@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMPONENT_NAME_H_
 #define COMPONENT_NAME_H_
 
-#define EFI_2_60_SYSTEM_TABLE_REVISION  ((2 << 16) | (60))
+#define EFI_2_70_SYSTEM_TABLE_REVISION  ((2 << 16) | (70))
 
 
 /** Searches through the branding string list for the best possible match for the controller

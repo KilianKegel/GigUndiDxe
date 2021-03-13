@@ -180,6 +180,9 @@ Exit:
 
 /** Find next element in the Request string and return its parameters.
 
+   The Request string is formatted like so, with A being an address and
+   B being the buffer size: "OFFSET=A1&WIDTH=B1&OFFSET=A2&WIDTH=B2&...".
+
    @param[in]    Request   a request string
    @param[out]   ElementOffset   the offset of element
    @param[out]   ElementWidth   the width of the element
@@ -207,6 +210,16 @@ GetNextRequestElement (
 
   StringPtr = Request;
 
+  // If we currently point at the '&' character, this means we've received a
+  // pointer to a string with multiple OFFSET/WIDTH pairs that we've previously
+  // handled here and moved the pointer after the WIDTH=... (if it contains
+  // just a single pair, the first char will be \0, caught below).
+  if (StringPtr[0] == '&') {
+    StringPtr++;
+  }
+
+  // If we've reached the end of the request or point at something unexpected,
+  // just stop further parsing.
   if ((*StringPtr == 0 )
     || StrnCmp (StringPtr, L"OFFSET=", StrLen (L"OFFSET=")) != 0)
   {
@@ -217,7 +230,7 @@ GetNextRequestElement (
   TmpPtr = StringPtr;
 
   StringPtr += StrLen (L"OFFSET=");
-  
+
   // Get Offset
   Status = GetValueOfNumber (StringPtr, &TmpBuffer, &Length);
   if (Status == EFI_OUT_OF_RESOURCES) {
@@ -253,7 +266,6 @@ GetNextRequestElement (
   FreePool (TmpBuffer);
 
   StringPtr += Length;
-  StringPtr++;
 
   *ElementWidth = Width;
   *ElementOffset = Offset;

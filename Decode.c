@@ -1011,9 +1011,7 @@ E1000UndiInterrupt (
 
   IntMask = (UINT8) (UINTN) (CdbPtr->OpFlags &
                             (PXE_OPFLAGS_INTERRUPT_RECEIVE |
-                             PXE_OPFLAGS_INTERRUPT_TRANSMIT |
-                             PXE_OPFLAGS_INTERRUPT_COMMAND |
-                             PXE_OPFLAGS_INTERRUPT_SOFTWARE));
+                             PXE_OPFLAGS_INTERRUPT_TRANSMIT));
 
   switch (CdbPtr->OpFlags & PXE_OPFLAGS_INTERRUPT_OPMASK) {
   case PXE_OPFLAGS_INTERRUPT_READ:
@@ -1052,9 +1050,6 @@ E1000UndiInterrupt (
     CdbPtr->StatFlags |= PXE_STATFLAGS_INTERRUPT_TRANSMIT;
   }
 
-  if ((GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_COMMAND) != 0) {
-    CdbPtr->StatFlags |= PXE_STATFLAGS_INTERRUPT_COMMAND;
-  }
 }
 
 /** This routine is used to read and change receive filters and, if supported, read
@@ -1464,7 +1459,7 @@ E1000UndiStatus (
   )
 {
   PXE_DB_GET_STATUS *       DbPtr;
-  UINT16                    Status;
+  UINT16                    IntStatus;
   UINT16                    NumEntries;
   E1000_RECEIVE_DESCRIPTOR *RxPtr;
 #if (DBG_LVL & CRITICAL)
@@ -1500,7 +1495,7 @@ E1000UndiStatus (
 
   // Fill in size of next available receive packet and
   // reserved field in caller's DB storage.
-  RxPtr = &GigAdapter->RxRing[GigAdapter->CurRxInd];
+  RxPtr = E1000_RX_DESC (&GigAdapter->RxRing, GigAdapter->CurRxInd);
 
 #if (DBG_LVL & CRITICAL)
   if (RxPtr->buffer_addr != GigAdapter->DebugRxBuffer[GigAdapter->CurRxInd]) {
@@ -1552,28 +1547,19 @@ E1000UndiStatus (
   }
 
   if ((CdbPtr->OpFlags & PXE_OPFLAGS_GET_INTERRUPT_STATUS) != 0) {
-    Status = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_ICR);
-    GigAdapter->IntStatus |= Status;
-
-    // Acknowledge the interrupts.
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_IMC, 0xFFFFFFFF);
+    IntStatus = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_ICR);
 
     // Report all the outstanding interrupts.
-    if (GigAdapter->IntStatus &
-      (E1000_ICR_RXT0 | E1000_ICR_RXSEQ | E1000_ICR_RXDMT0 | E1000_ICR_RXO | E1000_ICR_RXCFG))
-    {
+    if ((IntStatus & (E1000_ICR_RXT0 | E1000_ICR_RXSEQ | E1000_ICR_RXDMT0 | E1000_ICR_RXO | E1000_ICR_RXCFG)) != 0) {
       CdbPtr->StatFlags |= PXE_STATFLAGS_GET_STATUS_RECEIVE;
     }
 
-    if (GigAdapter->IntMask & (E1000_ICR_TXDW | E1000_ICR_TXQE)) {
+    if ((IntStatus & (E1000_ICR_TXDW | E1000_ICR_TXQE)) != 0) {
       CdbPtr->StatFlags |= PXE_STATFLAGS_GET_STATUS_TRANSMIT;
     }
 
-    if (GigAdapter->IntMask &
-      (E1000_ICR_GPI_EN0 | E1000_ICR_GPI_EN1 | E1000_ICR_GPI_EN2 | E1000_ICR_GPI_EN3 | E1000_ICR_LSC))
-    {
-      CdbPtr->StatFlags |= PXE_STATFLAGS_GET_STATUS_SOFTWARE;
-    }
+    // Acknowledge the interrupts.
+    E1000_WRITE_REG (&GigAdapter->Hw, E1000_ICR, IntStatus);
   }
 
   // Return current media status
@@ -1789,6 +1775,15 @@ E1000UndiApiEntry (
   }
 
   GigAdapter              = &(mE1000Undi32DeviceList[CdbPtr->IFnum]->NicInfo);
+
+  // Check if InitUndiNotifyExitBs was called before
+  if (GigAdapter->ExitBootServicesTriggered) {
+    DEBUGPRINT (CRITICAL, ("Pci Bus Mastering Disabled !\n"));
+    CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
+    CdbPtr->StatCode  = PXE_STATCODE_NOT_INITIALIZED;
+    return;
+  }
+
   GigAdapter->VersionFlag = 0x31; // entering from new entry point
 
   // Check the OPCODE range.

@@ -44,7 +44,7 @@ PXE_SW_UNDI *      mE1000Pxe31 = NULL;  // 3.1 entry
 UNDI_PRIVATE_DATA *mE1000Undi32DeviceList[MAX_NIC_INTERFACES];
 NII_TABLE          mE1000UndiData;
 UINT8              mActiveControllers = 0;
-UINT8              mActiveChildren    = 0;
+UINT16             mActiveChildren    = 0;
 EFI_EVENT          mEventNotifyExitBs;
 EFI_EVENT          mEventNotifyVirtual;
 EFI_SYSTEM_TABLE * gSystemTable;
@@ -71,18 +71,34 @@ GigUndiNotifyExitBs (
   )
 {
   UINT32 i;
+  UINT64 Result = 0;
 
-  // Divide Active interfaces by two because it tracks both the controller and
-  // child handle, then shutdown the receive unit in case it did not get done
-  // by the SNP, and release the software semaphore acquired by the shared code
   for (i = 0; i < mActiveControllers; i++) {
     if (mE1000Undi32DeviceList[i]->NicInfo.Hw.device_id != 0) {
-      E1000_WRITE_REG (&(mE1000Undi32DeviceList[i]->NicInfo.Hw), E1000_RCTL, 0);
-      E1000_WRITE_REG (&(mE1000Undi32DeviceList[i]->NicInfo.Hw), E1000_SWSM, 0);
-      E1000PciFlush (&mE1000Undi32DeviceList[i]->NicInfo.Hw);
-      
-      // Delay for 10ms to allow in progress DMA to complete
-      gBS->Stall (10000);
+      if (mE1000Undi32DeviceList[i]->IsChildInitialized) {
+        E1000Shutdown (&mE1000Undi32DeviceList[i]->NicInfo);
+        E1000PciFlush (&mE1000Undi32DeviceList[i]->NicInfo.Hw);
+        // Delay for 10ms to allow in progress DMA to complete
+        gBS->Stall (10000);
+      }
+
+      // Get the PCI Command options that are supported by this controller.
+      mE1000Undi32DeviceList[i]->NicInfo.PciIo->Attributes (
+                                                  mE1000Undi32DeviceList[i]->NicInfo.PciIo,
+                                                  EfiPciIoAttributeOperationSupported,
+                                                  0,
+                                                  &Result
+                                                );
+
+      mE1000Undi32DeviceList[i]->NicInfo.PciIo->Attributes (
+                                                  mE1000Undi32DeviceList[i]->NicInfo.PciIo,
+                                                  EfiPciIoAttributeOperationDisable,
+                                                  Result & EFI_PCI_IO_ATTRIBUTE_BUS_MASTER,
+                                                  NULL
+                                                );
+
+      // Set the indicator to block DMA access in UNDI functions
+      mE1000Undi32DeviceList[i]->NicInfo.ExitBootServicesTriggered = TRUE;
     }
   }
 }
@@ -218,12 +234,13 @@ E1000ChkSum (
                          UNDI driver is layering on..
    @param[in]   PxePtr   Pointer to the PXE structure
 
-   @return   None
+   @retval   EFI_SUCCESS           PxeStruct updated successful.
+   @retval   EFI_OUT_OF_RESOURCES  Too many NIC (child) interfaces.
 **/
-VOID
+EFI_STATUS
 GigUndiPxeUpdate (
   IN GIG_DRIVER_DATA *NicPtr,
-  IN PXE_SW_UNDI *    PxePtr
+  IN PXE_SW_UNDI     *PxePtr
   )
 {
   if (NicPtr == NULL) {
@@ -234,7 +251,11 @@ GigUndiPxeUpdate (
     }
   }
   else {
-    mActiveChildren++;
+    if (mActiveChildren < MAX_NIC_INTERFACES) {
+      mActiveChildren++;
+    } else {
+      return EFI_OUT_OF_RESOURCES;
+    }
   }
 
   // number of NICs this UNDI supports
@@ -242,6 +263,7 @@ GigUndiPxeUpdate (
   PxePtr->Fudge = (UINT8) (PxePtr->Fudge - E1000ChkSum ((VOID *) PxePtr, PxePtr->Len));
   DEBUGPRINT (INIT, ("GigUndiPxeUpdate: ActiveChildren = %d\n", mActiveChildren));
   DEBUGPRINT (INIT, ("GigUndiPxeUpdate: PxePtr->IFcnt = %d\n", PxePtr->IFcnt));
+  return EFI_SUCCESS;
 }
 
 /** Initializes the !PXE structure
@@ -276,11 +298,10 @@ GigUndiPxeStructInit (
                            PXE_ROMID_IMP_PROMISCUOUS_RX_SUPPORTED |
                            PXE_ROMID_IMP_BROADCAST_RX_SUPPORTED |
                            PXE_ROMID_IMP_FILTERED_MULTICAST_RX_SUPPORTED |
-                           PXE_ROMID_IMP_SOFTWARE_INT_SUPPORTED |
+                           PXE_ROMID_IMP_TX_COMPLETE_INT_SUPPORTED |
                            PXE_ROMID_IMP_PACKET_RX_INT_SUPPORTED;
 
   PxePtr->EntryPoint    = (UINT64) E1000UndiApiEntry;
-  PxePtr->MinorVer      = PXE_ROMID_MINORVER_31;
   PxePtr->reserved2[0]  = 0;
   PxePtr->reserved2[1]  = 0;
   PxePtr->reserved2[2]  = 0;
@@ -479,7 +500,6 @@ InitializeGigUNDIDriver (
   IN EFI_SYSTEM_TABLE *SystemTable
   )
 {
-  EFI_LOADED_IMAGE_PROTOCOL *LoadedImageInterface;
   EFI_STATUS                 Status;
 
   gSystemTable = SystemTable;
@@ -525,23 +545,6 @@ InitializeGigUNDIDriver (
     return Status;
   }
 
-
-  // This protocol does not need to be closed because it uses the GET_PROTOCOL attribute
-  Status = gBS->OpenProtocol (
-                  ImageHandle,
-                  &gEfiLoadedImageProtocolGuid,
-                  (VOID *) &LoadedImageInterface,
-                  ImageHandle,
-                  NULL,
-                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
-                );
-
-  if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("OpenProtocol returns %r\n", Status));
-    return Status;
-  }
-
-  LoadedImageInterface->Unload = GigUndiUnload;
 
   Status = gBS->CreateEvent (
                   EVT_SIGNAL_EXIT_BOOT_SERVICES,
@@ -939,39 +942,6 @@ InitUndiCallbackFunctions (
   NicInfo->VersionFlag = 0x31;
 }
 
-/** Initializes Vlan protocol
-
-   @param[in]       UndiPrivateData        Driver private data
-
-   @retval          EFI_SUCCESS            Procedure returned successfully
-   @retval          EFI_INVALID_PARAMETER  Invalid parameter passed
-   @retval          !EFI_SUCCESS           Failed to initialize VLAN Protocol   
-**/
-EFI_STATUS
-InitVlanProtocol (
-  IN  UNDI_PRIVATE_DATA *UndiPrivateData
-  )
-{
-  EFI_STATUS Status;
-
-  if (UndiPrivateData == NULL) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  Status = gBS->InstallMultipleProtocolInterfaces (
-                  &UndiPrivateData->DeviceHandle,
-                  &gEfiVlanProtocolGuid,
-                  &gGigUndiVlanData,
-                  NULL
-                );
-  if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("InstallMultipleProtocolInterfaces returns %r\n", Status));
-    DEBUGWAIT (CRITICAL);
-    return Status;
-  }
-
-  return EFI_SUCCESS;
-}
 
 /** Initializes Driver Stop Protocol
 
@@ -1154,19 +1124,26 @@ OpenControllerProtocols (
 
 /** Initializes UNDI (PXE) structures
 
-   @param[in]       UndiPrivateData        Private data structure
+   @param[in]       UndiPrivateData      Private data structure
 
-   @retval          None
+   @retval          EFI_SUCCESS          Undi structure initialized correctly.
+   @retval          EFI_OUT_OF_RESOURCES Too many NIC (child) interfaces.
 **/
-VOID
+EFI_STATUS
 InitUndiStructures (
   IN UNDI_PRIVATE_DATA *UndiPrivateData
   )
 {
+  EFI_STATUS Status;
   // the IfNum index for the current interface will be the total number
   // of interfaces initialized so far
-  GigUndiPxeUpdate (&UndiPrivateData->NicInfo, mE1000Pxe31);
+  Status = GigUndiPxeUpdate (&UndiPrivateData->NicInfo, mE1000Pxe31);
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("GigUndiPxeUpdate returns %r\n", Status));
+    return Status;
+  }
   InitUndiCallbackFunctions (&UndiPrivateData->NicInfo);
+  return EFI_SUCCESS;
 }
 
 /** Initializes controller
@@ -1184,56 +1161,16 @@ InitController (
   )
 {
   EFI_STATUS Status;
-  UINT64     Result = 0;
 
   if (UndiPrivateData == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
-  // Get the PCI Command options that are supported by this controller.
-  Status = UndiPrivateData->NicInfo.PciIo->Attributes (
-                                             UndiPrivateData->NicInfo.PciIo,
-                                             EfiPciIoAttributeOperationSupported,
-                                             0,
-                                             &Result
-                                           );
-
-  DEBUGPRINT (INIT, ("Attributes supported %x\n", Result));
+  // Initialize PCI-E Bus and read PCI related information.
+  Status = E1000PciInit (&UndiPrivateData->NicInfo);
   if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("Attributes returns %r\n", Status));
-    DEBUGWAIT (CRITICAL);
-    return Status;
-  }
-
-  // Set the PCI Command options to enable device memory mapped IO,
-  // port IO, and bus mastering.
-  Status = UndiPrivateData->NicInfo.PciIo->Attributes (
-                                             UndiPrivateData->NicInfo.PciIo,
-                                             EfiPciIoAttributeOperationEnable,
-                                             Result & (EFI_PCI_DEVICE_ENABLE | 
-                                                       EFI_PCI_IO_ATTRIBUTE_DUAL_ADDRESS_CYCLE),
-                                             NULL
-                                           );
-  DEBUGPRINT (INIT, ("Attributes enabled %x\n", Result));
-  if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("Attributes returns %r\n", Status));
-    DEBUGWAIT (CRITICAL);
-    return Status;
-  }
-
-  // Allocate memory for transmit and receive resources.
-  Status = UndiPrivateData->NicInfo.PciIo->AllocateBuffer (
-                                             UndiPrivateData->NicInfo.PciIo,
-                                             AllocateAnyPages,
-                                             EfiBootServicesData,
-                                             UNDI_MEM_PAGES (MEMORY_NEEDED),
-                                             (VOID **) &UndiPrivateData->NicInfo.MemoryPtr,
-                                             0
-                                           );
-  if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("AllocateBuffer returns %r\n", Status));
-    DEBUGWAIT (CRITICAL);
-    return Status;
+    DEBUGPRINT (CRITICAL, ("E1000PciInit fails: %r\n", Status));
+    return EFI_OUT_OF_RESOURCES;
   }
 
   // Perform the first time initialization of the hardware
@@ -1325,12 +1262,6 @@ InitChildProtocols (
     return Status;
   }
 
-  Status = InitVlanProtocol (UndiPrivateData);
-  if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("InitVlanProtocol returned %r\n", Status));
-    DEBUGWAIT (CRITICAL);
-    return Status;
-  }
 
   Status = InitDevicePathProtocol (
              UndiPrivateData
@@ -1586,7 +1517,11 @@ GigUndiDriverStart (
   }
 
   if (InitializeChild) {
-    InitUndiStructures (UndiPrivateData);
+    Status = InitUndiStructures (UndiPrivateData);
+    if (EFI_ERROR (Status)) {
+      DEBUGPRINT (CRITICAL, ("InitUndiStructures failed with %r\n", Status));
+      goto UndiErrorDeleteDevicePath;
+    }
 
     Status = InitChild (UndiPrivateData);
     if (EFI_ERROR (Status)) {
@@ -1686,8 +1621,6 @@ StopChild (
                     UndiPrivateData->DeviceHandle,
                     &gEfiStartStopProtocolGuid,
                     &UndiPrivateData->DriverStop,
-                    &gEfiVlanProtocolGuid,
-                    &gGigUndiVlanData,
                     &gEfiNetworkInterfaceIdentifierProtocolGuid_31,
                     &UndiPrivateData->NiiProtocol31,
                     &gEfiNiiPointerGuid,
@@ -1701,8 +1634,6 @@ StopChild (
                     UndiPrivateData->DeviceHandle,
                     &gEfiStartStopProtocolGuid,
                     &UndiPrivateData->DriverStop,
-                    &gEfiVlanProtocolGuid,
-                    &gGigUndiVlanData,
                     &gEfiNiiPointerGuid,
                     &UndiPrivateData->NIIPointerProtocol,
                     &gEfiDevicePathProtocolGuid,
@@ -1799,24 +1730,27 @@ StopController (
     DEBUGPRINT (CRITICAL, ("FreePool(UndiPrivateData->Undi32DevPath) returns %r\n", Status));
   }
 
-  Status = UndiPrivateData->NicInfo.PciIo->FreeBuffer (
-                                             UndiPrivateData->NicInfo.PciIo,
-                                             UNDI_MEM_PAGES (MEMORY_NEEDED),
-                                             (VOID *) (UINTN) UndiPrivateData->NicInfo.MemoryPtr
-                                           );
+  // Free DMA resources: Tx & Rx descriptors, Rx buffers
+  UndiDmaFreeCommonBuffer (
+    UndiPrivateData->NicInfo.PciIo,
+    &UndiPrivateData->NicInfo.TxRing
+    );
 
-  if (EFI_ERROR (Status)) {
-    DEBUGPRINT (CRITICAL, ("PCI IO FreeBuffer returns %r\n", Status));
-    DEBUGWAIT (CRITICAL);
-    return Status;
-  }
+  UndiDmaFreeCommonBuffer (
+    UndiPrivateData->NicInfo.PciIo,
+    &UndiPrivateData->NicInfo.RxRing
+    );
 
+  UndiDmaFreeCommonBuffer (
+    UndiPrivateData->NicInfo.PciIo,
+    &UndiPrivateData->NicInfo.RxBufferMapping
+    );
 
   DEBUGPRINT (INIT, ("Attributes"));
   Status = UndiPrivateData->NicInfo.PciIo->Attributes (
                                              UndiPrivateData->NicInfo.PciIo,
-                                             EfiPciIoAttributeOperationDisable,
-                                             EFI_PCI_DEVICE_ENABLE,
+                                             EfiPciIoAttributeOperationSet,
+                                             UndiPrivateData->NicInfo.OriginalPciAttributes,
                                              NULL
                                            );
   if (EFI_ERROR (Status)) {

@@ -425,8 +425,10 @@ void e1000_write_vfta_i350(struct e1000_hw *hw, u32 offset, u32 value);
 u16 e1000_rxpbs_adjust_82580(u32 data);
 s32 e1000_read_emi_reg(struct e1000_hw *hw, u16 addr, u16 *data);
 s32 e1000_set_eee_i350(struct e1000_hw *hw, bool adv1G, bool adv100M);
+#ifndef NO_XMDIO_SUPPORT
 s32 e1000_set_eee_i354(struct e1000_hw *hw, bool adv1G, bool adv100M);
 s32 e1000_get_eee_status_i354(struct e1000_hw *, bool *);
+#endif /* NO_XMDIO_SUPPORT */
 s32 e1000_initialize_M88E1512_phy(struct e1000_hw *hw);
 s32 e1000_initialize_M88E1543_phy(struct e1000_hw *hw);
 #endif /* NO_82580_SUPPORT */

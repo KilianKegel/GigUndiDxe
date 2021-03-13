@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Protocol/NetworkInterfaceIdentifier.h>
 #include <Protocol/DevicePath.h>
 #include <Protocol/ComponentName2.h>
-#include <Protocol/LoadedImage.h>
 #include <Protocol/DriverDiagnostics.h>
 #include <Protocol/DriverBinding.h>
 #include <Protocol/DriverSupportedEfiVersion.h>
@@ -70,10 +69,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "e1000_api.h"
 #include "NVDataStruc.h"
-#include "Vlan.h"
 #include "StartStop.h"
 #include "Version.h"
 #include "AdapterInformation.h"
+#include "Dma.h"
 
 
 
@@ -102,6 +101,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FLASH       (1 << 16)
 #define HEALTH      (1 << 20)
 #define ADAPTERINFO (1 << 21)
+#define DMA         (1 << 22)
 
 #ifndef DBG_LVL
 #define DBG_LVL     (NONE)
@@ -225,6 +225,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GIG_UNDI_DEV_SIGNATURE   SIGNATURE_32 ('P', 'R', '0', 'g')
 
+/** Retrieves RX descriptor from RX ring structure
+
+   @param[in]   R   RX ring
+   @param[in]   i   Number of descriptor
+
+   @return   Descriptor retrieved
+**/
+#define E1000_RX_DESC(R, i)          \
+          (&(((struct e1000_rx_desc *) ((R)->UnmappedAddress))[i]))
+
+/** Retrieves TX descriptor from TX ring structure
+
+   @param[in]   R   TX ring
+   @param[in]   i   Number of descriptor
+
+   @return   Descriptor retrieved
+**/
+#define E1000_TX_DESC(R, i)          \
+          (&(((struct e1000_tx_desc *) ((R)->UnmappedAddress))[i]))
+
 /** Retrieves UNDI_PRIVATE_DATA structure using NII Protocol 3.1 instance
 
    @param[in]   a   Current protocol instance
@@ -338,8 +358,6 @@ extern EFI_DRIVER_HEALTH_PROTOCOL                gUndiDriverHealthProtocol;
 extern EFI_DRIVER_STOP_PROTOCOL  gUndiDriverStop;
 extern EFI_GUID                  gEfiStartStopProtocolGuid;
 
-extern EFI_GUID            gEfiVlanProtocolGuid;
-extern EFI_VLAN_PROTOCOL   gGigUndiVlanData;
 
 typedef struct {
   EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL *InterfacePointer;
@@ -503,14 +521,6 @@ typedef struct e1000_rx_desc E1000_RECEIVE_DESCRIPTOR;
 #define DEFAULT_RX_DESCRIPTORS 64
 #define DEFAULT_TX_DESCRIPTORS 8
 
-/** Macro to convert byte memory requirement into pages
-
-   @param[in]    Bytes of memory required
-
-   @return   Pages required
-**/
-#define UNDI_MEM_PAGES(x) (((x) - 1) / 4096 + 1)
-
 #pragma pack(1)
 typedef struct {
   UINT8  RxBuffer[RX_BUFFER_SIZE - (sizeof (UINT64))];
@@ -584,6 +594,7 @@ typedef struct DRIVER_DATA_S {
 
   UINT64               UniqueId;
   EFI_PCI_IO_PROTOCOL *PciIo;
+  UINT64               OriginalPciAttributes;
 
   // UNDI callbacks
   BS_PTR               Delay;
@@ -594,31 +605,26 @@ typedef struct DRIVER_DATA_S {
   UNMAP_MEM            UnMapMem;
   SYNC_MEM             SyncMem;
 
+  UNDI_DMA_MAPPING     TxRing;
+  UNDI_DMA_MAPPING     RxRing;
+  UNDI_DMA_MAPPING     RxBufferMapping;
+
   UINT8  IoBarIndex;
-
-  UINT64 MemoryPtr;
-  UINT32 MemoryLength;
-
   UINT16 RxFilter;
-  UINT16 IntMask;
-  UINT16 IntStatus;
+  UINT8  IntMask;
 
   MCAST_LIST McastList;
 
   UINT16                     CurRxInd;
   UINT16                     CurTxInd;
   UINT8                      ReceiveStarted;
-  E1000_RECEIVE_DESCRIPTOR * RxRing;
-  E1000_TRANSMIT_DESCRIPTOR *TxRing;
-  LOCAL_RX_BUFFER *          LocalRxBuffer;
   UINT16                     XmitDoneHead;
-  UINT64                     TxBufferUnmappedAddr[DEFAULT_TX_DESCRIPTORS];
+  UNDI_DMA_MAPPING           TxBufferMappings[DEFAULT_TX_DESCRIPTORS];
   BOOLEAN                    MacAddrOverride;
   UINT64                     DebugRxBuffer[DEFAULT_RX_DESCRIPTORS];
-  BOOLEAN                    VlanEnable;
-  UINT16                     VlanTag;
   BOOLEAN                    FlashWriteInProgress;
   BOOLEAN                    SurpriseRemoval;
+  BOOLEAN                    ExitBootServicesTriggered;
   UINTN                      VersionFlag; // Indicates UNDI version 3.0 or 3.1
 } GIG_DRIVER_DATA, *PADAPTER_STRUCT;
 
@@ -675,13 +681,30 @@ typedef struct {
 
 /* We need enough space to store TX descriptors, RX descriptors,
  RX buffers, and enough left over to do a 64 byte alignment. */
-#define MEMORY_NEEDED (sizeof (GIG_UNDI_DMA_RESOURCES) + BYTE_ALIGN_64)
+#define RX_RING_SIZE    sizeof (((GIG_UNDI_DMA_RESOURCES*) 0)->RxRing)
+#define TX_RING_SIZE    sizeof (((GIG_UNDI_DMA_RESOURCES*) 0)->TxRing)
+#define RX_BUFFERS_SIZE sizeof (((GIG_UNDI_DMA_RESOURCES*) 0)->RxBuffer)
 
 #define FOUR_GIGABYTE (UINT64) 0x100000000
 
 /* If the surprise removal has been detected,
  Device Status Register returns 0xFFFFFFFF */
 #define INVALID_STATUS_REGISTER_VALUE  0xFFFFFFFF
+
+/** This function performs PCI-E initialization for the device.
+
+   @param[in]   GigAdapter   Pointer to adapter structure
+
+   @retval   EFI_SUCCESS            PCI-E initialized successfully
+   @retval   EFI_UNSUPPORTED        Failed to get supported PCI command options
+   @retval   EFI_UNSUPPORTED        Failed to set PCI command options
+   @retval   EFI_OUT_OF_RESOURCES   The memory pages for transmit and receive resources could
+                                    not be allocated
+**/
+EFI_STATUS
+E1000PciInit (
+  GIG_DRIVER_DATA *GigAdapter
+  );
 
 /** Checks if alternate MAC address is supported
 

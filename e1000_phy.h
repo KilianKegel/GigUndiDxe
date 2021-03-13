@@ -128,6 +128,13 @@ s32 e1000_write_phy_reg_mphy(struct e1000_hw *hw, u32 address, u32 data,
 			     bool line_override);
 bool e1000_is_mphy_ready(struct e1000_hw *hw);
 #endif /* NO_82580_SUPPORT */
+#ifndef NO_XMDIO_SUPPORT
+
+s32 e1000_read_xmdio_reg(struct e1000_hw *hw, u16 addr, u8 dev_addr,
+			 u16 *data);
+s32 e1000_write_xmdio_reg(struct e1000_hw *hw, u16 addr, u8 dev_addr,
+			  u16 data);
+#endif /* NO_XMDIO_SUPPORT */
 
 #define E1000_MAX_PHY_ADDR		8
 
@@ -152,8 +159,8 @@ bool e1000_is_mphy_ready(struct e1000_hw *hw);
 #define GS40G_MAC_LB			0x4140
 #define GS40G_MAC_SPEED_1G		0X0006
 #define GS40G_COPPER_SPEC		0x0010
-#endif
 
+#endif /* NO_I210_SUPPORT */
 #ifndef NO_ICH8LAN_SUPPORT
 /* BM/HV Specific Registers */
 #define BM_PORT_CTRL_PAGE		769

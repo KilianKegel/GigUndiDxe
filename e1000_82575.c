@@ -173,7 +173,8 @@ STATIC s32 e1000_init_phy_params_82575(struct e1000_hw *hw)
 	phy->ops.power_up   = e1000_power_up_phy_copper;
 	phy->ops.power_down = e1000_power_down_phy_copper_82575;
 
-	phy->autoneg_mask	= AUTONEG_ADVERTISE_SPEED_DEFAULT;
+	phy->autoneg_mask = AUTONEG_ADVERTISE_SPEED_DEFAULT;
+
 	phy->reset_delay_us	= 100;
 
 	phy->ops.acquire	= e1000_acquire_phy_82575;
@@ -521,7 +522,7 @@ STATIC s32 e1000_init_mac_params_82575(struct e1000_hw *hw)
 #endif /* NO_82580_SUPPORT */
 	/* hw initialization */
 #ifndef NO_I210_SUPPORT
-	if ((mac->type == e1000_i210) || (mac->type == e1000_i211))
+	if (mac->type == e1000_i210 || mac->type == e1000_i211)
 		mac->ops.init_hw = e1000_init_hw_i210;
 	else
 #endif /* NO_I210_SUPPORT */
@@ -579,12 +580,11 @@ STATIC s32 e1000_init_mac_params_82575(struct e1000_hw *hw)
 	mac->ops.acquire_swfw_sync = e1000_acquire_swfw_sync_82575;
 	mac->ops.release_swfw_sync = e1000_release_swfw_sync_82575;
 #ifndef NO_I210_SUPPORT
-	if (mac->type >= e1000_i210) {
+	if (mac->type == e1000_i210 || mac->type == e1000_i211) {
 		mac->ops.acquire_swfw_sync = e1000_acquire_swfw_sync_i210;
 		mac->ops.release_swfw_sync = e1000_release_swfw_sync_i210;
 	}
 #endif
-
 	/* set lan id for port to determine which phy lock to use */
 	hw->mac.ops.set_lan_id(hw);
 
@@ -1189,7 +1189,7 @@ STATIC void e1000_release_swfw_sync_82575(struct e1000_hw *hw, u16 mask)
 		; /* Empty */
 
 	swfw_sync = E1000_READ_REG(hw, E1000_SW_FW_SYNC);
-	swfw_sync &= ~mask;
+	swfw_sync &= (u32)~mask;
 	E1000_WRITE_REG(hw, E1000_SW_FW_SYNC, swfw_sync);
 
 	e1000_put_hw_semaphore_generic(hw);
@@ -1694,6 +1694,7 @@ STATIC s32 e1000_setup_copper_link_82575(struct e1000_hw *hw)
 #ifndef NO_I210_SUPPORT
 		case I210_I_PHY_ID:
 #endif
+		/* fall through */
 #endif /* NO_82580_SUPPORT */
 #if !defined(NO_DH89XXCC_SUPPORT) || !defined(NO_82580_SUPPORT)
 			ret_val = e1000_copper_link_setup_m88_gen2(hw);
@@ -1783,8 +1784,8 @@ STATIC s32 e1000_setup_serdes_link_82575(struct e1000_hw *hw)
 	case E1000_CTRL_EXT_LINK_MODE_1000BASE_KX:
 		/* disable PCS autoneg and support parallel detect only */
 		pcs_autoneg = false;
-		/* fall through to default case */
 #endif
+		/* Fall through */
 	default:
 		if (hw->mac.type == e1000_82575 ||
 		    hw->mac.type == e1000_82576) {
@@ -1910,7 +1911,7 @@ STATIC s32 e1000_get_media_type_82575(struct e1000_hw *hw)
 			dev_spec->sgmii_active = true;
 			break;
 		}
-		/* fall through for I2C based SGMII */
+		/* Fall through for I2C based SGMII */
 	case E1000_CTRL_EXT_LINK_MODE_PCIE_SERDES:
 		/* read media type from SFP EEPROM */
 		ret_val = e1000_set_sfp_media_type_82575(hw);
@@ -2893,7 +2894,7 @@ out:
 /**
  *  __e1000_access_emi_reg - Read/write EMI register
  *  @hw: pointer to the HW structure
- *  @addr: EMI address to program
+ *  @address: EMI address to program
  *  @data: pointer to value to read/write from/to the EMI address
  *  @read: boolean flag to indicate read or write
  **/
@@ -3120,8 +3121,8 @@ out:
 /**
  *  e1000_set_eee_i350 - Enable/disable EEE support
  *  @hw: pointer to the HW structure
- *  @adv1g: boolean flag enabling 1G EEE advertisement
- *  @adv100m: boolean flag enabling 100M EEE advertisement
+ *  @adv1G: boolean flag enabling 1G EEE advertisement
+ *  @adv100M: boolean flag enabling 100M EEE advertisement
  *
  *  Enable/disable EEE based on setting in dev_spec structure.
  *
@@ -3172,11 +3173,12 @@ out:
 	return E1000_SUCCESS;
 }
 
+#ifndef NO_XMDIO_SUPPORT
 /**
  *  e1000_set_eee_i354 - Enable/disable EEE support
  *  @hw: pointer to the HW structure
- *  @adv1g: boolean flag enabling 1G EEE advertisement
- *  @adv100m: boolean flag enabling 100M EEE advertisement
+ *  @adv1G: boolean flag enabling 1G EEE advertisement
+ *  @adv100M: boolean flag enabling 100M EEE advertisement
  *
  *  Enable/disable EEE legacy mode based on setting in dev_spec structure.
  *
@@ -3290,6 +3292,7 @@ out:
 	return ret_val;
 }
 
+#endif /* NO_XMDIO_SUPPORT */
 /* Due to a hw errata, if the host tries to  configure the VFTA register
  * while performing queries from the BMC or DMA, then the VFTA in some
  * cases won't be written.

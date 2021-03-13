@@ -61,7 +61,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LINK_SPEED_10000HALF                  0x07
 #define LINK_SPEED_10000FULL                  0x08
 #define LINK_SPEED_20000                      0x09
-#define LINK_SPEED_40000                      0x0A
+#define LINK_SPEED_25000                      0x0A
+#define LINK_SPEED_40000                      0x0B
 #define LINK_SPEED_NO_CONFIGURE_AUTO          0x10
 #define LINK_SPEED_UNKNOWN                    0x20
 

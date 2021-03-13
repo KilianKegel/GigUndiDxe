@@ -242,10 +242,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Queues packet buffer size masks where _n can be 0-3 and _s 0-63 [kB] */
 #define E1000_I210_TXPBS_SIZE(_n, _s)	((_s) << (6 * (_n)))
 
+#endif /* NO_I210_SUPPORT */
 #define E1000_MMDAC			13 /* MMD Access Control */
 #define E1000_MMDAAD			14 /* MMD Access Address/Data */
 
-#endif /* NO_I210_SUPPORT */
 /* Convenience macros
  *
  * Note: "_n" is the queue number of the register to be written to.

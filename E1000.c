@@ -409,14 +409,17 @@ E1000Transmit (
 {
   PXE_CPB_TRANSMIT_FRAGMENTS *TxFrags;
   PXE_CPB_TRANSMIT *          TxBuffer;
-  E1000_TRANSMIT_DESCRIPTOR * TransmitDescriptor;
+  E1000_TRANSMIT_DESCRIPTOR  *TransmitDescriptor;
   UINT32                      i;
   INT16                       WaitMsec;
+  EFI_STATUS                  Status;
+  UNDI_DMA_MAPPING            *TxBufMapping;
 
+  TxBufMapping = &GigAdapter->TxBufferMappings[GigAdapter->CurTxInd];
 
 
   // Transmit buffers must be freed by the upper layer before we can transmit any more.
-  if (GigAdapter->TxBufferUnmappedAddr[GigAdapter->CurTxInd] != 0) {
+  if (TxBufMapping->PhysicalAddress != 0) {
     DEBUGPRINT (CRITICAL, ("TX buffers have all been used! cur_tx=%d\n", GigAdapter->CurTxInd));
     for (i = 0; i < DEFAULT_TX_DESCRIPTORS; i++) {
       DEBUGPRINT (CRITICAL, ("%x ", GigAdapter->TxBufferUnmappedAddr[i]));
@@ -435,24 +438,23 @@ E1000Transmit (
   TxFrags   = (PXE_CPB_TRANSMIT_FRAGMENTS *) (UINTN) Cpb;
 
   // quicker pointer to the next available Tx descriptor to use.
-  TransmitDescriptor = &GigAdapter->TxRing[GigAdapter->CurTxInd];
+  TransmitDescriptor = E1000_TX_DESC (&GigAdapter->TxRing, GigAdapter->CurTxInd);
 
   // Opflags will tell us if this Tx has fragments
   // So far the linear case (the no fragments case, the else on this if) is the majority
   // of all frames sent.
   if (OpFlags & PXE_OPFLAGS_TRANSMIT_FRAGMENTED) {
-    
+
     // this count cannot be more than 8;
     DEBUGPRINT (E1000, ("Fragments %x\n", TxFrags->FragCnt));
 
     // for each fragment, give it a descriptor, being sure to keep track of the number used.
     for (i = 0; i < TxFrags->FragCnt; i++) {
-      
+
       // Put the size of the fragment in the descriptor
-      GigAdapter->TxBufferUnmappedAddr[GigAdapter->CurTxInd] = TxFrags->FragDesc[i].FragAddr;
       E1000MapMem (
         GigAdapter,
-        GigAdapter->TxBufferUnmappedAddr[GigAdapter->CurTxInd],
+        TxFrags->FragDesc[i].FragAddr,
         TxFrags->FragDesc[i].FragLen,
         (UINTN *) &TransmitDescriptor->buffer_addr
       );
@@ -460,36 +462,33 @@ E1000Transmit (
       TransmitDescriptor->lower.flags.length  = (UINT16) TxFrags->FragDesc[i].FragLen;
       TransmitDescriptor->lower.data = (E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
 
-      if (GigAdapter->VlanEnable) {
-        DEBUGPRINT (VLAN, ("1: Setting VLAN tag = %d\n", GigAdapter->VlanTag));
-        TransmitDescriptor->upper.fields.special = GigAdapter->VlanTag;
-        TransmitDescriptor->lower.data |= E1000_TXD_CMD_VLE;
-      }
 
       // If this is the last fragment we must also set the EOP bit
       if ((i + 1) == TxFrags->FragCnt) {
         TransmitDescriptor->lower.data |= E1000_TXD_CMD_EOP;
       }
-      
+
       // move our software counter passed the frame we just used, watching for wrapping
       DEBUGPRINT (E1000, ("Advancing TX pointer %x\n", GigAdapter->CurTxInd));
       GigAdapter->CurTxInd++;
       if (GigAdapter->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
         GigAdapter->CurTxInd = 0;
       }
-      TransmitDescriptor = &GigAdapter->TxRing[GigAdapter->CurTxInd];
+      TransmitDescriptor = E1000_TX_DESC (&GigAdapter->TxRing, GigAdapter->CurTxInd);
     }
   } else {
     DEBUGPRINT (E1000, ("No Fragments\n"));
 
-    GigAdapter->TxBufferUnmappedAddr[GigAdapter->CurTxInd] = TxBuffer->FrameAddr;
-    E1000MapMem (
-      GigAdapter,
-      GigAdapter->TxBufferUnmappedAddr[GigAdapter->CurTxInd],
-      TxBuffer->DataLen + TxBuffer->MediaheaderLen,
-      (UINTN *) &TransmitDescriptor->buffer_addr
-    );
+    TxBufMapping->UnmappedAddress = TxBuffer->FrameAddr;
+    TxBufMapping->Size = TxBuffer->DataLen + TxBuffer->MediaheaderLen;
 
+    // Make the Tx buffer accessible for adapter over DMA
+    Status = UndiDmaMapMemoryRead (
+               GigAdapter->PciIo,
+               TxBufMapping
+               );
+
+    TransmitDescriptor->buffer_addr = TxBufMapping->PhysicalAddress;
     DEBUGPRINT (E1000, ("Packet buffer at %x\n", TransmitDescriptor->buffer_addr));
 
     // Set the proper bits to tell the chip that this is the last descriptor in the send,
@@ -499,11 +498,6 @@ E1000Transmit (
     // RS - Report Status
     TransmitDescriptor->lower.data = (E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
     TransmitDescriptor->upper.fields.status = 0;
-    if (GigAdapter->VlanEnable) {
-      DEBUGPRINT (VLAN, ("2: Setting VLAN tag = %d\n", GigAdapter->VlanTag));
-      TransmitDescriptor->upper.fields.special = GigAdapter->VlanTag;
-      TransmitDescriptor->lower.data |= E1000_TXD_CMD_VLE;
-    }
     TransmitDescriptor->lower.data |= E1000_TXD_CMD_EOP;
     TransmitDescriptor->lower.flags.length  = (UINT16) ((UINT16) TxBuffer->DataLen + 
                                                                  TxBuffer->MediaheaderLen);
@@ -646,7 +640,7 @@ E1000Receive (
   DbReceive   = (PXE_DB_RECEIVE *) (UINTN) Db;
 
   // Get a pointer to the buffer that should have a rx in it, IF one is really there.
-  ReceiveDescriptor = &GigAdapter->RxRing[GigAdapter->CurRxInd];
+  ReceiveDescriptor = E1000_RX_DESC (&GigAdapter->RxRing, GigAdapter->CurRxInd);
 
 #if (DBG_LVL & CRITICAL)
 #if (DBG_LVL & RX)
@@ -774,7 +768,7 @@ E1000SetInterruptState (
 
   // Mask the RX interrupts
   if (GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_RECEIVE) {
-    SetIntMask = (E1000_ICR_RXT0 | 
+    SetIntMask = (E1000_ICR_RXT0 |
                   E1000_ICR_RXSEQ |
                   E1000_ICR_RXDMT0 |
                   E1000_ICR_RXO |
@@ -787,17 +781,6 @@ E1000SetInterruptState (
   if (GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_TRANSMIT) {
     SetIntMask = (E1000_ICR_TXDW | E1000_ICR_TXQE | SetIntMask);
     DEBUGPRINT (E1000, ("Mask the TX interrupts\n"));
-  }
-
-  // Mask the CMD interrupts
-  if (GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_COMMAND) {
-    SetIntMask = (E1000_ICR_GPI_EN0 |
-                  E1000_ICR_GPI_EN1 |
-                  E1000_ICR_GPI_EN2 |
-                  E1000_ICR_GPI_EN3 |
-                  E1000_ICR_LSC |
-                  SetIntMask);
-    DEBUGPRINT (E1000, ("Mask the CMD interrupts\n"));
   }
 
   // Now we have all the Ints we want, so let the hardware know.
@@ -1076,34 +1059,28 @@ E1000TxRxConfigure (
   GIG_DRIVER_DATA *GigAdapter
   )
 {
-  UINT32  TempReg;
-  UINT64  MemAddr;
-  UINT32 *MemPtr;
-  UINT16  i;
+  UINT32                    TempReg;
+  UINT64                    MemAddr;
+  UINT32                   *MemPtr;
+  UINT16                    i;
+  LOCAL_RX_BUFFER          *RxBuffer;
+  E1000_RECEIVE_DESCRIPTOR *RxDesc;
 
   DEBUGPRINT (E1000, ("E1000TxRxConfigure\n"));
 
   E1000ReceiveStop (GigAdapter);
 
-  // Setup the receive ring
-  GigAdapter->RxRing = (E1000_RECEIVE_DESCRIPTOR *) (UINTN)
-                        ((GigAdapter->MemoryPtr + BYTE_ALIGN_64) & 0xFFFFFFFFFFFFFF80 );
-
-  // Setup TX ring
-  GigAdapter->TxRing = (E1000_TRANSMIT_DESCRIPTOR *) ((UINT8 *) GigAdapter->RxRing + 
-                        (sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS));
   DEBUGPRINT (
     E1000, ("Rx Ring %x Tx Ring %X  RX size %X \n",
-    GigAdapter->RxRing,
-    GigAdapter->TxRing,
+    E1000_RX_DESC (&GigAdapter->RxRing, 0),
+    E1000_TX_DESC (&GigAdapter->TxRing, 0),
     (sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS))
   );
 
-  ZeroMem ((VOID *) GigAdapter->TxBufferUnmappedAddr, DEFAULT_TX_DESCRIPTORS * sizeof (UINT64));
+  ZeroMem (GigAdapter->TxBufferMappings, sizeof (GigAdapter->TxBufferMappings));
 
-  // Since we already have the size of the TX Ring, use it to setup the local receive buffers
-  GigAdapter->LocalRxBuffer = (LOCAL_RX_BUFFER *) ((UINT8 *) GigAdapter->TxRing +
-                                (sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS));
+  RxBuffer = (LOCAL_RX_BUFFER *) GigAdapter->RxBufferMapping.PhysicalAddress;
+
   DEBUGPRINT (
     E1000, ("Tx Ring %x Added %x\n",
     GigAdapter->TxRing,
@@ -1111,24 +1088,25 @@ E1000TxRxConfigure (
   );
   DEBUGPRINT (
     E1000, ("Local Rx Buffer %X size %X\n",
-    GigAdapter->LocalRxBuffer,
+    RxBuffer,
     (sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS))
   );
 
   // now to link the RX Ring to the local buffers
   for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
-    GigAdapter->RxRing[i].buffer_addr = (UINT64) ((UINTN) GigAdapter->LocalRxBuffer[i].RxBuffer);
-    GigAdapter->DebugRxBuffer[i] = GigAdapter->RxRing[i].buffer_addr;
-    GigAdapter->RxRing[i].status = E1000_RXD_STAT_IXSM;
-    DEBUGPRINT (E1000, ("Rx Local Buffer %X\n", (GigAdapter->RxRing[i]).buffer_addr));
+    RxDesc = E1000_RX_DESC (&GigAdapter->RxRing, i);
+    RxDesc->buffer_addr = (UINT64) ((UINTN) RxBuffer[i].RxBuffer);
+    GigAdapter->DebugRxBuffer[i] = RxDesc->buffer_addr;
+    RxDesc->status = E1000_RXD_STAT_IXSM;
+    DEBUGPRINT (E1000, ("Rx Local Buffer %X\n", (RxDesc->buffer_addr)));
   }
   
   // Setup the RDBA, RDLEN
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAL (0), (UINT32) (UINTN) (GigAdapter->RxRing));
+  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAL (0), (UINT32) (UINTN) (GigAdapter->RxRing.PhysicalAddress));
 
   // Set the MemPtr to the high dword of the rx_ring so we can store it in RDBAH0.
   // Right shifts do not seem to work with the EFI compiler so we do it like this for now.
-  MemAddr = (UINT64) (UINTN) GigAdapter->RxRing;
+  MemAddr = (UINT64) (UINTN) GigAdapter->RxRing.PhysicalAddress;
   MemPtr  = &((UINT32) MemAddr);
   MemPtr++;
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAH (0), *MemPtr);
@@ -1141,7 +1119,7 @@ E1000TxRxConfigure (
 
   DEBUGPRINT (E1000, ("Rdbal0 %X\n", (UINT32) E1000_READ_REG (&GigAdapter->Hw, E1000_RDBAL (0))));
   DEBUGPRINT (E1000, ("RdBah0 %X\n", (UINT32) E1000_READ_REG (&GigAdapter->Hw, E1000_RDBAH (0))));
-  DEBUGPRINT (E1000, ("Rx Ring %X\n", GigAdapter->RxRing));
+  DEBUGPRINT (E1000, ("Rx Ring %X\n", GigAdapter->RxRing.PhysicalAddress));
   
   // Set the transmit tail equal to the head pointer (we do not want hardware to try to
   // transmit packets yet).
@@ -1205,8 +1183,8 @@ E1000TxRxConfigure (
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_PSRCTL, 0);
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_MRQC, 0);
 
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAL (0), (UINT32) (UINTN) (GigAdapter->TxRing));
-  MemAddr = (UINT64) (UINTN) GigAdapter->TxRing;
+  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAL (0), (UINT32) (UINTN) (GigAdapter->TxRing.PhysicalAddress));
+  MemAddr = (UINT64) (UINTN) GigAdapter->TxRing.PhysicalAddress;
   MemPtr  = &((UINT32) MemAddr);
   MemPtr++;
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAH (0), *MemPtr);
@@ -1248,7 +1226,131 @@ E1000TxRxConfigure (
 
   E1000PciFlush (&GigAdapter->Hw);
 }
+/** This function performs PCI-E initialization for the device.
 
+   @param[in]   GigAdapter   Pointer to adapter structure
+
+   @retval   EFI_SUCCESS            PCI-E initialized successfully
+   @retval   EFI_UNSUPPORTED        Failed to get supported PCI command options
+   @retval   EFI_UNSUPPORTED        Failed to set PCI command options
+   @retval   EFI_OUT_OF_RESOURCES   The memory pages for transmit and receive resources could
+                                    not be allocated
+**/
+EFI_STATUS
+E1000PciInit (
+  GIG_DRIVER_DATA *GigAdapter
+  )
+{
+  EFI_STATUS Status;
+  UINT64     Result = 0;
+  BOOLEAN    PciAttributesSaved = FALSE;
+
+  // Save original PCI attributes
+  Status = GigAdapter->PciIo->Attributes (
+                                GigAdapter->PciIo,
+                                EfiPciIoAttributeOperationGet,
+                                0,
+                                &GigAdapter->OriginalPciAttributes
+                               );
+
+  if (EFI_ERROR (Status)) {
+    goto PciIoError;
+  }
+  PciAttributesSaved = TRUE;
+
+  // Get the PCI Command options that are supported by this controller.
+  Status = GigAdapter->PciIo->Attributes (
+                                GigAdapter->PciIo,
+                                EfiPciIoAttributeOperationSupported,
+                                0,
+                                &Result
+                              );
+
+  DEBUGPRINT (INIT, ("Attributes supported %x\n", Result));
+
+  if (!EFI_ERROR (Status)) {
+
+    // Set the PCI Command options to enable device memory mapped IO,
+    // port IO, and bus mastering.
+    Status = GigAdapter->PciIo->Attributes (
+                                  GigAdapter->PciIo,
+                                  EfiPciIoAttributeOperationEnable,
+                                  Result & (EFI_PCI_DEVICE_ENABLE |
+                                            EFI_PCI_IO_ATTRIBUTE_DUAL_ADDRESS_CYCLE),
+                                  NULL
+                                );
+  }
+
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("Attributes returns %r\n", Status));
+    goto PciIoError;
+  }
+
+  // Allocate common DMA buffer for Tx descriptors
+  GigAdapter->TxRing.Size = TX_RING_SIZE;
+
+  Status = UndiDmaAllocateCommonBuffer (
+             GigAdapter->PciIo,
+             &GigAdapter->TxRing
+             );
+
+  if (EFI_ERROR (Status)) {
+    goto OnAllocError;
+  }
+
+  // Allocate common DMA buffer for Rx descriptors
+  GigAdapter->RxRing.Size = RX_RING_SIZE;
+
+  Status = UndiDmaAllocateCommonBuffer (
+             GigAdapter->PciIo,
+             &GigAdapter->RxRing
+             );
+
+  if (EFI_ERROR (Status)) {
+    goto OnAllocError;
+  }
+
+  // Allocate common DMA buffer for Rx buffers
+  GigAdapter->RxBufferMapping.Size = RX_BUFFERS_SIZE;
+
+  Status = UndiDmaAllocateCommonBuffer (
+             GigAdapter->PciIo,
+             &GigAdapter->RxBufferMapping
+             );
+
+  if (EFI_ERROR (Status)) {
+    goto OnAllocError;
+  }
+
+  return EFI_SUCCESS;
+
+OnAllocError:
+      if (GigAdapter->TxRing.Mapping != NULL) {
+        UndiDmaFreeCommonBuffer (GigAdapter->PciIo, &GigAdapter->TxRing);
+      }
+
+      if (GigAdapter->RxRing.Mapping != NULL) {
+        UndiDmaFreeCommonBuffer (GigAdapter->PciIo, &GigAdapter->RxRing);
+      }
+
+      if (GigAdapter->RxBufferMapping.Mapping != NULL) {
+        UndiDmaFreeCommonBuffer (GigAdapter->PciIo, &GigAdapter->RxBufferMapping);
+      }
+
+PciIoError:
+  if (PciAttributesSaved) {
+
+    // Restore original PCI attributes
+    GigAdapter->PciIo->Attributes (
+                         GigAdapter->PciIo,
+                         EfiPciIoAttributeOperationSet,
+                         GigAdapter->OriginalPciAttributes,
+                         NULL
+                       );
+  }
+
+    return Status;
+}
 /** This function is called as early as possible during driver start to ensure the
    hardware has enough time to autonegotiate when the real SNP device initialize call is made.
 
@@ -1475,7 +1577,20 @@ E1000Inititialize (
   PxeStatcode = PXE_STATCODE_SUCCESS;
   TempBar = NULL;
 
-  ZeroMem ((VOID *) ((UINTN) GigAdapter->MemoryPtr), MEMORY_NEEDED);
+  ZeroMem (
+    (VOID *) GigAdapter->RxRing.UnmappedAddress,
+    RX_RING_SIZE
+    );
+
+  ZeroMem (
+    (VOID *) GigAdapter->TxRing.UnmappedAddress,
+    TX_RING_SIZE
+    );
+
+  ZeroMem (
+    (VOID *) GigAdapter->RxBufferMapping.UnmappedAddress,
+    RX_BUFFERS_SIZE
+    );
 
 
   DEBUGWAIT (E1000);
@@ -1783,7 +1898,7 @@ E1000ReceiveStop (
     )
   {
     // Clean up any left over packets
-    ReceiveDesc = GigAdapter->RxRing;
+    ReceiveDesc = E1000_RX_DESC (&GigAdapter->RxRing, 0);
     for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
       ReceiveDesc->length = 0;
       ReceiveDesc->status = 0;
@@ -1818,7 +1933,6 @@ E1000ReceiveStart (
     return;
   }
 
-  GigAdapter->IntStatus  = 0;
   TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
   TempReg |= (E1000_RCTL_EN | E1000_RCTL_BAM);
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, TempReg);
@@ -2015,6 +2129,7 @@ E1000FreeTxBuffers (
   E1000_TRANSMIT_DESCRIPTOR *TransmitDescriptor;
   UINT32                     Tdh;
   UINT16                     i;
+  UNDI_DMA_MAPPING          *TxBufMapping;
 
   DEBUGPRINT (E1000, ("E1000FreeTxBuffers\n"));
 
@@ -2031,25 +2146,24 @@ E1000FreeTxBuffers (
       break;
     }
 
-    TransmitDescriptor = &GigAdapter->TxRing[GigAdapter->XmitDoneHead];
+    TransmitDescriptor = E1000_TX_DESC (&GigAdapter->TxRing, GigAdapter->XmitDoneHead);
+    TxBufMapping = &GigAdapter->TxBufferMappings[GigAdapter->XmitDoneHead];
+
     if ((TransmitDescriptor->upper.fields.status & E1000_TXD_STAT_DD) != 0) {
 
-      if (GigAdapter->TxBufferUnmappedAddr[GigAdapter->XmitDoneHead] == 0) {
+      if (TxBufMapping->UnmappedAddress == 0) {
         DEBUGPRINT (CRITICAL, ("ERROR: TX buffer complete without being marked used!\n"));
         break;
       }
 
       DEBUGPRINT (E1000, ("Writing buffer address %d, %x\n", i, TxBuffer[i]));
-      TxBuffer[i] = GigAdapter->TxBufferUnmappedAddr[GigAdapter->XmitDoneHead];
+      UndiDmaUnmapMemory (GigAdapter->PciIo, TxBufMapping);
+
+      TxBuffer[i] = TxBufMapping->UnmappedAddress;
       i++;
 
-      E1000UnMapMem (
-        GigAdapter,
-        GigAdapter->TxBufferUnmappedAddr[GigAdapter->XmitDoneHead],
-        TransmitDescriptor->lower.flags.length,
-        TransmitDescriptor->buffer_addr
-      );
-      GigAdapter->TxBufferUnmappedAddr[GigAdapter->XmitDoneHead] = 0;
+
+      ZeroMem (TxBufMapping, sizeof (UNDI_DMA_MAPPING));
       TransmitDescriptor->upper.fields.status = 0;
 
       GigAdapter->XmitDoneHead++;

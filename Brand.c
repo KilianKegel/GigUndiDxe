@@ -156,6 +156,9 @@ BRAND_STRUCT mBrandingTable[] = {
     {0x8086, 0x1028, 0x1521, 0x1FAA, L"Intel(R) Gigabit 4P X550/I350 rNDC"},
     {0x8086, 0x1028, 0x1521, 0x0757, L"Intel(R) Gigabit I350-t LOM"},
 
+    // Cisco
+    {0x8086, 0x1137, 0x1521, 0x023E, L"Cisco 1GigE I350 LOM"},
+
     // HP branded devices
     {0x8086, 0x103C, 0x1521, 0x2226, L"HPE Ethernet 1Gb 1-port 364i Adapter"},
     {0x8086, 0x103C, 0x1521, 0x337F, L"HPE Ethernet 1Gb 2-port 361i Adapter"},

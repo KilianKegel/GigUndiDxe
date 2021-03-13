@@ -61,6 +61,9 @@ void e1000_init_nvm_ops_generic(struct e1000_hw *hw)
 /**
  *  e1000_null_nvm_read - No-op function, return 0
  *  @hw: pointer to the HW structure
+ *  @a: dummy variable
+ *  @b: dummy variable
+ *  @c: dummy variable
  **/
 s32 e1000_null_read_nvm(struct e1000_hw E1000_UNUSEDARG *hw,
 			u16 E1000_UNUSEDARG a, u16 E1000_UNUSEDARG b,
@@ -85,6 +88,7 @@ void e1000_null_nvm_generic(struct e1000_hw E1000_UNUSEDARG *hw)
 /**
  *  e1000_null_led_default - No-op function, return 0
  *  @hw: pointer to the HW structure
+ *  @data: dummy variable
  **/
 s32 e1000_null_led_default(struct e1000_hw E1000_UNUSEDARG *hw,
 			   u16 E1000_UNUSEDARG *data)
@@ -97,6 +101,9 @@ s32 e1000_null_led_default(struct e1000_hw E1000_UNUSEDARG *hw,
 /**
  *  e1000_null_write_nvm - No-op function, return 0
  *  @hw: pointer to the HW structure
+ *  @a: dummy variable
+ *  @b: dummy variable
+ *  @c: dummy variable
  **/
 s32 e1000_null_write_nvm(struct e1000_hw E1000_UNUSEDARG *hw,
 			 u16 E1000_UNUSEDARG a, u16 E1000_UNUSEDARG b,
@@ -798,8 +805,9 @@ s32 e1000_read_pba_string_generic(struct e1000_hw *hw, u8 *pba_num,
 	DEBUGFUNC("e1000_read_pba_string_generic");
 
 #ifndef NO_I210_SUPPORT
-	if ((hw->mac.type >= e1000_i210) &&
-	    !e1000_get_flash_presence_i210(hw)) {
+	if ((hw->mac.type == e1000_i210 ||
+	     hw->mac.type == e1000_i211) &&
+	     !e1000_get_flash_presence_i210(hw)) {
 		DEBUGOUT("Flashless no PBA string\n");
 		return -E1000_ERR_NVM_PBA_SECTION;
 	}

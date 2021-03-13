@@ -180,8 +180,10 @@ IsDeviceIdSupported (
 
   if (VendorId == INTEL_VENDOR_ID) {
     for (i = 0; i < mBrandingTableSize; i++) {
-      if (DeviceId == mBrandingTable[i].DeviceId) {
-        return TRUE;
+      if (mBrandingTable[i].DeviceId != INVALID_DEVICE_ID) {
+        if (DeviceId == mBrandingTable[i].DeviceId) {
+          return TRUE;
+        }
       }
     }
   }

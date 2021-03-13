@@ -66,6 +66,8 @@ DeviceSupport.h
 DeviceSupport.c
 Decode.c
 Decode.h
+Dma.c
+Dma.h
 DriverConfiguration.c
 DriverConfiguration.h
 DriverDiagnostics.c
@@ -107,8 +109,6 @@ Init.h
 NVDataStruc.h
 StartStop.h
 StartStop.c
-Vlan.h
-Vlan.c
 Hii.c
 Hii.h
 AdapterInformation.c
