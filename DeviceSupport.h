@@ -81,4 +81,19 @@ IsDeviceIdSupported (
   UINT16 VendorId,
   UINT16 DeviceId
   );
+
+/** Seeks for current device's entry in branding table
+
+   @param[in]   UndiPrivateData   Driver private data structure
+   @param[in]   ExactMatch        Indicator whether full 4-part device ID match is expected.
+                                  If FALSE, function returns best matching device's info.
+
+   @return   Device info structure pointer when match was found, NULL otherwise.
+**/
+BRAND_STRUCT*
+FindDeviceInTable (
+  UNDI_PRIVATE_DATA *UndiPrivateData,
+  BOOLEAN            ExactMatch
+  );
+
 #endif /* DEVICE_SUPPORT_H_ */

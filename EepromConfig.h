@@ -31,6 +31,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "E1000.h"
 
+typedef enum {
+  ADAPTER_PF_STATE_DISABLED = 0,
+  ADAPTER_PF_STATE_ENABLED = 1
+} ADAPTER_PF_STATE;
+
+
+#ifndef BIT
+#define BIT(a) (1UL << (a))
+#endif /* BIT */
+
 // EEPROM power management bit definitions
 #define E1000_INIT_CONTROL_WORD1          0x0A
 #define E1000_PME_ENABLE_BIT              0x0008
@@ -66,7 +76,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_HARTW_FLASH_LAN_ADDRESS     0x21
 #define E1000_HARTW_EXP_ROM_DISABLE       0x80  /* bit 7 */
 
-#define LAN1_BASE_ADDRESS_82580                   0x80
+#define E1000_SDP_CONTROL                 0x20
+#define E1000_SDP_CONTROL_LAN_DIS_BIT     BIT (11)
+
+#define LAN1_BASE_ADDRESS_82580           0x80
 #define LAN2_BASE_ADDRESS_82580           0xC0
 #define LAN3_BASE_ADDRESS_82580           0x100
 
@@ -203,5 +216,6 @@ EFI_STATUS
 EepromUpdateChecksum (
   IN  UNDI_PRIVATE_DATA *UndiPrivateData
   );
+
 
 #endif /* EEPROM_CONFIG_H_ */

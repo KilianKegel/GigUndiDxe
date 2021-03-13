@@ -183,3 +183,8 @@ WOL_STATUS _WolEnableLaser(WOL_ADAPTER_HANDLE_TYPE Handle, BOOLEAN Enable)
   return WOL_FEATURE_NOT_SUPPORTED;
 }
 
+WOL_STATUS _WolSetApmRegister_1G (WOL_ADAPTER_HANDLE_TYPE Handle, BOOLEAN Enable)
+{
+  return WOL_SUCCESS;
+}
+

@@ -187,3 +187,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     return Handle->NicInfo.Function;
   }
 
+
+  WOL_STATUS WolSetApmRegister (WOL_ADAPTER_HANDLE_TYPE Handle, BOOLEAN Enable)
+  {
+    return _WolSetApmRegister_1G (Handle, Enable);
+  }

@@ -133,12 +133,13 @@ struct e1000_hw;
 #define E1000_DEV_ID_PCH_TGP_I219_LM14		0x15F9
 #define E1000_DEV_ID_PCH_TGP_I219_V14		0x15FA
 #define E1000_DEV_ID_PCH_TGP_I219_LM15		0x15F4
+#define E1000_DEV_ID_PCH_TGP_I219_V15		0x15F5
 #endif /* NAHUM9_HW */
 #ifdef NAHUM10_HW
-#define E1000_DEV_ID_PCH_ADL_1219_LM16		0x1A1E
-#define E1000_DEV_ID_PCH_ADL_1219_V16		0x1A1F
-#define E1000_DEV_ID_PCH_ADL_1219_LM17		0x1A1C
-#define E1000_DEV_ID_PCH_ADL_1219_V17		0x1A1D
+#define E1000_DEV_ID_PCH_ADL_I219_LM16		0x1A1E
+#define E1000_DEV_ID_PCH_ADL_I219_V16		0x1A1F
+#define E1000_DEV_ID_PCH_ADL_I219_LM17		0x1A1C
+#define E1000_DEV_ID_PCH_ADL_I219_V17		0x1A1D
 #endif /* NAHUM10_HW */
 #endif /* NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT
@@ -1015,6 +1016,9 @@ void e1000_read_pci_cfg(struct e1000_hw *hw, u32 reg, u16 *value);
 #endif
 #ifndef NO_PCIX_SUPPORT
 void e1000_write_pci_cfg(struct e1000_hw *hw, u32 reg, u16 *value);
+#ifdef PREBOOT_SUPPORT
+void e1000_write_pci_cfg_pb(struct e1000_hw *hw, u32 reg, u16 *value);
+#endif /* PREBOOT_SUPPORT */
 #endif
 
 #endif

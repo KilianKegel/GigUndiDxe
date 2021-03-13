@@ -92,9 +92,10 @@ static WOL_MAC_TYPE const _WOL_BARTONHILLS[] = {
 
 #if defined(WOL_ICE)
 WOL_MAC_TYPE const _WOL_ICE[] = {
+#if defined(E810C_SUPPORT) || defined(E810_XXV_SUPPORT)
+  WOL_MAKE_MACTYPE(WOL_ICE, ICE_MAC_E810),
+#endif /* E810C_SUPPORT || E810_XXV_SUPPORT */
   WOL_MAKE_MACTYPE(WOL_ICE, ICE_MAC_GENERIC),
-  //3 is for ICE_MAC_DISCRETE (TODO: replace when ready)
-  WOL_MAKE_MACTYPE(WOL_ICE, 3), 
   0
 };
 #endif

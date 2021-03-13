@@ -29,7 +29,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "DeviceSupport.h"
 
+#if !defined (SWITCH_MODE)
 #include "EepromConfig.h"
+#endif /* !defined (UNDI_IAVF) && !defined (SWITCH_MODE) */
 
 
 /** Seeks for current device's entry in branding table

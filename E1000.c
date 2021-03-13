@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+
 /* Global variables for blocking IO */
 STATIC BOOLEAN  mInitializeLock = TRUE;
 STATIC EFI_LOCK mLock;
@@ -1223,6 +1224,8 @@ E1000TxRxConfigure (
     if (i >= 1000) {
       DEBUGPRINT (CRITICAL, ("Enable TX queue failed!\n"));
     }
+    AdapterInfo->CurTxInd = 0;
+    AdapterInfo->XmitDoneHead = 0;
   }
 
 
@@ -2464,3 +2467,4 @@ DelayInMicroseconds (
     gBS->Stall (MicroSeconds);
   }
 }
+

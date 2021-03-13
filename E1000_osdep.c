@@ -264,7 +264,7 @@ e1000_write_pci_cfg (
 }
 
 /** This function calls the EFI PCI IO protocol to write a value to the device's PCI
-   register space, omitting IsSurpriseRemoval check
+   register space, omitting IsSurpriseRemoval check.
 
    @param[in]   Hw      Pointer to the shared code hw structure.
    @param[in]   Port    Which register to write to.
@@ -275,8 +275,8 @@ e1000_write_pci_cfg (
 VOID
 e1000_write_pci_cfg_pb (
   struct e1000_hw *Hw,
-  UINT32           Port,
-  UINT16 *         Value
+  UINT32          Port,
+  UINT16          *Value
   )
 {
   DRIVER_DATA *AdapterInfo = Hw->back;
@@ -288,7 +288,7 @@ e1000_write_pci_cfg_pb (
                             Port,
                             1,
                             (VOID *) Value
-                          );
+                            );
   MemoryFence ();
 
   return;

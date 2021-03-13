@@ -137,6 +137,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // EEPROM Word Defines:
 #define INIT_CONTROL_WORD_2                 0x0F
+#define INIT_CONTROL_WORD_2_PWR_DOWN_BIT    BIT (6)
 #define PCIE_CONTROL                        0x1B
 #define FUNC_CONTROL_WORD                   0x21
 #define PCIE_CONTROL_2                      0x28
@@ -539,6 +540,12 @@ typedef struct {
   UINT8  McAddr[MAX_MCAST_ADDRESS_CNT][PXE_MAC_LENGTH]; // 8*32 is the size
 } MCAST_LIST;
 
+typedef struct PDA_WHITELIST_ENTRY_S {
+  UINT16  Offset;
+  UINT16  Length;
+  BOOLEAN WriteAllowed;
+} PDA_WHITELIST_ENTRY;
+
 typedef struct DRIVER_DATA_S {
   UINT16                State; // stopped, started or initialized
 
@@ -650,6 +657,8 @@ typedef struct UNDI_PRIVATE_DATA_S {
 
   UINT32                           LastAttemptVersion;
   UINT32                           LastAttemptStatus;
+
+  PDA_WHITELIST_ENTRY              *PdaWhiteList;
 } UNDI_PRIVATE_DATA;
 
 typedef struct {
@@ -657,6 +666,18 @@ typedef struct {
   E1000_TRANSMIT_DESCRIPTOR TxRing[DEFAULT_TX_DESCRIPTORS];
   LOCAL_RX_BUFFER           RxBuffer[DEFAULT_RX_DESCRIPTORS];
 } GIG_UNDI_DMA_RESOURCES;
+
+typedef struct {
+  UINT8                     Pf0:1;
+  UINT8                     Pf1:1;
+  UINT8                     Pf2:1;
+  UINT8                     Pf3:1;
+} ACTIVE_PHYSICAL_FUNCTIONS;
+
+typedef union {
+  ACTIVE_PHYSICAL_FUNCTIONS   PhysicalFunction;
+  UINT8                       Mask;
+} ALLOWED_PFS_STATE_VALUES;
 
 #define BYTE_ALIGN_64    0x7F
 

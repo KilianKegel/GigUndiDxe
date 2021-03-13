@@ -33,6 +33,7 @@ extern WOL_STATUS _WolEnableLaser(WOL_ADAPTER_HANDLE_TYPE Handle, BOOLEAN Enable
 extern BOOLEAN _WolGetInfoFromEeprom_10G(WOL_ADAPTER_HANDLE_TYPE Handle);
 extern BOOLEAN _WolGetInfoFromEeprom_40G(WOL_ADAPTER_HANDLE_TYPE Handle);
 extern BOOLEAN _WolGetInfoFromEeprom_100G(WOL_ADAPTER_HANDLE_TYPE Handle);
+extern WOL_STATUS WolSetApmRegister(WOL_ADAPTER_HANDLE_TYPE Handle, BOOLEAN Enable);
 
 static BOOLEAN _WolIsDevInfoEmpty(_WOL_DEVICE_INFO_t const *DeviceInfo)
 {
@@ -391,6 +392,11 @@ WolEnableWakeOnLan (
 #if defined (WOL_ICE)
     }
 #endif /* WOL_ICE */
+
+    Status = WolSetApmRegister (Handle, Enable);
+    if (Status != WOL_SUCCESS) {
+      return Status;
+    }
 
 #if defined(WOL_1G)
 {

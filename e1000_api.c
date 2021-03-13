@@ -251,14 +251,15 @@ s32 e1000_set_mac_type(struct e1000_hw *hw)
 	case E1000_DEV_ID_PCH_TGP_I219_LM14:
 	case E1000_DEV_ID_PCH_TGP_I219_V14:
 	case E1000_DEV_ID_PCH_TGP_I219_LM15:
+	case E1000_DEV_ID_PCH_TGP_I219_V15:
 		mac->type = e1000_pch_tgp;
 		break;
 #endif /* NAHUM9_HW */
 #ifdef NAHUM10_HW
-	case E1000_DEV_ID_PCH_ADL_1219_LM16:
-	case E1000_DEV_ID_PCH_ADL_1219_V16:
-	case E1000_DEV_ID_PCH_ADL_1219_LM17:
-	case E1000_DEV_ID_PCH_ADL_1219_V17:
+	case E1000_DEV_ID_PCH_ADL_I219_LM16:
+	case E1000_DEV_ID_PCH_ADL_I219_V16:
+	case E1000_DEV_ID_PCH_ADL_I219_LM17:
+	case E1000_DEV_ID_PCH_ADL_I219_V17:
 		mac->type = e1000_pch_adp;
 		break;
 #endif /* NAHUM10_HW */

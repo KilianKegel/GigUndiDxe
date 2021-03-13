@@ -38,12 +38,14 @@ typedef EFI_STATUS WOL_STATUS;
 
 #define WOL_SUCCESS               EFI_SUCCESS
 #define WOL_FEATURE_NOT_SUPPORTED EFI_UNSUPPORTED
+#define WOL_ERROR                 EFI_DEVICE_ERROR
 #else /* HAF */
 typedef NAL_ADAPTER_HANDLE const WOL_ADAPTER_HANDLE_TYPE;
 typedef HAF_STATUS WOL_STATUS;
 
 #define WOL_SUCCESS               HAF_SUCCESS
 #define WOL_FEATURE_NOT_SUPPORTED HAF_FEATURE_NOT_SUPPORTED
+#define WOL_ERROR                 HAF_ERROR
 #endif
 
 #define E1000_HW_PTR(Handle) (&Handle->NicInfo.Hw)

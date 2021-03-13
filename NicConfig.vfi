@@ -59,27 +59,6 @@ form  formid = FORM_NIC,
     endnumeric;
   endif;
 
-  grayoutif ideqval UndiNVData.LinkSpeedSettingsSupported == 0;
-
-    oneof name          = LinkSpeed,
-          varid         = UndiNVData.LinkSpeed,
-          questionid    = QUESTION_ID_LINK_SPEED,
-          prompt        = STRING_TOKEN(STR_LINK_SPEED_PROMPT),
-          help          = STRING_TOKEN(STR_LINK_SPEED_HELP),
-          flags         = 0,
-          option text   = STRING_TOKEN(STR_AUTONEG_TEXT), value = LINK_SPEED_AUTO_NEG,  flags = DEFAULT;
-
-          suppressif ideqval UndiNVData.LinkSpeedSettingsSupported == 0;
-            option text = STRING_TOKEN(STR_10HALF_TEXT),   value = LINK_SPEED_10HALF,   flags = 0;
-            option text = STRING_TOKEN(STR_10FULL_TEXT),   value = LINK_SPEED_10FULL,   flags = 0;
-            option text = STRING_TOKEN(STR_100HALF_TEXT),  value = LINK_SPEED_100HALF,  flags = 0;
-            option text = STRING_TOKEN(STR_100FULL_TEXT),  value = LINK_SPEED_100FULL,  flags = 0;
-          endif
-
-    endoneof;
-
-  endif;
-
   suppressif TRUE;
 
     numeric name          = WolSettingsSupported,

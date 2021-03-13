@@ -126,6 +126,7 @@ s32 e1000_mng_write_dhcp_info(struct e1000_hw *hw, u8 *buffer, u16 length);
 
 
 
+
 /*
  * TBI_ACCEPT macro definition:
  *

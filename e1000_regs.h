@@ -73,6 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_FEXTNVM11	0x5BBC  /* Future Extended NVM 11 - RW */
 #define E1000_FEXTNVM12	0x5BC0  /* Future Extended NVM 12 - RW */
 #define E1000_PCIEANACFG	0x00F18 /* PCIE Analog Config */
+#define E1000_DPGFR	0x00FAC	/* Dynamic Power Gate Force Control Register */
 #endif /* NO_ICH8LAN_SUPPORT */
 #define E1000_FCT	0x00030  /* Flow Control Type - RW */
 #if !defined(NO_82575_SUPPORT) 
@@ -818,7 +819,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 #if !defined(NO_I210_SUPPORT) 
-#if defined(I225_LTR_SUPPORT)
+#if !defined(I225_LTR_SUPPORT)
 #define E1000_LTRMINV	0x5BB0 /* LTR Minimum Value */
 #define E1000_LTRMAXV	0x5BB4 /* LTR Maximum Value */
 #endif /* I210_LTR_SUPPORT || I225_LTR_SUPPORT */

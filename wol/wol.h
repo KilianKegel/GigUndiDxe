@@ -94,5 +94,16 @@ WolEnableWakeOnLan_Ice (
   IN    BOOLEAN                     Enable
 );
 
+WOL_STATUS
+WolSetApmRegister_10G (
+  IN    WOL_ADAPTER_HANDLE_TYPE Handle,
+  IN    BOOLEAN Enable
+  );
+
+WOL_STATUS
+_WolSetApmRegister_1G (
+  IN    WOL_ADAPTER_HANDLE_TYPE Handle,
+  IN    BOOLEAN Enable
+  );
 #endif /* __WOL_H */
 

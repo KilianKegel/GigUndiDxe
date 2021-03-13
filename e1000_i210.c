@@ -803,7 +803,11 @@ STATIC s32 e1000_pll_workaround_i210(struct e1000_hw *hw)
 		e1000_write_pci_cfg(hw, E1000_PCI_PMCSR, &pci_word);
 		msec_delay(1);
 		pci_word &= ~E1000_PCI_PMCSR_D3;
+#ifdef PREBOOT_SUPPORT
+		e1000_write_pci_cfg_pb(hw, E1000_PCI_PMCSR, &pci_word);
+#else
 		e1000_write_pci_cfg(hw, E1000_PCI_PMCSR, &pci_word);
+#endif /* PREBOOT_SUPPORT */
 		reg_val = (E1000_INVM_AUTOLOAD << 4) | (nvm_word << 16);
 		E1000_WRITE_REG(hw, E1000_EEARBC_I210, reg_val);
 

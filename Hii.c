@@ -168,6 +168,7 @@ ExtractConfig (
     ConfigRequest = AllocateZeroPool (Size);
     if (ConfigRequest == NULL) {
       DEBUGPRINT (CRITICAL, ("Failed to allocate ConfigRequest!\n"));
+      FreePool (ConfigRequestHdr);
       return EFI_OUT_OF_RESOURCES;
     }
 
@@ -282,6 +283,8 @@ ExtractConfig (
       LastElementWidth = UNDI_CONFIG_WIDTH (AltMacAddrSupport);
       continue;
     }
+
+
 
 
     if (ElementOffset == UNDI_CONFIG_OFFSET (LinkSpeedSettingsSupported)) {
@@ -850,16 +853,13 @@ HiiSetMenuStrings (
           DEBUGWAIT (CRITICAL);
           return Status;
         }
-      } else if (UndiPrivateData->NicInfo.Hw.mac.type == e1000_i211) {
+      } else {
+        // Fill PBA String with "N/A" in case of read error
         StrCpyS (
           PBAString,
           HII_STRING_LEN,
           L"N/A"
         );
-      } else {
-        DEBUGPRINT (CRITICAL, ("ReadPbaString error\n"));
-        DEBUGWAIT (CRITICAL);
-        return EFI_DEVICE_ERROR;
       }
       StringId = HiiSetString (
                    UndiPrivateData->HiiHandle,
@@ -904,7 +904,6 @@ HiiConfigureStandardFeaturesSupport (
 
   return EFI_SUCCESS;
 }
-
 
 /** Initializes HII inventory packages
 
