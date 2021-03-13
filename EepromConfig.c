@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DeviceSupport.h"
 
 
+
 /** Gets LAN speed setting for port
 
    @param[in]   UndiPrivateData    Pointer to adapter structure

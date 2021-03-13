@@ -63,6 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_FEXTNVM	0x00028  /* Future Extended NVM - RW */
 #define E1000_FEXTNVM3	0x0003C  /* Future Extended NVM 3 - RW */
 #define E1000_FEXTNVM4	0x00024  /* Future Extended NVM 4 - RW */
+#define E1000_FEXTNVM5	0x00014  /* Future Extended NVM 5 - RW */
 #define E1000_FEXTNVM6	0x00010  /* Future Extended NVM 6 - RW */
 #define E1000_FEXTNVM7	0x000E4  /* Future Extended NVM 7 - RW */
 #define E1000_FEXTNVM9	0x5BB4  /* Future Extended NVM 9 - RW */
@@ -799,6 +800,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_LTRC	0x01A0 /* Latency Tolerance Reporting Control */
 #define E1000_EEER	0x0E30 /* Energy Efficient Ethernet "EEE"*/
 #define E1000_EEE_SU	0x0E34 /* EEE Setup */
+#define E1000_EEE_SU_2P5	0x0E3C /* EEE 2.5G Setup */
 #define E1000_TLPIC	0x4148 /* EEE Tx LPI Count - TLPIC */
 #define E1000_RLPIC	0x414C /* EEE Rx LPI Count - RLPIC */
 

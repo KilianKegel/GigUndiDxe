@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _E1000_MANAGE_H_
 #define _E1000_MANAGE_H_
 
+#ifndef NO_82571_SUPPORT
 bool e1000_check_mng_mode_generic(struct e1000_hw *hw);
 bool e1000_enable_tx_pkt_filtering_generic(struct e1000_hw *hw);
 s32  e1000_mng_enable_host_if_generic(struct e1000_hw *hw);
@@ -38,6 +39,7 @@ s32  e1000_mng_write_cmd_header_generic(struct e1000_hw *hw,
 				     struct e1000_host_mng_command_header *hdr);
 s32  e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw,
 				       u8 *buffer, u16 length);
+#endif /* NO_82571_SUPPORT */
 bool e1000_enable_mng_pass_thru(struct e1000_hw *hw);
 #if !defined(NO_82575_SUPPORT) 
 u8 e1000_calculate_checksum(u8 *buffer, u32 length);
@@ -66,18 +68,22 @@ enum e1000_mng_mode {
 #define E1000_FWSM_HI_EN_ONLY_MODE		0x4
 #endif /* NO_I210_SUPPORT */
 
+#ifndef NO_ICH8LAN_SUPPORT
 #define E1000_MNG_IAMT_MODE			0x3
 #define E1000_MNG_DHCP_COOKIE_LENGTH		0x10
 #define E1000_MNG_DHCP_COOKIE_OFFSET		0x6F0
 #define E1000_MNG_DHCP_COMMAND_TIMEOUT		10
 #define E1000_MNG_DHCP_TX_PAYLOAD_CMD		64
 #define E1000_MNG_DHCP_COOKIE_STATUS_PARSING	0x1
+#endif /* NO_ICH8LAN_SUPPORT */
 #define E1000_MNG_DHCP_COOKIE_STATUS_VLAN	0x2
 
+#ifndef NO_82571_SUPPORT
 #define E1000_VFTA_ENTRY_SHIFT			5
 #define E1000_VFTA_ENTRY_MASK			0x7F
 #define E1000_VFTA_ENTRY_BIT_SHIFT_MASK		0x1F
 
+#endif /* NO_82571_SUPPORT */
 #if !defined(NO_82575_SUPPORT) 
 #define E1000_HI_MAX_BLOCK_BYTE_LENGTH		1792 /* Num of bytes in range */
 #define E1000_HI_MAX_BLOCK_DWORD_LENGTH		448 /* Num of dwords in range */
@@ -93,9 +99,11 @@ enum e1000_mng_mode {
 /* Driver sets this bit when done to put command in RAM */
 #define E1000_HICR_C			0x02
 #define E1000_HICR_SV			0x04  /* Status Validity */
+#if !defined(NO_82571_SUPPORT) || !defined(NO_I210_SUPPORT)
 #define E1000_HICR_FW_RESET_ENABLE	0x40
 #define E1000_HICR_FW_RESET		0x80
 
 /* Intel(R) Active Management Technology signature */
 #define E1000_IAMT_SIGNATURE		0x544D4149
+#endif /* NO_82571_SUPPORT */
 #endif

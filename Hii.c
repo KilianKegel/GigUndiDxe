@@ -282,7 +282,6 @@ ExtractConfig (
       LastElementWidth = UNDI_CONFIG_WIDTH (AltMacAddrSupport);
       continue;
     }
-
     if (ElementOffset == UNDI_CONFIG_OFFSET (LinkSpeedSettingsSupported)) {
       UndiPrivateData->Configuration.LinkSpeedSettingsSupported = UndiPrivateData->LinkSpeedSettingsSupported;
       LastElementWidth = UNDI_CONFIG_WIDTH (LinkSpeedSettingsSupported);

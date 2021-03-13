@@ -541,6 +541,7 @@ s32 e1000_check_for_link(struct e1000_hw *hw)
 	return -E1000_ERR_CONFIG;
 }
 
+#ifndef NO_82571_SUPPORT
 /**
  *  e1000_check_mng_mode - Check management mode
  *  @hw: pointer to the HW structure
@@ -569,6 +570,7 @@ s32 e1000_mng_write_dhcp_info(struct e1000_hw *hw, u8 *buffer, u16 length)
 	return e1000_mng_write_dhcp_info_generic(hw, buffer, length);
 }
 
+#endif /* NO_82571_SUPPORT */
 /**
  *  e1000_reset_hw - Reset hardware
  *  @hw: pointer to the HW structure
@@ -819,7 +821,7 @@ u32 e1000_hash_mc_addr(struct e1000_hw *hw, u8 *mc_addr)
 	return e1000_hash_mc_addr_generic(hw, mc_addr);
 }
 
-
+#ifndef NO_82571_SUPPORT
 /**
  *  e1000_enable_tx_pkt_filtering - Enable packet filtering on TX
  *  @hw: pointer to the HW structure
@@ -880,6 +882,7 @@ s32 e1000_mng_enable_host_if(struct e1000_hw *hw)
 	return e1000_mng_enable_host_if_generic(hw);
 }
 
+#endif /* NO_82571_SUPPORT */
 /**
  *  e1000_check_reset_block - Verifies PHY can be reset
  *  @hw: pointer to the HW structure

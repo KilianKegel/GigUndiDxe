@@ -29,6 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "DeviceSupport.h"
 
+#ifndef UNDI_IAVF
+#include "EepromConfig.h"
+#endif /* UNDI_IAVF */
+
 
 /** Seeks for current device's entry in branding table
 

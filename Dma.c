@@ -27,8 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
 
-#include "E1000.h"
-
+#include "CommonDriver.h"
 #include "Dma.h"
 
 /** Allocate DMA common buffer (aligned to the page)

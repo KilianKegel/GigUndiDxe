@@ -78,6 +78,7 @@
   AdapterInformation.c
   AdapterInformation.h
   Brand.c
+  CommonDriver.h
   ComponentName.c
   ComponentName.h
   DebugTools.c
@@ -105,12 +106,14 @@
   HiiInternalLib.h
   Init.c
   Init.h
-  Inventory.vfr
-  InventoryStrings.uni
   NVDataStruc.h
   StartStop.c
   StartStop.h
   Version.h
+
+  InventoryStrings.uni
+  Inventory.vfr
+  NicConfig.vfi
 
   e1000_80003es2lan.c
   e1000_80003es2lan.h

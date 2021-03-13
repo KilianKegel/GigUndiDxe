@@ -26,8 +26,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
-#include "E1000.h"
-
+#include "CommonDriver.h"
 #include "ComponentName.h"
 #include "DeviceSupport.h"
 
@@ -43,7 +42,7 @@ CHAR16 * mDriverNameFormat = L"Intel(R) PRO/1000 Open Source %1d.%1d.%02d PCI-E"
 
 
 // Version and Branding Information
-CHAR16 DriverNameString[50];
+CHAR16 DriverNameString[60];
 
 STATIC EFI_UNICODE_STRING_TABLE mUndiDriverNameTable[] = {
   { "eng", DriverNameString},

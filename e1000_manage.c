@@ -57,6 +57,7 @@ STATIC u8 e1000_calculate_checksum(u8 *buffer, u32 length)
 	return (u8) (0 - sum);
 }
 
+#ifndef NO_82571_SUPPORT
 /**
  *  e1000_mng_enable_host_if_generic - Checks host interface is enabled
  *  @hw: pointer to the HW structure
@@ -329,6 +330,7 @@ s32 e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw, u8 *buffer,
 
 	return E1000_SUCCESS;
 }
+#endif /* NO_82571_SUPPORT */
 
 /**
  *  e1000_enable_mng_pass_thru - Check if management passthrough is needed
@@ -583,4 +585,3 @@ s32 e1000_load_firmware(struct e1000_hw *hw, u8 *buffer, u32 length)
 	return E1000_SUCCESS;
 }
 #endif /* NO_I210_SUPPORT */
-

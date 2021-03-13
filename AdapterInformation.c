@@ -27,8 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
 #include "Uefi.h"
-
-#include "E1000.h"
+#include "CommonDriver.h"
 
 
 #include "AdapterInformation.h"

@@ -45,6 +45,8 @@ extern UINT8 GigUndiDxeStrings[];
 
 #define MAX_PBA_STR_LENGTH                15 // normally it is 10 chars string
 
+/* Variables are used for determination of default number of advertised VFs */
+
 /** Samples Gig driver private data structure from protocol instance
 
    @param[in]  a   Protocol instance

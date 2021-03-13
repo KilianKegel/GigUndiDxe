@@ -71,6 +71,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LAN3_BASE_ADDRESS_82580           0x100
 
 
+
 /** Gets LAN speed setting for port
 
    @param[in]   UndiPrivateData    Pointer to adapter structure
