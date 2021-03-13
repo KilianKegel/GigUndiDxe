@@ -30,24 +30,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Uefi/UefiPxe.h>
 
 /** This routine determines the operational state of the UNDI.  It updates the state flags in the
-   Command Descriptor Block based on information derived from the GigAdapter instance data.
+   Command Descriptor Block based on information derived from the AdapterInfo instance data.
 
    To ensure the command has completed successfully, CdbPtr->StatCode will contain the result of
    the command execution. The CdbPtr->StatFlags will contain a STOPPED, STARTED, or INITIALIZED
-   state once the command has successfully completed. Keep in mind the GigAdapter->State is the
+   state once the command has successfully completed. Keep in mind the AdapterInfo->State is the
    active state of the adapter (based on software interrogation), and the CdbPtr->StateFlags is
    the passed back information that is reflected to the caller of the UNDI API.
 
    @param[in]   CdbPtr       Pointer to the command descriptor block.
-   @param[in]   GigAdapter  Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo  Pointer to the NIC data structure information which the
                              UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiGetState (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to change the operational state of the 1-Gigabit UNDI
@@ -65,18 +65,18 @@ E1000UndiGetState (
    and Sync_Mem routines and a unique id variable for the new version.
    This is the function which an external entity (SNP, O/S, etc) would call
    to provide it's I/O abstraction to the UNDI.
-   It's final action is to change the GigAdapter->State to PXE_STATFLAGS_GET_STATE_STARTED.
+   It's final action is to change the AdapterInfo->State to PXE_STATFLAGS_GET_STATE_STARTED.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiStart (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to change the operational state of the UNDI from started to stopped.
@@ -85,18 +85,18 @@ E1000UndiStart (
    the CdbPtr->StatFlags will reflect a command failure, and the CdbPtr->StatCode will reflect the
    UNDI as having already not been shut down.
    The NIC's data structure will have the Delay, Virt2Phys, and Block, pointers zero'd out..
-   It's final action is to change the GigAdapter->State to PXE_STATFLAGS_GET_STATE_STOPPED.
+   It's final action is to change the AdapterInfo->State to PXE_STATFLAGS_GET_STATE_STOPPED.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiStop (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to retrieve the initialization information that is
@@ -109,15 +109,15 @@ E1000UndiStop (
    In addition, the CdbPtr->StatFlags ORs in that this NIC supports cable detection.  (APRIORI knowledge)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiGetInitInfo (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to retrieve the configuration information about the NIC being controlled by
@@ -129,15 +129,15 @@ E1000UndiGetInitInfo (
   In addition, the DbPtr->pci.Config.Dword[0-63] grabs a copy of this NIC's PCI configuration space.
 
   @param[in]   CdbPtr        Pointer to the command descriptor block.
-  @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+  @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                              UNDI driver is layering on..
 
   @retval      None
 **/
 VOID
 E1000UndiGetConfigInfo (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine resets the network adapter and initializes the 1-Gigabit UNDI using the parameters
@@ -150,19 +150,19 @@ E1000UndiGetConfigInfo (
    The fields CableDetect, LinkSpeed, Duplex, LoopBack, MemoryPtr, and MemoryLength are set with
    information that was passed in the CPB and the NIC is initialized.
    If the NIC initialization fails, the CdbPtr->StatFlags are updated with PXE_STATFLAGS_COMMAND_FAILED
-   Otherwise, GigAdapter->State is updated with PXE_STATFLAGS_GET_STATE_INITIALIZED showing the state of
+   Otherwise, AdapterInfo->State is updated with PXE_STATFLAGS_GET_STATE_INITIALIZED showing the state of
    the UNDI is now initialized.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on..
 
    @retval      None
 -**/
 VOID
 E1000UndiInitialize (
-  IN  PXE_CDB *    CdbPtr,
-  GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine resets the network adapter and initializes the 1-Gigabit UNDI using the
@@ -172,15 +172,15 @@ E1000UndiInitialize (
    If the NIC reset fails, the CdbPtr->StatFlags are updated with PXE_STATFLAGS_COMMAND_FAILED
 
    @param[in]   CdbPtr         Pointer to the command descriptor block.
-   @param[in]   GigAdapter    Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo    Pointer to the NIC data structure information which the
                                UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiReset (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine resets the network adapter and leaves it in a safe state for another
@@ -190,19 +190,19 @@ E1000UndiReset (
    interrupt enables are disabled.  Once the UNDI has been shutdown, it can then be stopped
    or initialized again.
    If the NIC reset fails, the CdbPtr->StatFlags are updated with PXE_STATFLAGS_COMMAND_FAILED
-   Otherwise, GigAdapter->State is updated with PXE_STATFLAGS_GET_STATE_STARTED showing
+   Otherwise, AdapterInfo->State is updated with PXE_STATFLAGS_GET_STATE_STARTED showing
    the state of the NIC as being started.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiShutdown (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine can be used to read and/or change the current external interrupt enable
@@ -214,45 +214,45 @@ E1000UndiShutdown (
    The resulting information on the interrupt state will be passed back in the CdbPtr->StatFlags.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on.
 
    @retval      None
 **/
 VOID
 E1000UndiInterrupt (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to read and change receive filters and, if supported, read
    and change multicast MAC address filter list.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on..
 
    @retval     None
 **/
 VOID
 E1000UndiRecFilter (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to get the current station and broadcast MAC addresses,
    and to change the current station MAC address.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on.
 
    @retval      None
 **/
 VOID
 E1000UndiStnAddr (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to read and clear the NIC traffic statistics.  This command is supported
@@ -271,15 +271,15 @@ E1000UndiStnAddr (
    CdbPtr->DBaddr.Data[14]  T  Total Collision Frames (Total collisions on this subnet)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiStatistics (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to translate a multicast IP address to a multicast MAC address.
@@ -288,15 +288,15 @@ E1000UndiStatistics (
    address being appended to it.  Results passed back in the equivalent of CdbPtr->DBaddr->MAC[0-5].
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiIp2Mac (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to read and write non-volatile storage on the NIC (if supported).  The NVRAM
@@ -305,15 +305,15 @@ E1000UndiIp2Mac (
    This is an optional function according to the UNDI specification  (or will be......)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiNvData (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine returns the current interrupt status and/or the transmitted buffer addresses.
@@ -326,15 +326,15 @@ E1000UndiNvData (
    The interrupt status is returned in CdbPtr->StatFlags.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the 1-Gigabit
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the 1-Gigabit
+                              UNDI driver is layering on..
 
    @retval   None
 **/
 VOID
 E1000UndiStatus (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to fill media header(s) in transmit packet(s).
@@ -343,15 +343,15 @@ E1000UndiStatus (
    with fragmented or non-fragmented packets.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on.
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on.
 
    @retval      None
 **/
 VOID
 E1000UndiFillHeader (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine is used to place a packet into the transmit queue.
@@ -371,15 +371,15 @@ E1000UndiFillHeader (
    before transmitting.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiTransmit (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** When the network adapter has received a frame, this command is used to copy the frame
@@ -388,15 +388,15 @@ E1000UndiTransmit (
    Once a frame has been copied, it is removed from the receive queue.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiReceive (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   );
 
 // Global variables defined in this file
@@ -530,31 +530,31 @@ UNDI_CALL_TABLE mE1000ApiTable[PXE_OPCODE_LAST_VALID + 1] = {
 };
 
 /** This routine determines the operational state of the UNDI.  It updates the state flags in the
-   Command Descriptor Block based on information derived from the GigAdapter instance data.
+   Command Descriptor Block based on information derived from the AdapterInfo instance data.
 
    To ensure the command has completed successfully, CdbPtr->StatCode will contain the result of
    the command execution. The CdbPtr->StatFlags will contain a STOPPED, STARTED, or INITIALIZED
-   state once the command has successfully completed. Keep in mind the GigAdapter->State is the
+   state once the command has successfully completed. Keep in mind the AdapterInfo->State is the
    active state of the adapter (based on software interrogation), and the CdbPtr->StateFlags is
    the passed back information that is reflected to the caller of the UNDI API.
 
 
    @param[in]   CdbPtr       Pointer to the command descriptor block.
-   @param[in]   GigAdapter  Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo  Pointer to the NIC data structure information which the
                              UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiGetState (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   DEBUGPRINT (DECODE, ("E1000UndiGetState\n"));
   DEBUGWAIT (DECODE);
 
-  CdbPtr->StatFlags |= GigAdapter->State;
+  CdbPtr->StatFlags |= AdapterInfo->State;
   CdbPtr->StatFlags |= PXE_STATFLAGS_COMMAND_COMPLETE;
 
   CdbPtr->StatCode = PXE_STATCODE_SUCCESS;
@@ -575,18 +575,18 @@ E1000UndiGetState (
    and Sync_Mem routines and a unique id variable for the new version.
    This is the function which an external entity (SNP, O/S, etc) would call
    to provide it's I/O abstraction to the UNDI.
-   It's final action is to change the GigAdapter->State to PXE_STATFLAGS_GET_STATE_STARTED.
+   It's final action is to change the AdapterInfo->State to PXE_STATFLAGS_GET_STATE_STARTED.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiStart (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_CPB_START_31 *CpbPtr31;
@@ -595,7 +595,7 @@ E1000UndiStart (
   DEBUGWAIT (DECODE);
 
   // check if it is already started.
-  if (GigAdapter->State != PXE_STATFLAGS_GET_STATE_STOPPED) {
+  if (AdapterInfo->State != PXE_STATFLAGS_GET_STATE_STOPPED) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_ALREADY_STARTED;
     return;
@@ -611,17 +611,17 @@ E1000UndiStart (
 
   CpbPtr31 = (PXE_CPB_START_31 *) (UINTN) (CdbPtr->CPBaddr);
 
-  GigAdapter->Delay     = (BS_PTR) (UINTN) CpbPtr31->Delay;
-  GigAdapter->Virt2Phys = (VIRT_PHYS) (UINTN) CpbPtr31->Virt2Phys;
-  GigAdapter->Block     = (BLOCK) (UINTN) CpbPtr31->Block;
-  GigAdapter->MemIo     = (MEM_IO) (UINTN) CpbPtr31->Mem_IO;
-  GigAdapter->MapMem    = (MAP_MEM) (UINTN) CpbPtr31->Map_Mem;
-  GigAdapter->UnMapMem  = (UNMAP_MEM) (UINTN) CpbPtr31->UnMap_Mem;
-  GigAdapter->SyncMem   = (SYNC_MEM) (UINTN) CpbPtr31->Sync_Mem;
-  GigAdapter->UniqueId = CpbPtr31->Unique_ID;
+  AdapterInfo->Delay     = (BS_PTR) (UINTN) CpbPtr31->Delay;
+  AdapterInfo->Virt2Phys = (VIRT_PHYS) (UINTN) CpbPtr31->Virt2Phys;
+  AdapterInfo->Block     = (BLOCK) (UINTN) CpbPtr31->Block;
+  AdapterInfo->MemIo     = (MEM_IO) (UINTN) CpbPtr31->Mem_IO;
+  AdapterInfo->MapMem    = (MAP_MEM) (UINTN) CpbPtr31->Map_Mem;
+  AdapterInfo->UnMapMem  = (UNMAP_MEM) (UINTN) CpbPtr31->UnMap_Mem;
+  AdapterInfo->SyncMem   = (SYNC_MEM) (UINTN) CpbPtr31->Sync_Mem;
+  AdapterInfo->UniqueId = CpbPtr31->Unique_ID;
   DEBUGPRINT (DECODE, ("CpbPtr31->Unique_ID = %x\n", CpbPtr31->Unique_ID));
 
-  GigAdapter->State = PXE_STATFLAGS_GET_STATE_STARTED;
+  AdapterInfo->State = PXE_STATFLAGS_GET_STATE_STARTED;
 
   CdbPtr->StatFlags     = PXE_STATFLAGS_COMMAND_COMPLETE;
   CdbPtr->StatCode      = PXE_STATCODE_SUCCESS;
@@ -633,39 +633,39 @@ E1000UndiStart (
    the CdbPtr->StatFlags will reflect a command failure, and the CdbPtr->StatCode will reflect the
    UNDI as having already not been shut down.
    The NIC's data structure will have the Delay, Virt2Phys, and Block, pointers zero'd out..
-   It's final action is to change the GigAdapter->State to PXE_STATFLAGS_GET_STATE_STOPPED.
+   It's final action is to change the AdapterInfo->State to PXE_STATFLAGS_GET_STATE_STOPPED.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiStop (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
 
   DEBUGPRINT (DECODE, ("E1000UndiStop\n"));
   DEBUGWAIT (DECODE);
 
-  if (GigAdapter->State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
+  if (AdapterInfo->State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_NOT_SHUTDOWN;
     return;
   }
 
-  GigAdapter->Delay         = 0;
-  GigAdapter->Virt2Phys     = 0;
-  GigAdapter->Block         = 0;
+  AdapterInfo->Delay         = 0;
+  AdapterInfo->Virt2Phys     = 0;
+  AdapterInfo->Block         = 0;
 
-  GigAdapter->MapMem        = 0;
-  GigAdapter->UnMapMem      = 0;
-  GigAdapter->SyncMem       = 0;
+  AdapterInfo->MapMem        = 0;
+  AdapterInfo->UnMapMem      = 0;
+  AdapterInfo->SyncMem       = 0;
 
-  GigAdapter->State         = PXE_STATFLAGS_GET_STATE_STOPPED;
+  AdapterInfo->State         = PXE_STATFLAGS_GET_STATE_STOPPED;
 
   CdbPtr->StatFlags             = PXE_STATFLAGS_COMMAND_COMPLETE;
   CdbPtr->StatCode              = PXE_STATCODE_SUCCESS;
@@ -681,15 +681,15 @@ E1000UndiStop (
    In addition, the CdbPtr->StatFlags ORs in that this NIC supports cable detection.  (APRIORI knowledge)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiGetInitInfo (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_DB_GET_INIT_INFO *DbPtr;
@@ -703,7 +703,7 @@ E1000UndiGetInitInfo (
   DbPtr->FrameDataLen   = PXE_MAX_TXRX_UNIT_ETHER;
 
   // First check for FIBER, Links are 1000,0,0,0
-  if (GigAdapter->Hw.phy.media_type == e1000_media_type_copper ) {
+  if (AdapterInfo->Hw.phy.media_type == e1000_media_type_copper ) {
     DbPtr->LinkSpeeds[0]  = 10;
     DbPtr->LinkSpeeds[1]  = 100;
     DbPtr->LinkSpeeds[2]  = 1000;
@@ -736,7 +736,7 @@ E1000UndiGetInitInfo (
   CdbPtr->StatFlags |= PXE_STATFLAGS_COMMAND_COMPLETE;
   CdbPtr->StatCode = PXE_STATCODE_SUCCESS;
 
-  if (!GigAdapter->UndiEnabled) {
+  if (!AdapterInfo->UndiEnabled) {
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
   }
 }
@@ -750,15 +750,15 @@ E1000UndiGetInitInfo (
   In addition, the DbPtr->pci.Config.Dword[0-63] grabs a copy of this NIC's PCI configuration space.
 
   @param[in]   CdbPtr        Pointer to the command descriptor block.
-  @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+  @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                              UNDI driver is layering on..
 
   @retval      None
 **/
 VOID
 E1000UndiGetConfigInfo (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_DB_GET_CONFIG_INFO *DbPtr;
@@ -769,17 +769,17 @@ E1000UndiGetConfigInfo (
   DbPtr               = (PXE_DB_GET_CONFIG_INFO *) (UINTN) (CdbPtr->DBaddr);
 
   DbPtr->pci.BusType  = PXE_BUSTYPE_PCI;
-  DbPtr->pci.Bus      = (UINT16) GigAdapter->Bus;
-  DbPtr->pci.Device   = (UINT8) GigAdapter->Device;
-  DbPtr->pci.Function = (UINT8) GigAdapter->Function;
+  DbPtr->pci.Bus      = (UINT16) AdapterInfo->Bus;
+  DbPtr->pci.Device   = (UINT8) AdapterInfo->Device;
+  DbPtr->pci.Function = (UINT8) AdapterInfo->Function;
   DEBUGPRINT (
     DECODE, ("Bus %x, Device %x, Function %x\n",
-    GigAdapter->Bus,
-    GigAdapter->Device,
-    GigAdapter->Function)
+    AdapterInfo->Bus,
+    AdapterInfo->Device,
+    AdapterInfo->Function)
   );
 
-  CopyMem (DbPtr->pci.Config.Dword, &GigAdapter->PciConfig, MAX_PCI_CONFIG_LEN * sizeof (UINT32));
+  CopyMem (DbPtr->pci.Config.Dword, &AdapterInfo->PciConfig, MAX_PCI_CONFIG_LEN * sizeof (UINT32));
 
   CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
   CdbPtr->StatCode = PXE_STATCODE_SUCCESS;
@@ -795,19 +795,19 @@ E1000UndiGetConfigInfo (
    The fields CableDetect, LinkSpeed, Duplex, LoopBack, MemoryPtr, and MemoryLength are set with
    information that was passed in the CPB and the NIC is initialized.
    If the NIC initialization fails, the CdbPtr->StatFlags are updated with PXE_STATFLAGS_COMMAND_FAILED
-   Otherwise, GigAdapter->State is updated with PXE_STATFLAGS_GET_STATE_INITIALIZED showing the state of
+   Otherwise, AdapterInfo->State is updated with PXE_STATFLAGS_GET_STATE_INITIALIZED showing the state of
    the UNDI is now initialized.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on..
 
    @retval      None
 -**/
 VOID
 E1000UndiInitialize (
-  IN  PXE_CDB *    CdbPtr,
-  GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_CPB_INITIALIZE *CpbPtr;
@@ -816,7 +816,7 @@ E1000UndiInitialize (
   DEBUGPRINT (DECODE, ("E1000UndiInitialize\n"));
   DEBUGWAIT (DECODE);
 
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiInitialize called when driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
@@ -833,7 +833,7 @@ E1000UndiInitialize (
   }
 
   // Check if it is already initialized
-  if (GigAdapter->State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
+  if (AdapterInfo->State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
     DEBUGPRINT (DECODE, ("ALREADY INITIALIZED\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_ALREADY_INITIALIZED;
@@ -846,28 +846,28 @@ E1000UndiInitialize (
   // Default behaviour is to detect the cable, if the 3rd param is 1,
   // do not do that
   if (CdbPtr->OpFlags == (UINT16) PXE_OPFLAGS_INITIALIZE_DO_NOT_DETECT_CABLE) {
-    GigAdapter->CableDetect = (UINT8) 0;
+    AdapterInfo->CableDetect = (UINT8) 0;
   } else {
-    GigAdapter->CableDetect = (UINT8) 1;
+    AdapterInfo->CableDetect = (UINT8) 1;
   }
   DEBUGPRINT (DECODE, ("CdbPtr->OpFlags = %X\n", CdbPtr->OpFlags));
-  GigAdapter->LinkSpeed     = (UINT16) CpbPtr->LinkSpeed;
-  GigAdapter->DuplexMode    = CpbPtr->DuplexMode;
-  GigAdapter->LoopBack      = CpbPtr->LoopBackMode;
+  AdapterInfo->LinkSpeed     = (UINT16) CpbPtr->LinkSpeed;
+  AdapterInfo->DuplexMode    = CpbPtr->DuplexMode;
+  AdapterInfo->LoopBack      = CpbPtr->LoopBackMode;
 
   DEBUGPRINT (DECODE, ("CpbPtr->TxBufCnt = %X\n", CpbPtr->TxBufCnt));
   DEBUGPRINT (DECODE, ("CpbPtr->TxBufSize = %X\n", CpbPtr->TxBufSize));
   DEBUGPRINT (DECODE, ("CpbPtr->RxBufCnt = %X\n", CpbPtr->RxBufCnt));
   DEBUGPRINT (DECODE, ("CpbPtr->RxBufSize = %X\n", CpbPtr->RxBufSize));
 
-  if (GigAdapter->CableDetect != 0) {
+  if (AdapterInfo->CableDetect != 0) {
     DEBUGPRINT (DECODE, ("Setting wait_autoneg_complete\n"));
-    GigAdapter->Hw.phy.autoneg_wait_to_complete = TRUE;
+    AdapterInfo->Hw.phy.autoneg_wait_to_complete = TRUE;
   } else {
-    GigAdapter->Hw.phy.autoneg_wait_to_complete = FALSE;
+    AdapterInfo->Hw.phy.autoneg_wait_to_complete = FALSE;
   }
 
-  CdbPtr->StatCode = (PXE_STATCODE) E1000Inititialize (GigAdapter);
+  CdbPtr->StatCode = (PXE_STATCODE) E1000Inititialize (AdapterInfo);
 
   // We allocate our own memory for transmit and receive so set MemoryUsed to 0.
   DbPtr->MemoryUsed = 0;
@@ -880,20 +880,20 @@ E1000UndiInitialize (
     DEBUGPRINT (CRITICAL, ("E1000Inititialize failed! Statcode = %X\n", CdbPtr->StatCode));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
   } else {
-    GigAdapter->State = PXE_STATFLAGS_GET_STATE_INITIALIZED;
+    AdapterInfo->State = PXE_STATFLAGS_GET_STATE_INITIALIZED;
   }
 
   // If no link is detected we want to set the driver state back to _GET_STATE_STARTED so
   // that the SNP will not try to restart the driver.
-  if (E1000WaitForAutoNeg (GigAdapter)) {
+  if (E1000WaitForAutoNeg (AdapterInfo)) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
   } else {
     CdbPtr->StatFlags |= PXE_STATFLAGS_INITIALIZED_NO_MEDIA;
     CdbPtr->StatCode = PXE_STATCODE_NOT_STARTED;
-    GigAdapter->State = PXE_STATFLAGS_GET_STATE_STARTED;
+    AdapterInfo->State = PXE_STATFLAGS_GET_STATE_STARTED;
   }
 
-  GigAdapter->Hw.mac.get_link_status = TRUE;
+  AdapterInfo->Hw.mac.get_link_status = TRUE;
 }
 
 /** This routine resets the network adapter and initializes the 1-Gigabit UNDI using the
@@ -903,21 +903,21 @@ E1000UndiInitialize (
    If the NIC reset fails, the CdbPtr->StatFlags are updated with PXE_STATFLAGS_COMMAND_FAILED
 
    @param[in]   CdbPtr         Pointer to the command descriptor block.
-   @param[in]   GigAdapter    Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo    Pointer to the NIC data structure information which the
                                UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiReset (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   DEBUGPRINT (DECODE, ("E1000UndiReset\n"));
   DEBUGWAIT (DECODE);
 
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiReset called when driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
@@ -949,38 +949,38 @@ E1000UndiReset (
    interrupt enables are disabled.  Once the UNDI has been shutdown, it can then be stopped
    or initialized again.
    If the NIC reset fails, the CdbPtr->StatFlags are updated with PXE_STATFLAGS_COMMAND_FAILED
-   Otherwise, GigAdapter->State is updated with PXE_STATFLAGS_GET_STATE_STARTED showing
+   Otherwise, AdapterInfo->State is updated with PXE_STATFLAGS_GET_STATE_STARTED showing
    the state of the NIC as being started.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiShutdown (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   // do the shutdown stuff here
   DEBUGPRINT (DECODE, ("E1000UndiShutdown\n"));
   DEBUGWAIT (DECODE);
 
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiShutdown called when driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
     return;
   }
 
-  CdbPtr->StatCode =  (UINT16) E1000Shutdown (GigAdapter);
+  CdbPtr->StatCode =  (UINT16) E1000Shutdown (AdapterInfo);
 
   if (CdbPtr->StatCode != PXE_STATCODE_SUCCESS) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
   } else {
-    GigAdapter->State = PXE_STATFLAGS_GET_STATE_STARTED;
+    AdapterInfo->State = PXE_STATFLAGS_GET_STATE_STARTED;
     CdbPtr->StatFlags     = PXE_STATFLAGS_COMMAND_COMPLETE;
   }
 }
@@ -994,15 +994,15 @@ E1000UndiShutdown (
    The resulting information on the interrupt state will be passed back in the CdbPtr->StatFlags.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on.
 
    @retval      None
 **/
 VOID
 E1000UndiInterrupt (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT8 IntMask;
@@ -1024,14 +1024,14 @@ E1000UndiInterrupt (
       return;
     }
 
-    GigAdapter->IntMask = IntMask;
-    E1000SetInterruptState (GigAdapter);
+    AdapterInfo->IntMask = IntMask;
+    E1000SetInterruptState (AdapterInfo);
     break;
 
   case PXE_OPFLAGS_INTERRUPT_DISABLE:
     if (IntMask != 0) {
-      GigAdapter->IntMask &= ~(IntMask);
-      E1000SetInterruptState (GigAdapter);
+      AdapterInfo->IntMask &= ~(IntMask);
+      E1000SetInterruptState (AdapterInfo);
       break;
     }
 
@@ -1042,11 +1042,11 @@ E1000UndiInterrupt (
     break;
   }
 
-  if ((GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_RECEIVE) != 0) {
+  if ((AdapterInfo->IntMask & PXE_OPFLAGS_INTERRUPT_RECEIVE) != 0) {
     CdbPtr->StatFlags |= PXE_STATFLAGS_INTERRUPT_RECEIVE;
   }
 
-  if ((GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_TRANSMIT) != 0) {
+  if ((AdapterInfo->IntMask & PXE_OPFLAGS_INTERRUPT_TRANSMIT) != 0) {
     CdbPtr->StatFlags |= PXE_STATFLAGS_INTERRUPT_TRANSMIT;
   }
 
@@ -1056,15 +1056,15 @@ E1000UndiInterrupt (
    and change multicast MAC address filter list.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on..
 
    @retval     None
 **/
 VOID
 E1000UndiRecFilter (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
 
@@ -1074,7 +1074,7 @@ E1000UndiRecFilter (
 
   DEBUGPRINT (DECODE, ("E1000UndiRecFilter\n"));
 
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiRecFilter called when driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
@@ -1130,7 +1130,7 @@ E1000UndiRecFilter (
 
       // if no cpb, make sure we have an old list
       if ((CdbPtr->CPBsize == 0)
-        && (GigAdapter->McastList.Length == 0))
+        && (AdapterInfo->McastList.Length == 0))
       {
         goto BadCdb;
       }
@@ -1138,7 +1138,7 @@ E1000UndiRecFilter (
 
     // if you want to enable anything, you got to have unicast
     // and you have what you already enabled!
-    NewFilter |= (PXE_OPFLAGS_RECEIVE_FILTER_UNICAST | GigAdapter->RxFilter);
+    NewFilter |= (PXE_OPFLAGS_RECEIVE_FILTER_UNICAST | AdapterInfo->RxFilter);
 
     break;
 
@@ -1149,7 +1149,7 @@ E1000UndiRecFilter (
       goto BadCdb;  // db with all_multi??
     }
 
-    NewFilter = (UINT16) ((~(CdbPtr->OpFlags & 0x1F)) & GigAdapter->RxFilter);
+    NewFilter = (UINT16) ((~(CdbPtr->OpFlags & 0x1F)) & AdapterInfo->RxFilter);
 
     break;
 
@@ -1159,18 +1159,18 @@ E1000UndiRecFilter (
   }
 
   if ((OpFlags & PXE_OPFLAGS_RECEIVE_FILTER_RESET_MCAST_LIST) != 0) {
-    GigAdapter->McastList.Length = 0;
+    AdapterInfo->McastList.Length = 0;
     NewFilter &= (~PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST);
   }
 
-  E1000SetFilter (GigAdapter, NewFilter, CdbPtr->CPBaddr, CdbPtr->CPBsize);
+  E1000SetFilter (AdapterInfo, NewFilter, CdbPtr->CPBaddr, CdbPtr->CPBsize);
 
 JustRead:
   DEBUGPRINT (DECODE, ("Read current filter\n"));
 
   // give the current mcast list
   if ((CdbPtr->DBsize != 0)
-    && (GigAdapter->McastList.Length != 0))
+    && (AdapterInfo->McastList.Length != 0))
   {
 
     // copy the mc list to db
@@ -1182,22 +1182,22 @@ JustRead:
     DbPtr = (PXE_DB_RECEIVE_FILTERS *) (UINTN) CdbPtr->DBaddr;
     Ptr1  = (UINT8 *) (&DbPtr->MCastList[0]);
 
-    CopyLen = (UINT16) (GigAdapter->McastList.Length * PXE_MAC_LENGTH);
+    CopyLen = (UINT16) (AdapterInfo->McastList.Length * PXE_MAC_LENGTH);
 
     if (CopyLen > CdbPtr->DBsize) {
       CopyLen = CdbPtr->DBsize;
 
     }
 
-    Ptr2 = (UINT8 *) (&GigAdapter->McastList.McAddr[0]);
+    Ptr2 = (UINT8 *) (&AdapterInfo->McastList.McAddr[0]);
     for (i = 0; i < CopyLen; i++) {
       Ptr1[i] = Ptr2[i];
     }
   }
 
   // give the stat flags here
-  if (GigAdapter->ReceiveStarted) {
-    CdbPtr->StatFlags |= (GigAdapter->RxFilter | PXE_STATFLAGS_COMMAND_COMPLETE);
+  if (AdapterInfo->ReceiveStarted) {
+    CdbPtr->StatFlags |= (AdapterInfo->RxFilter | PXE_STATFLAGS_COMMAND_COMPLETE);
   }
 
   return;
@@ -1212,15 +1212,15 @@ BadCdb:
    and to change the current station MAC address.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on.
 
    @retval      None
 **/
 VOID
 E1000UndiStnAddr (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
 
@@ -1234,29 +1234,29 @@ E1000UndiStnAddr (
   if (CdbPtr->OpFlags == PXE_OPFLAGS_STATION_ADDRESS_RESET) {
 
     // configure the permanent address.
-    // change the GigAdapter->CurrentNodeAddress field.
+    // change the AdapterInfo->CurrentNodeAddress field.
     if (CompareMem (
-        GigAdapter->Hw.mac.addr,
-        GigAdapter->Hw.mac.perm_addr,
+        AdapterInfo->Hw.mac.addr,
+        AdapterInfo->Hw.mac.perm_addr,
         PXE_HWADDR_LEN_ETHER
         ) != 0)
     {
       CopyMem (
-        GigAdapter->Hw.mac.addr,
-        GigAdapter->Hw.mac.perm_addr,
+        AdapterInfo->Hw.mac.addr,
+        AdapterInfo->Hw.mac.perm_addr,
         PXE_HWADDR_LEN_ETHER
       );
-      e1000_rar_set (&GigAdapter->Hw, GigAdapter->Hw.mac.addr, 0);
+      e1000_rar_set (&AdapterInfo->Hw, AdapterInfo->Hw.mac.addr, 0);
     }
   }
 
   if (CdbPtr->CPBaddr != (UINT64) 0) {
     CpbPtr = (PXE_CPB_STATION_ADDRESS *) (UINTN) (CdbPtr->CPBaddr);
-    GigAdapter->MacAddrOverride = TRUE;
+    AdapterInfo->MacAddrOverride = TRUE;
 
     // configure the new address
     CopyMem (
-      GigAdapter->Hw.mac.addr,
+      AdapterInfo->Hw.mac.addr,
       CpbPtr->StationAddr,
       PXE_HWADDR_LEN_ETHER
     );
@@ -1266,7 +1266,7 @@ E1000UndiStnAddr (
       DEBUGPRINT (DECODE, ("%2x ", CpbPtr->StationAddr[i]));
     }
 
-    e1000_rar_set (&GigAdapter->Hw, GigAdapter->Hw.mac.addr, 0);
+    e1000_rar_set (&AdapterInfo->Hw, AdapterInfo->Hw.mac.addr, 0);
   }
 
   if (CdbPtr->DBaddr != (UINT64) 0) {
@@ -1276,9 +1276,9 @@ E1000UndiStnAddr (
     ZeroMem (DbPtr->StationAddr, PXE_MAC_LENGTH);
     ZeroMem (DbPtr->PermanentAddr, PXE_MAC_LENGTH);
     ZeroMem (DbPtr->BroadcastAddr, PXE_MAC_LENGTH);
-    CopyMem (DbPtr->StationAddr, GigAdapter->Hw.mac.addr, PXE_HWADDR_LEN_ETHER);
-    CopyMem (DbPtr->PermanentAddr, GigAdapter->Hw.mac.perm_addr, PXE_HWADDR_LEN_ETHER);
-    CopyMem (DbPtr->BroadcastAddr, GigAdapter->BroadcastNodeAddress, PXE_MAC_LENGTH);
+    CopyMem (DbPtr->StationAddr, AdapterInfo->Hw.mac.addr, PXE_HWADDR_LEN_ETHER);
+    CopyMem (DbPtr->PermanentAddr, AdapterInfo->Hw.mac.perm_addr, PXE_HWADDR_LEN_ETHER);
+    CopyMem (DbPtr->BroadcastAddr, AdapterInfo->BroadcastNodeAddress, PXE_MAC_LENGTH);
   }
 
   DEBUGPRINT (DECODE, ("DbPtr->BroadcastAddr ="));
@@ -1308,15 +1308,15 @@ E1000UndiStnAddr (
    CdbPtr->DBaddr.Data[14]  T  Total Collision Frames (Total collisions on this subnet)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiStatistics (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   DEBUGPRINT (DECODE, ("E1000UndiStatistics\n"));
@@ -1330,9 +1330,9 @@ E1000UndiStatistics (
   if ((CdbPtr->OpFlags & PXE_OPFLAGS_STATISTICS_RESET) != 0) {
 
     // Reset the statistics
-    CdbPtr->StatCode = (UINT16) E1000Statistics (GigAdapter, 0, 0);
+    CdbPtr->StatCode = (UINT16) E1000Statistics (AdapterInfo, 0, 0);
   } else {
-    CdbPtr->StatCode = (UINT16) E1000Statistics (GigAdapter, CdbPtr->DBaddr, CdbPtr->DBsize);
+    CdbPtr->StatCode = (UINT16) E1000Statistics (AdapterInfo, CdbPtr->DBaddr, CdbPtr->DBsize);
   }
 }
 
@@ -1342,15 +1342,15 @@ E1000UndiStatistics (
    address being appended to it.  Results passed back in the equivalent of CdbPtr->DBaddr->MAC[0-5].
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiIp2Mac (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_CPB_MCAST_IP_TO_MAC *CpbPtr;
@@ -1395,15 +1395,15 @@ E1000UndiIp2Mac (
    This is an optional function according to the UNDI specification  (or will be......)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiNvData (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_DB_NVDATA *      DbPtr;
@@ -1412,8 +1412,8 @@ E1000UndiNvData (
 
   DEBUGPRINT (DECODE, ("E1000UndiNvData\n"));
 
-  if ((GigAdapter->State != PXE_STATFLAGS_GET_STATE_STARTED) &&
-    (GigAdapter->State != PXE_STATFLAGS_GET_STATE_INITIALIZED))
+  if ((AdapterInfo->State != PXE_STATFLAGS_GET_STATE_STARTED) &&
+    (AdapterInfo->State != PXE_STATFLAGS_GET_STATE_INITIALIZED))
   {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_NOT_STARTED;
@@ -1422,10 +1422,10 @@ E1000UndiNvData (
 
   if ((CdbPtr->OpFlags == PXE_OPFLAGS_NVDATA_READ) != 0) {
     DbPtr = (PXE_DB_NVDATA *) (UINTN) CdbPtr->DBaddr;
-    Result = e1000_read_nvm (&GigAdapter->Hw, 0, 256, &DbPtr->Data.Word[0]);
+    Result = e1000_read_nvm (&AdapterInfo->Hw, 0, 256, &DbPtr->Data.Word[0]);
   } else {
     PxeCpbNvdata = (PXE_CPB_NVDATA_BULK *) (UINTN) CdbPtr->CPBaddr;
-    Result        = e1000_write_nvm (&GigAdapter->Hw, 0x40, 0xBF, &PxeCpbNvdata->Word[0x40]);
+    Result        = e1000_write_nvm (&AdapterInfo->Hw, 0x40, 0xBF, &PxeCpbNvdata->Word[0x40]);
   }
 
   if (Result == E1000_SUCCESS) {
@@ -1447,15 +1447,15 @@ E1000UndiNvData (
    The interrupt status is returned in CdbPtr->StatFlags.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the 1-Gigabit
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the 1-Gigabit
                              UNDI driver is layering on..
 
    @retval   None
 **/
 VOID
 E1000UndiStatus (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_DB_GET_STATUS *       DbPtr;
@@ -1463,13 +1463,14 @@ E1000UndiStatus (
   UINT16                    NumEntries;
   E1000_RECEIVE_DESCRIPTOR *RxPtr;
 #if (DBG_LVL & CRITICAL)
+  UINT64 PhysicalRxBuffer;
   UINT32 Rdh;
   UINT32 Rdt;
 #endif /* (DBG_LVL & CRITICAL) */
 
   DEBUGPRINT (DECODE, ("E1000UndiStatus\n"));
 
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiStatus called when driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
@@ -1495,27 +1496,30 @@ E1000UndiStatus (
 
   // Fill in size of next available receive packet and
   // reserved field in caller's DB storage.
-  RxPtr = E1000_RX_DESC (&GigAdapter->RxRing, GigAdapter->CurRxInd);
+  RxPtr = E1000_RX_DESC (&AdapterInfo->RxRing, AdapterInfo->CurRxInd);
 
 #if (DBG_LVL & CRITICAL)
-  if (RxPtr->buffer_addr != GigAdapter->DebugRxBuffer[GigAdapter->CurRxInd]) {
+  PhysicalRxBuffer = E1000_RX_BUFFER_ADDR (
+                       AdapterInfo->RxBufferMapping.PhysicalAddress,
+                       AdapterInfo->CurRxInd
+                     );
+
+  if (RxPtr->buffer_addr != PhysicalRxBuffer) {
     DEBUGPRINT (
-      CRITICAL, ("GetStatus ERROR: Rx buff mismatch on desc %d: expected %X, actual %X\n",
-      GigAdapter->CurRxInd,
-      GigAdapter->DebugRxBuffer[GigAdapter->CurRxInd],
-      RxPtr->buffer_addr)
+      CRITICAL, ("RX buffer address mismatch on desc 0x%.2X: expected %X, actual %X\n",
+      AdapterInfo->CurRxInd, PhysicalRxBuffer, RxPtr->buffer_addr)
     );
   }
 
-  Rdt = E1000_READ_REG (&GigAdapter->Hw, E1000_RDT (0));
-  Rdh = E1000_READ_REG (&GigAdapter->Hw, E1000_RDH (0));
+  Rdt = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT (0));
+  Rdh = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
   if (Rdt == Rdh) {
     DEBUGPRINT (CRITICAL, ("GetStatus ERROR: RX Buffers Full!\n"));
   }
 #endif /* (DBG_LVL & CRITICAL) */
 
   if ((RxPtr->status & (E1000_RXD_STAT_EOP | E1000_RXD_STAT_DD)) != 0) {
-    DEBUGPRINT (DECODE, ("Get Status->We have a Rx Frame at %x\n", GigAdapter->CurRxInd));
+    DEBUGPRINT (DECODE, ("Get Status->We have a Rx Frame at %x\n", AdapterInfo->CurRxInd));
     DEBUGPRINT (DECODE, ("Frame length = %X\n", RxPtr->length));
     DbPtr->RxFrameLen = RxPtr->length;
     DbPtr->reserved = 0;
@@ -1535,7 +1539,7 @@ E1000UndiStatus (
     DEBUGPRINT (DECODE, ("NumEntries in DbPtr = %d\n", NumEntries));
 
     // On return NumEntries will be the number of TX buffers written into the DB
-    NumEntries = E1000FreeTxBuffers (GigAdapter, NumEntries, DbPtr->TxBuffer);
+    NumEntries = E1000FreeTxBuffers (AdapterInfo, NumEntries, DbPtr->TxBuffer);
     if (NumEntries == 0) {
       CdbPtr->StatFlags |= PXE_STATFLAGS_GET_STATUS_NO_TXBUFS_WRITTEN;
     }
@@ -1547,7 +1551,7 @@ E1000UndiStatus (
   }
 
   if ((CdbPtr->OpFlags & PXE_OPFLAGS_GET_INTERRUPT_STATUS) != 0) {
-    IntStatus = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_ICR);
+    IntStatus = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_ICR);
 
     // Report all the outstanding interrupts.
     if ((IntStatus & (E1000_ICR_RXT0 | E1000_ICR_RXSEQ | E1000_ICR_RXDMT0 | E1000_ICR_RXO | E1000_ICR_RXCFG)) != 0) {
@@ -1559,12 +1563,12 @@ E1000UndiStatus (
     }
 
     // Acknowledge the interrupts.
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_ICR, IntStatus);
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_ICR, IntStatus);
   }
 
   // Return current media status
   if ((CdbPtr->OpFlags & PXE_OPFLAGS_GET_MEDIA_STATUS) != 0) {
-    if (!IsLinkUp (GigAdapter)) {
+    if (!IsLinkUp (AdapterInfo)) {
       CdbPtr->StatFlags |= PXE_STATFLAGS_GET_STATUS_NO_MEDIA;
     }
   }
@@ -1579,15 +1583,15 @@ E1000UndiStatus (
    with fragmented or non-fragmented packets.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
-                             UNDI driver is layering on.
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
+                              UNDI driver is layering on.
 
    @retval      None
 **/
 VOID
 E1000UndiFillHeader (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_CPB_FILL_HEADER *           Cpb;
@@ -1667,18 +1671,18 @@ E1000UndiFillHeader (
    before transmitting.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiTransmit (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiTransmit called when driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
@@ -1692,7 +1696,7 @@ E1000UndiTransmit (
   }
 
 
-  CdbPtr->StatCode = (PXE_STATCODE) E1000Transmit (GigAdapter, CdbPtr->CPBaddr, CdbPtr->OpFlags);
+  CdbPtr->StatCode = (PXE_STATCODE) E1000Transmit (AdapterInfo, CdbPtr->CPBaddr, CdbPtr->OpFlags);
 
   if (CdbPtr->StatCode == PXE_STATCODE_SUCCESS) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
@@ -1707,19 +1711,19 @@ E1000UndiTransmit (
    Once a frame has been copied, it is removed from the receive queue.
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
 **/
 VOID
 E1000UndiReceive (
-  IN PXE_CDB *        CdbPtr,
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN PXE_CDB     *CdbPtr,
+  IN DRIVER_DATA *AdapterInfo
   )
 {
 
-  if (GigAdapter->DriverBusy) {
+  if (AdapterInfo->DriverBusy) {
     DEBUGPRINT (DECODE, ("ERROR: E1000UndiReceive called while driver busy\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_BUSY;
@@ -1727,14 +1731,14 @@ E1000UndiReceive (
   }
 
   // Check if RU has started.
-  if (!GigAdapter->ReceiveStarted) {
+  if (!AdapterInfo->ReceiveStarted) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode = PXE_STATCODE_NOT_INITIALIZED;
     return;
   }
 
 
-  CdbPtr->StatCode = (UINT16) E1000Receive (GigAdapter, CdbPtr->CPBaddr, CdbPtr->DBaddr);
+  CdbPtr->StatCode = (UINT16) E1000Receive (AdapterInfo, CdbPtr->CPBaddr, CdbPtr->DBaddr);
 
   if (CdbPtr->StatCode == PXE_STATCODE_SUCCESS) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
@@ -1758,8 +1762,8 @@ E1000UndiApiEntry (
   IN  UINT64 Cdb
   )
 {
-  PXE_CDB *        CdbPtr;
-  GIG_DRIVER_DATA *GigAdapter;
+  PXE_CDB         *CdbPtr;
+  DRIVER_DATA     *AdapterInfo;
   UNDI_CALL_TABLE *TabPtr;
 
   if (Cdb == (UINT64) 0) {
@@ -1775,7 +1779,7 @@ E1000UndiApiEntry (
     return;
   }
 
-  GigAdapter              = &(mE1000Undi32DeviceList[CdbPtr->IFnum]->NicInfo);
+  AdapterInfo = &(mE1000Undi32DeviceList[CdbPtr->IFnum]->NicInfo);
 
   // Check if InitUndiNotifyExitBs was called before
   if (mExitBootServicesTriggered) {
@@ -1785,7 +1789,7 @@ E1000UndiApiEntry (
     return;
   }
 
-  GigAdapter->VersionFlag = 0x31; // entering from new entry point
+  AdapterInfo->VersionFlag = 0x31; // entering from new entry point
 
   // Check the OPCODE range.
   if ((CdbPtr->OpCode > PXE_OPCODE_LAST_VALID) ||
@@ -1838,7 +1842,7 @@ E1000UndiApiEntry (
   if (TabPtr->State != (UINT16) (-1)) {
 
     // Should atleast be started.
-    if (GigAdapter->State == PXE_STATFLAGS_GET_STATE_STOPPED) {
+    if (AdapterInfo->State == PXE_STATFLAGS_GET_STATE_STOPPED) {
       CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
       CdbPtr->StatCode  = PXE_STATCODE_NOT_STARTED;
       return;
@@ -1846,7 +1850,7 @@ E1000UndiApiEntry (
 
     // Check if it should be initialized.
     if (TabPtr->State == 2) {
-      if (GigAdapter->State != PXE_STATFLAGS_GET_STATE_INITIALIZED) {
+      if (AdapterInfo->State != PXE_STATFLAGS_GET_STATE_INITIALIZED) {
         CdbPtr->StatCode  = PXE_STATCODE_NOT_INITIALIZED;
         CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
         return;
@@ -1858,7 +1862,7 @@ E1000UndiApiEntry (
   CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
   CdbPtr->StatCode  = PXE_STATCODE_SUCCESS;
 
-  TabPtr->ApiPtr (CdbPtr, GigAdapter);
+  TabPtr->ApiPtr (CdbPtr, AdapterInfo);
   return;
 
 BadCdb:

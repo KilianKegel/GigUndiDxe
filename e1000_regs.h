@@ -56,7 +56,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_I350_BARCTRL		0x5BFC /* BAR ctrl reg */
 #define E1000_I350_DTXMXPKTSZ		0x355C /* Maximum sent packet size reg*/
 #endif /* NO_I350_SUPPORT NO_I210_SUPPORT */
+#if !defined(NO_82575_SUPPORT) || !defined(NO_82571_SUPPORT) 
 #define E1000_SCTL	0x00024  /* SerDes Control - RW */
+#endif /* !NO_82575_SUPPORT || !NO_82571_SUPPORT || !NO_82540_SUPPORT */
 #define E1000_FCAL	0x00028  /* Flow Control Address Low - RW */
 #define E1000_FCAH	0x0002C  /* Flow Control Address High -RW */
 #ifndef NO_ICH8LAN_SUPPORT
@@ -66,8 +68,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_FEXTNVM5	0x00014  /* Future Extended NVM 5 - RW */
 #define E1000_FEXTNVM6	0x00010  /* Future Extended NVM 6 - RW */
 #define E1000_FEXTNVM7	0x000E4  /* Future Extended NVM 7 - RW */
+#define E1000_FEXTNVM8	0x5BB0  /* Future Extended NVM 8 - RW */
 #define E1000_FEXTNVM9	0x5BB4  /* Future Extended NVM 9 - RW */
 #define E1000_FEXTNVM11	0x5BBC  /* Future Extended NVM 11 - RW */
+#define E1000_FEXTNVM12	0x5BC0  /* Future Extended NVM 12 - RW */
 #define E1000_PCIEANACFG	0x00F18 /* PCIE Analog Config */
 #endif /* NO_ICH8LAN_SUPPORT */
 #define E1000_FCT	0x00030  /* Flow Control Type - RW */
@@ -278,10 +282,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			 (0x0C004 + ((_n) * 0x40)))
 #define E1000_RDLEN(_n)	((_n) < 4 ? (0x02808 + ((_n) * 0x100)) : \
 			 (0x0C008 + ((_n) * 0x40)))
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_SRRCTL(_n)	((_n) < 4 ? (0x0280C + ((_n) * 0x100)) : \
 				 (0x0C00C + ((_n) * 0x40)))
-#endif /* !NO_82575_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !NO_I225_SUPPORT */
 #define E1000_RDH(_n)	((_n) < 4 ? (0x02810 + ((_n) * 0x100)) : \
 			 (0x0C010 + ((_n) * 0x40)))
 #if !defined(NO_82575_SUPPORT)
@@ -293,10 +297,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			 (0x0C018 + ((_n) * 0x40)))
 #define E1000_RXDCTL(_n)	((_n) < 4 ? (0x02828 + ((_n) * 0x100)) : \
 				 (0x0C028 + ((_n) * 0x40)))
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RQDPC(_n)	((_n) < 4 ? (0x02830 + ((_n) * 0x100)) : \
 			 (0x0C030 + ((_n) * 0x40)))
-#endif /* NO_82575_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !NO_I225_SUPPORT */
 #define E1000_TDBAL(_n)	((_n) < 4 ? (0x03800 + ((_n) * 0x100)) : \
 			 (0x0E000 + ((_n) * 0x40)))
 #define E1000_TDBAH(_n)	((_n) < 4 ? (0x03804 + ((_n) * 0x100)) : \
@@ -324,9 +328,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RSRPD		0x02C00  /* Rx Small Packet Detect - RW */
 #define E1000_RAID		0x02C08  /* Receive Ack Interrupt Delay - RW */
 #define E1000_KABGTXD		0x03004  /* AFE Band Gap Transmit Ref Data */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_PSRTYPE(_i)	(0x05480 + ((_i) * 4))
-#endif /* NO_82575_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !NO_I225_SUPPORT */
 #define E1000_RAL(_i)		(((_i) <= 15) ? (0x05400 + ((_i) * 8)) : \
 				 (0x054E0 + ((_i - 16) * 8)))
 #define E1000_RAH(_i)		(((_i) <= 15) ? (0x05404 + ((_i) * 8)) : \
@@ -334,14 +338,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define E1000_SHRAL(_i)		(0x05438 + ((_i) * 8))
 #define E1000_SHRAH(_i)		(0x0543C + ((_i) * 8))
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_IP4AT_REG(_i)	(0x05840 + ((_i) * 8))
 #define E1000_IP6AT_REG(_i)	(0x05880 + ((_i) * 4))
 #define E1000_WUPM_REG(_i)	(0x05A00 + ((_i) * 4))
 #define E1000_FFMT_REG(_i)	(0x09000 + ((_i) * 8))
 #define E1000_FFVT_REG(_i)	(0x09800 + ((_i) * 8))
 #define E1000_FFLT_REG(_i)	(0x05F00 + ((_i) * 8))
-#endif /* NO_82575_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !NO_I225_SUPPORT */
 #ifndef NO_82575_SUPPORT
 #define E1000_PBSLAC		0x03100  /* Pkt Buffer Slave Access Control */
 #define E1000_PBSLAD(_n)	(0x03110 + (0x4 * (_n)))  /* Pkt Buffer DWORD */
@@ -515,8 +519,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_IPSTXIDX		0x0B450  /* IPSec Tx SA IDX - RW */
 #define E1000_PCS_CFG0	0x04200  /* PCS Configuration 0 - RW */
 #endif /* NO_82575_SUPPORT */
+#if !defined(NO_82575_SUPPORT) || !defined(NO_ICH8LAN_SUPPORT)
 #define E1000_PCS_LCTL	0x04208  /* PCS Link Control - RW */
 #define E1000_PCS_LSTAT	0x0420C  /* PCS Link Status - RO */
+#endif /* !NO_82575_SUPPORT || NO_ICH8LAN_SUPPORT */
 #if !defined(NO_82575_SUPPORT) 
 #define E1000_CBTMPC	0x0402C  /* Circuit Breaker Tx Packet Count */
 #define E1000_HTDPMC	0x0403C  /* Host Transmit Discarded Packets */
@@ -625,7 +631,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 
 /* RSS registers */
-#define E1000_CPUVEC	0x02C10 /* CPU Vector Register - RW */
 #define E1000_MRQC	0x05818 /* Multiple Receive Control - RW */
 #if !defined(NO_82575_SUPPORT) 
 #define E1000_IMIR(_i)	(0x05A80 + ((_i) * 4))  /* Immediate Interrupt */
@@ -719,9 +724,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_SYNQF(_n)	(0x055FC + (4 * (_n))) /* SYN Packet Queue Fltr */
 #define E1000_ETQF(_n)	(0x05CB0 + (4 * (_n))) /* EType Queue Fltr */
 
-#ifdef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 /* ETQF register bit definitions */
 #define E1000_ETQF_FILTER_ENABLE	(1 << 26)
+#define E1000_ETQF_IMM_INT		(1 << 29)
 #define E1000_ETQF_QUEUE_ENABLE		(1 << 31)
 #define E1000_ETQF_QUEUE_SHIFT		16
 #define E1000_ETQF_QUEUE_MASK		0x00070000

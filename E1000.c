@@ -75,20 +75,20 @@ IsAltMacAddrSupported (
 
 /** Implements IO blocking when reading DMA memory.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on.
-   @param[in]   Flag         Block flag
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on.
+   @param[in]   Flag          Block flag
 
    @return    Lock is acquired or released according to Flag
 **/
 VOID
 E1000BlockIt (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  UINT32              Flag
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Flag
   )
 {
-  if (GigAdapter->Block != NULL) {
-    (*GigAdapter->Block) (GigAdapter->UniqueId, Flag);
+  if (AdapterInfo->Block != NULL) {
+    (*AdapterInfo->Block) (AdapterInfo->UniqueId, Flag);
   } else {
     if (mInitializeLock) {
       EfiInitializeLock (&mLock, TPL_NOTIFY);
@@ -106,8 +106,8 @@ E1000BlockIt (
 /** Maps a virtual address to a physical address.  This is necessary for runtime functionality and also
    on some platforms that have a chipset that cannot allow DMAs above 4GB.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on.
+   @param[in]   AdapterInfo      Pointer to the NIC data structure information
+                                 which the UNDI driver is layering on.
    @param[in]   VirtualAddress   Virtual Address of the data buffer to map.
    @param[in]   Size             Minimum size of the buffer to map.
    @param[out]  MappedAddress    Pointer to store the address of the mapped buffer.
@@ -116,15 +116,15 @@ E1000BlockIt (
 **/
 VOID
 E1000MapMem (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT64           VirtualAddress,
-  IN UINT32           Size,
-  OUT UINTN *         MappedAddress
+  IN  DRIVER_DATA *AdapterInfo,
+  IN  UINT64       VirtualAddress,
+  IN  UINT32       Size,
+  OUT UINTN       *MappedAddress
   )
 {
-  if (GigAdapter->MapMem != NULL) {
-    (*GigAdapter->MapMem) (
-                    GigAdapter->UniqueId,
+  if (AdapterInfo->MapMem != NULL) {
+    (*AdapterInfo->MapMem) (
+                    AdapterInfo->UniqueId,
                     VirtualAddress,
                     Size,
                     TO_DEVICE,
@@ -142,7 +142,7 @@ E1000MapMem (
 /** UnMaps a virtual address to a physical address.  This is necessary for runtime functionality and also
    on some platforms that have a chipset that cannot allow DMAs above 4GB.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
    @param[in]   VirtualAddress   Virtual Address of the data buffer to map.
    @param[in]   Size             Minimum size of the buffer to map.
@@ -152,15 +152,15 @@ E1000MapMem (
 **/
 VOID
 E1000UnMapMem (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT64           VirtualAddress,
-  IN UINT32           Size,
-  IN UINT64           MappedAddress
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT64       VirtualAddress,
+  IN UINT32       Size,
+  IN UINT64       MappedAddress
   )
 {
-  if (GigAdapter->UnMapMem != NULL) {
-    (*GigAdapter->UnMapMem) (
-                    GigAdapter->UniqueId,
+  if (AdapterInfo->UnMapMem != NULL) {
+    (*AdapterInfo->UnMapMem) (
+                    AdapterInfo->UniqueId,
                     VirtualAddress,
                     Size,
                     TO_DEVICE,
@@ -222,7 +222,7 @@ E1000MemCopy (
 
 /** Wait for up to 15 seconds for two pair downshift to complete
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @retval   TRUE    Two pair downshift was successful and link was established
@@ -230,7 +230,7 @@ E1000MemCopy (
 **/
 BOOLEAN
 E1000DownShift (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINTN  i;
@@ -241,7 +241,7 @@ E1000DownShift (
   i = 0;
   for (i = 0; i < 15; i++) {
     DELAY_IN_MILLISECONDS (1000);
-    Status = E1000_READ_REG (&GigAdapter->Hw, E1000_STATUS);
+    Status = E1000_READ_REG (&AdapterInfo->Hw, E1000_STATUS);
     DEBUGPRINT (E1000, ("Status = %x\n", Status));
     if ((Status & E1000_STATUS_LU) != 0) {
       DEBUGPRINT (E1000, ("Successfully established link\n"));
@@ -257,7 +257,7 @@ E1000DownShift (
    It means it will read our read and clear numbers, so some adding is required before
    we copy it over to the protocol.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
    @param[in]   DbAddr   The data Block address
    @param[in]   DbSize   The data Block size
@@ -266,9 +266,9 @@ E1000DownShift (
 **/
 UINTN
 E1000Statistics (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT64           DbAddr,
-  UINT16           DbSize
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT64       DbAddr,
+  IN UINT16       DbSize
   )
 {
   PXE_DB_STATISTICS *    DbPtr;
@@ -276,8 +276,8 @@ E1000Statistics (
   struct e1000_hw_stats *St;
   UINTN                  Stat;
 
-  Hw  = &GigAdapter->Hw;
-  St  = &GigAdapter->Stats;
+  Hw  = &AdapterInfo->Hw;
+  St  = &AdapterInfo->Stats;
 
   {
     UPDATE_OR_RESET_STAT (crcerrs, E1000_CRCERRS);
@@ -379,7 +379,7 @@ E1000Statistics (
 /** Takes a command Block pointer (cpb) and sends the frame.  Takes either one fragment or many
    and places them onto the wire.  Cleanup of the send happens in the function UNDI_Status in DECODE.C
 
-   @param[in]   GigAdapter   Pointer to the instance data
+   @param[in]   AdapterInfo   Pointer to the instance data
    @param[in]   Cpb       The command parameter Block address.  64 bits since this is Itanium(tm)
                           processor friendly
    @param[in]   OpFlags   The operation flags, tells if there is any special sauce on this transmit
@@ -391,27 +391,31 @@ E1000Statistics (
 **/
 UINTN
 E1000Transmit (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT64           Cpb,
-  UINT16           OpFlags
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT64       Cpb,
+  IN UINT16       OpFlags
   )
 {
   PXE_CPB_TRANSMIT_FRAGMENTS *TxFrags;
-  PXE_CPB_TRANSMIT *          TxBuffer;
+  PXE_CPB_TRANSMIT           *TxBuffer;
   E1000_TRANSMIT_DESCRIPTOR  *TransmitDescriptor;
   UINT32                      i;
   INT16                       WaitMsec;
   EFI_STATUS                  Status;
-  UNDI_DMA_MAPPING            *TxBufMapping;
+  UNDI_DMA_MAPPING           *TxBufMapping;
+#if (DBG_LVL & TX)
+  UINT8                      *UnmappedTxBuffer;
+#endif /* (DBG_LVL & TX) */
 
-  TxBufMapping = &GigAdapter->TxBufferMappings[GigAdapter->CurTxInd];
+  TxBufMapping = &AdapterInfo->TxBufferMappings[AdapterInfo->CurTxInd];
+
 
 
   // Transmit buffers must be freed by the upper layer before we can transmit any more.
   if (TxBufMapping->PhysicalAddress != 0) {
-    DEBUGPRINT (CRITICAL, ("TX buffers have all been used! cur_tx=%d\n", GigAdapter->CurTxInd));
+    DEBUGPRINT (CRITICAL, ("TX buffers have all been used! cur_tx=%d\n", AdapterInfo->CurTxInd));
     for (i = 0; i < DEFAULT_TX_DESCRIPTORS; i++) {
-      DEBUGPRINT (CRITICAL, ("%x ", GigAdapter->TxBufferMappings[i]));
+      DEBUGPRINT (CRITICAL, ("%x ", AdapterInfo->TxBufferMappings[i]));
     }
     DEBUGWAIT (CRITICAL);
 
@@ -427,7 +431,7 @@ E1000Transmit (
   TxFrags   = (PXE_CPB_TRANSMIT_FRAGMENTS *) (UINTN) Cpb;
 
   // quicker pointer to the next available Tx descriptor to use.
-  TransmitDescriptor = E1000_TX_DESC (&GigAdapter->TxRing, GigAdapter->CurTxInd);
+  TransmitDescriptor = E1000_TX_DESC (&AdapterInfo->TxRing, AdapterInfo->CurTxInd);
 
   // Opflags will tell us if this Tx has fragments
   // So far the linear case (the no fragments case, the else on this if) is the majority
@@ -442,11 +446,15 @@ E1000Transmit (
 
       // Put the size of the fragment in the descriptor
       E1000MapMem (
-        GigAdapter,
+        AdapterInfo,
         TxFrags->FragDesc[i].FragAddr,
         TxFrags->FragDesc[i].FragLen,
         (UINTN *) &TransmitDescriptor->buffer_addr
       );
+
+#if (DBG_LVL & TX)
+      UnmappedTxBuffer = (UINT8 *) TxFrags->FragDesc[i].FragAddr;
+#endif /* (DBG_LVL & TX) */
 
       TransmitDescriptor->lower.flags.length  = (UINT16) TxFrags->FragDesc[i].FragLen;
       TransmitDescriptor->lower.data = (E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
@@ -458,12 +466,12 @@ E1000Transmit (
       }
 
       // move our software counter passed the frame we just used, watching for wrapping
-      DEBUGPRINT (E1000, ("Advancing TX pointer %x\n", GigAdapter->CurTxInd));
-      GigAdapter->CurTxInd++;
-      if (GigAdapter->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
-        GigAdapter->CurTxInd = 0;
+      DEBUGPRINT (E1000, ("Advancing TX pointer %x\n", AdapterInfo->CurTxInd));
+      AdapterInfo->CurTxInd++;
+      if (AdapterInfo->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
+        AdapterInfo->CurTxInd = 0;
       }
-      TransmitDescriptor = E1000_TX_DESC (&GigAdapter->TxRing, GigAdapter->CurTxInd);
+      TransmitDescriptor = E1000_TX_DESC (&AdapterInfo->TxRing, AdapterInfo->CurTxInd);
     }
   } else {
     DEBUGPRINT (E1000, ("No Fragments\n"));
@@ -473,7 +481,7 @@ E1000Transmit (
 
     // Make the Tx buffer accessible for adapter over DMA
     Status = UndiDmaMapMemoryRead (
-               GigAdapter->PciIo,
+               AdapterInfo->PciIo,
                TxBufMapping
                );
 
@@ -485,6 +493,10 @@ E1000Transmit (
 
     TransmitDescriptor->buffer_addr = TxBufMapping->PhysicalAddress;
     DEBUGPRINT (E1000, ("Packet buffer at %x\n", TransmitDescriptor->buffer_addr));
+
+#if (DBG_LVL & TX)
+    UnmappedTxBuffer = (UINT8 *) TxBufMapping->UnmappedAddress;
+#endif /* (DBG_LVL & TX) */
 
     // Set the proper bits to tell the chip that this is the last descriptor in the send,
     // and be sure to tell us when its done.
@@ -508,26 +520,30 @@ E1000Transmit (
     // In the zero fragment case, we need to add the header size to the payload size
     // to accurately tell the hw how big is the packet.
     // Move our software counter passed the frame we just used, watching for wrapping
-    GigAdapter->CurTxInd++;
-    if (GigAdapter->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
-      GigAdapter->CurTxInd = 0;
+    AdapterInfo->CurTxInd++;
+    if (AdapterInfo->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
+      AdapterInfo->CurTxInd = 0;
     }
   }
 
 #if (DBG_LVL & TX)
-  DEBUGPRINT (TX, ("Packet length = %d\n", TransmitDescriptor->lower.flags.length));
-  DEBUGPRINT (TX, ("Packet data:\n"));
-  for (i = 0; i < 32; i++) {
-    DEBUGPRINT (TX, ("%x ", ((UINT16 *) ((UINTN) TransmitDescriptor->buffer_addr))[i]));
+  DEBUGPRINT (TX, ("Packet length %d, data:", TransmitDescriptor->lower.flags.length));
+  for (i = 0; i < TransmitDescriptor->lower.flags.length; i++) {
+    if (i % 16 == 0) {
+      DEBUGDUMP (TX, ("\n%p ", &UnmappedTxBuffer[i]));
+    }
+
+    DEBUGDUMP (TX, ("%.2X ", UnmappedTxBuffer[i]));
   }
+  DEBUGDUMP (TX, ("\n"))
 #endif /* (DBG_LVL & TX) */
 
   // Turn on the blocking function so we don't get swapped out
   // Then move the Tail pointer so the HW knows to start processing the TX we just setup.
   DEBUGWAIT (E1000);
-  E1000BlockIt (GigAdapter, TRUE);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDT (0), GigAdapter->CurTxInd);
-  E1000BlockIt (GigAdapter, FALSE);
+  E1000BlockIt (AdapterInfo, TRUE);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDT (0), AdapterInfo->CurTxInd);
+  E1000BlockIt (AdapterInfo, FALSE);
 
   // If the OpFlags tells us to wait for the packet to hit the wire, we will wait.
   if ((OpFlags & PXE_OPFLAGS_TRANSMIT_BLOCK) != 0) {
@@ -553,7 +569,7 @@ E1000Transmit (
   return PXE_STATCODE_SUCCESS;
 }
 
-/** Copies the frame from our internal storage ring (As pointed to by GigAdapter->rx_ring)
+/** Copies the frame from our internal storage ring (As pointed to by AdapterInfo->rx_ring)
    to the command Block passed in as part of the cpb parameter.
 
    The flow:
@@ -567,20 +583,20 @@ E1000Transmit (
    Finally we clean up the frame, set the return value to _SUCCESS, and inc the cur_rx_ind, watching
    for wrapping.  Then with all the loose ends nicely wrapped up, fade to black and return.
 
-   @param[in]   GigAdapter   pointer to the driver data
-   @param[in]   Cpb          Pointer (Ia-64 friendly) to the command parameter Block.
-                             The frame will be placed inside of it.
-   @param[out]  Db     The data buffer.  The out of band method of passing pre-digested
-                       information to the protocol.
+   @param[in]   AdapterInfo   Pointer to the driver data
+   @param[in]   Cpb           Pointer (Ia-64 friendly) to the command parameter
+                              block. The frame will be placed inside of it.
+   @param[out]  Db            The data buffer. The out of band method of passing
+                              pre-digested information to the protocol.
 
    @retval   PXE_STATCODE_NO_DATA If there is no data
    @retval   PXE_STATCODE_SUCCESS If we passed the goods to the protocol.
 **/
 UINTN
 E1000Receive (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT64           Cpb,
-  UINT64           Db
+  IN  DRIVER_DATA *AdapterInfo,
+  IN  UINT64       Cpb,
+  OUT UINT64       Db
   )
 {
   PXE_CPB_RECEIVE *         CpbReceive;
@@ -589,12 +605,13 @@ E1000Receive (
   E1000_RECEIVE_DESCRIPTOR *ReceiveDescriptor;
   ETHER_HEADER *            EtherHeader;
   PXE_STATCODE              StatCode;
-  UINT16                    TempLen;
+  UINT16                    DataLength;
 #if (DBG_LVL & RX)
   UINT8 *                   PacketPtr;
   UINT16                    i;
 #endif /* (DBG_LVL & RX) */
 #if (DBG_LVL & CRITICAL) && (DBG_LVL & RX)
+  VOID *                    PhysicalRxBuffer;
   UINT32                    Rdh;
   UINT32                    Rdt;
 #endif /* (DBG_LVL & CRITICAL) && (DBG_LVL & RX) */
@@ -603,28 +620,28 @@ E1000Receive (
   StatCode    = PXE_STATCODE_NO_DATA;
 
   // acknowledge the interrupts
-  E1000_READ_REG (&GigAdapter->Hw, E1000_ICR);
+  E1000_READ_REG (&AdapterInfo->Hw, E1000_ICR);
 
 
   // DEBUGPRINT(E1000, ("E1000Receive\n"));
-  // DEBUGPRINT(E1000, ("RCTL=%X ", E1000_READ_REG(&GigAdapter->Hw, E1000_RCTL)));
-  // DEBUGPRINT(E1000, ("RDH0=%x ", (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_RDH(0))));
-  // DEBUGPRINT(E1000, ("RDT0=%x\n", (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_RDT(0))));
+  // DEBUGPRINT(E1000, ("RCTL=%X ", E1000_READ_REG(&AdapterInfo->Hw, E1000_RCTL)));
+  // DEBUGPRINT(E1000, ("RDH0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH(0))));
+  // DEBUGPRINT(E1000, ("RDT0=%x\n", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT(0))));
   // DEBUGPRINT(E1000, ("RDBAL=%x desc=%X\n",  E1000_READ_REG (
-  //                                            &GigAdapter->Hw, E1000_RDBAL),
-  //                                            (UINTN) GigAdapter->rx_ring)
+  //                                            &AdapterInfo->Hw, E1000_RDBAL),
+  //                                            (UINTN) AdapterInfo->rx_ring)
   //                                          );
-  // rar_low = E1000_READ_REG_ARRAY(&GigAdapter->Hw, E1000_RA, 0);
-  // rar_high = E1000_READ_REG_ARRAY(&GigAdapter->Hw, E1000_RA, 1);
+  // rar_low = E1000_READ_REG_ARRAY(&AdapterInfo->Hw, E1000_RA, 0);
+  // rar_high = E1000_READ_REG_ARRAY(&AdapterInfo->Hw, E1000_RA, 1);
   // DEBUGPRINT(E1000, ("Receive Addr = %X %X\n", rar_high, rar_low));
 
   // for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
-  //   DEBUGPRINT(E1000, ("buffer=%X ", GigAdapter->rx_ring[i].buffer_addr));
-  //   DEBUGPRINT(E1000, ("csum=%X ", GigAdapter->rx_ring[i].csum));
-  //   DEBUGPRINT(E1000, ("special=%X ", GigAdapter->rx_ring[i].special));
-  //   DEBUGPRINT(E1000, ("status=%X ", GigAdapter->rx_ring[i].status));
-  //   DEBUGPRINT(E1000, ("len=%X ", GigAdapter->rx_ring[i].length));
-  //   DEBUGPRINT(E1000, ("err=%X\n", GigAdapter->rx_ring[i].errors));
+  //   DEBUGPRINT(E1000, ("buffer=%X ", AdapterInfo->rx_ring[i].buffer_addr));
+  //   DEBUGPRINT(E1000, ("csum=%X ", AdapterInfo->rx_ring[i].csum));
+  //   DEBUGPRINT(E1000, ("special=%X ", AdapterInfo->rx_ring[i].special));
+  //   DEBUGPRINT(E1000, ("status=%X ", AdapterInfo->rx_ring[i].status));
+  //   DEBUGPRINT(E1000, ("len=%X ", AdapterInfo->rx_ring[i].length));
+  //   DEBUGPRINT(E1000, ("err=%X\n", AdapterInfo->rx_ring[i].errors));
   // }
 
 
@@ -633,20 +650,23 @@ E1000Receive (
   DbReceive   = (PXE_DB_RECEIVE *) (UINTN) Db;
 
   // Get a pointer to the buffer that should have a rx in it, IF one is really there.
-  ReceiveDescriptor = E1000_RX_DESC (&GigAdapter->RxRing, GigAdapter->CurRxInd);
+  ReceiveDescriptor = E1000_RX_DESC (&AdapterInfo->RxRing, AdapterInfo->CurRxInd);
 
 #if (DBG_LVL & CRITICAL) && (DBG_LVL & RX)
-  if (ReceiveDescriptor->buffer_addr != GigAdapter->DebugRxBuffer[GigAdapter->CurRxInd]) {
+  PhysicalRxBuffer = E1000_RX_BUFFER_ADDR (
+                       AdapterInfo->RxBufferMapping.PhysicalAddress,
+                       AdapterInfo->CurRxInd
+                     );
+
+  if (ReceiveDescriptor->buffer_addr != PhysicalRxBuffer) {
     DEBUGPRINT (
-      CRITICAL, ("GetStatus ERROR: Rx buff mismatch on desc %d: expected %X, actual %X\n",
-      GigAdapter->CurRxInd,
-      GigAdapter->DebugRxBuffer[GigAdapter->CurRxInd],
-      ReceiveDescriptor->buffer_addr)
+      CRITICAL, ("RX buffer address mismatch on desc 0x%.2X: expected %X, actual %X\n",
+      AdapterInfo->CurRxInd, PhysicalRxBuffer, ReceiveDescriptor->buffer_addr)
     );
   }
 
-  Rdt = E1000_READ_REG (&GigAdapter->Hw, E1000_RDT (0));
-  Rdh = E1000_READ_REG (&GigAdapter->Hw, E1000_RDH (0));
+  Rdt = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT (0));
+  Rdh = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
   if (Rdt == Rdh) {
     DEBUGPRINT (CRITICAL, ("Receive ERROR: RX Buffers Full!\n"));
   }
@@ -658,16 +678,16 @@ E1000Receive (
     if ((ReceiveDescriptor->length != 0) && (ReceiveDescriptor->errors == 0)) {
 
       // If the buffer passed us is smaller than the packet, only copy the size of the buffer.
-      TempLen = ReceiveDescriptor->length;
-      if (ReceiveDescriptor->length > (INT16) CpbReceive->BufferLen) {
-        TempLen = (UINT16) CpbReceive->BufferLen;
-      }
+      DataLength = MIN (ReceiveDescriptor->length, (UINT16) CpbReceive->BufferLen);
 
       // Copy the packet from our list to the EFI buffer.
       E1000MemCopy (
         (UINT8 *) (UINTN) CpbReceive->BufferAddr,
-        (UINT8 *) (UINTN) ReceiveDescriptor->buffer_addr,
-        TempLen
+        (UINT8 *) E1000_RX_BUFFER_ADDR (
+                    AdapterInfo->RxBufferMapping.UnmappedAddress,
+                    AdapterInfo->CurRxInd
+                  ),
+        DataLength
       );
 
 #if (DBG_LVL & RX)
@@ -684,14 +704,17 @@ E1000Receive (
       DbReceive->FrameLen       = ReceiveDescriptor->length;  // includes header
       DbReceive->MediaHeaderLen = PXE_MAC_HEADER_LEN_ETHER;
 
-      EtherHeader = (ETHER_HEADER *) (UINTN) ReceiveDescriptor->buffer_addr;
+      EtherHeader = (ETHER_HEADER *) E1000_RX_BUFFER_ADDR (
+                                       AdapterInfo->RxBufferMapping.UnmappedAddress,
+                                       AdapterInfo->CurRxInd
+                                     );
 
       // Figure out if the packet was meant for us, was a broadcast, multicast or we
       // recieved a frame in promiscuous mode.
-      if (E1000_COMPARE_MAC (EtherHeader->DestAddr, GigAdapter->Hw.mac.addr) == 0) {
+      if (E1000_COMPARE_MAC (EtherHeader->DestAddr, AdapterInfo->Hw.mac.addr) == 0) {
         PacketType = PXE_FRAME_TYPE_UNICAST;
         DEBUGPRINT (E1000, ("unicast packet for us.\n"));
-      } else if (E1000_COMPARE_MAC (EtherHeader->DestAddr, GigAdapter->BroadcastNodeAddress) == 0) {
+      } else if (E1000_COMPARE_MAC (EtherHeader->DestAddr, AdapterInfo->BroadcastNodeAddress) == 0) {
         PacketType = PXE_FRAME_TYPE_BROADCAST;
         DEBUGPRINT (E1000, ("broadcast packet.\n"));
       } else {
@@ -727,10 +750,10 @@ E1000Receive (
 
     // Move the current cleaned buffer pointer, being careful to wrap it as needed.
     // Then update the hardware, so it knows that an additional buffer can be used.
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDT (0), GigAdapter->CurRxInd);
-    GigAdapter->CurRxInd++;
-    if (GigAdapter->CurRxInd == DEFAULT_RX_DESCRIPTORS) {
-      GigAdapter->CurRxInd = 0;
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), AdapterInfo->CurRxInd);
+    AdapterInfo->CurRxInd++;
+    if (AdapterInfo->CurRxInd == DEFAULT_RX_DESCRIPTORS) {
+      AdapterInfo->CurRxInd = 0;
     }
   }
 
@@ -739,13 +762,13 @@ E1000Receive (
 
 /** Allows the protocol to control our interrupt behaviour.
 
-   @param[in]   GigAdapter   Pointer to the driver structure
+   @param[in]   AdapterInfo   Pointer to the driver structure
 
    @retval   PXE_STATCODE_SUCCESS   Interrupt state set successfully
 **/
 UINTN
 E1000SetInterruptState (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 SetIntMask;
@@ -755,10 +778,10 @@ E1000SetInterruptState (
   DEBUGPRINT (E1000, ("E1000SetInterruptState\n"));
 
   // Start with no Interrupts.
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_IMC, 0xFFFFFFFF);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_IMC, 0xFFFFFFFF);
 
   // Mask the RX interrupts
-  if (GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_RECEIVE) {
+  if (AdapterInfo->IntMask & PXE_OPFLAGS_INTERRUPT_RECEIVE) {
     SetIntMask = (E1000_ICR_RXT0 |
                   E1000_ICR_RXSEQ |
                   E1000_ICR_RXDMT0 |
@@ -769,26 +792,26 @@ E1000SetInterruptState (
   }
 
   // Mask the TX interrupts
-  if (GigAdapter->IntMask & PXE_OPFLAGS_INTERRUPT_TRANSMIT) {
+  if (AdapterInfo->IntMask & PXE_OPFLAGS_INTERRUPT_TRANSMIT) {
     SetIntMask = (E1000_ICR_TXDW | E1000_ICR_TXQE | SetIntMask);
     DEBUGPRINT (E1000, ("Mask the TX interrupts\n"));
   }
 
   // Now we have all the Ints we want, so let the hardware know.
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_IMS, SetIntMask);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_IMS, SetIntMask);
 
   return PXE_STATCODE_SUCCESS;
 }
 
 /** Stop the hardware and put it all (including the PHY) into a known good state.
 
-   @param[in]   GigAdapter   Pointer to the driver structure
+   @param[in]   AdapterInfo   Pointer to the driver structure
 
    @retval   PXE_STATCODE_SUCCESS    Hardware stopped
 **/
 UINTN
 E1000Shutdown (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 Reg;
@@ -796,32 +819,32 @@ E1000Shutdown (
   DEBUGPRINT (E1000, ("E1000Shutdown - adapter stop\n"));
 
   // Disable the transmit and receive DMA
-  E1000ReceiveStop (GigAdapter);
-  E1000TransmitDisable (GigAdapter);
+  E1000ReceiveStop (AdapterInfo);
+  E1000TransmitDisable (AdapterInfo);
 
-  Reg = E1000_READ_REG (&GigAdapter->Hw, E1000_TCTL);
+  Reg = E1000_READ_REG (&AdapterInfo->Hw, E1000_TCTL);
   Reg = (Reg & ~E1000_TCTL_EN);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TCTL, Reg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TCTL, Reg);
 
   // Disable the receive unit so the hardware does not continue to DMA packets to memory.
   // Also release the software semaphore.
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, 0);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_SWSM, 0);
-  E1000PciFlush (&GigAdapter->Hw);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, 0);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_SWSM, 0);
+  E1000PciFlush (&AdapterInfo->Hw);
 
   // This delay is to ensure in flight DMA and receive descriptor flush
   // have time to complete.
   DELAY_IN_MILLISECONDS (10);
 
-  GigAdapter->ReceiveStarted = FALSE;
-  GigAdapter->RxFilter = 0;
+  AdapterInfo->ReceiveStarted = FALSE;
+  AdapterInfo->RxFilter = 0;
 
   return PXE_STATCODE_SUCCESS;
 }
 
 /** Resets the hardware and put it all (including the PHY) into a known good state.
 
-   @param[in]   GigAdapter   The pointer to our context data
+   @param[in]   AdapterInfo   The pointer to our context data
    @param[in]   OpFlags      The information on what else we need to do.
 
    @retval   PXE_STATCODE_SUCCESS        Successfull hardware reset
@@ -829,27 +852,27 @@ E1000Shutdown (
 **/
 UINTN
 E1000Reset (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT16           OpFlags
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT16       OpFlags
   )
 {
   UINT32 TempReg;
 
   DEBUGPRINT (E1000, ("E1000Reset\n"));
 
-  TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_STATUS);
+  TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_STATUS);
 
-  GigAdapter->Hw.phy.reset_disable = TRUE;
+  AdapterInfo->Hw.phy.reset_disable = TRUE;
 
   if ((TempReg & E1000_STATUS_LU) != 0) {
     if (((TempReg & E1000_STATUS_FD) == 0)
       && ((TempReg & E1000_STATUS_SPEED_MASK) == E1000_STATUS_SPEED_1000))
     {
       DEBUGPRINT (E1000, ("BAD LINK - 1Gig/Half - Enabling PHY reset\n"));
-      GigAdapter->Hw.phy.reset_disable = FALSE;
+      AdapterInfo->Hw.phy.reset_disable = FALSE;
 
       // Since link is in a bad state we also need to make sure that we do a full reset down below
-      GigAdapter->HwInitialized = FALSE;
+      AdapterInfo->HwInitialized = FALSE;
     }
   }
 
@@ -859,11 +882,11 @@ E1000Reset (
   // If the hardware has already been started then don't bother with a reset
   // We want to make sure we do not have to restart autonegotiation and two-pair
   // downshift.
-  if (!GigAdapter->HwInitialized) {
-    e1000_reset_hw (&GigAdapter->Hw);
+  if (!AdapterInfo->HwInitialized) {
+    e1000_reset_hw (&AdapterInfo->Hw);
 
     // Now that the structures are in place, we can configure the hardware to use it all.
-    if (e1000_init_hw (&GigAdapter->Hw) == 0) {
+    if (e1000_init_hw (&AdapterInfo->Hw) == 0) {
       DEBUGPRINT (E1000, ("e1000_init_hw success\n"));
     } else {
       DEBUGPRINT (CRITICAL, ("Hardware Init failed\n"));
@@ -876,52 +899,52 @@ E1000Reset (
   if ((OpFlags & PXE_OPFLAGS_RESET_DISABLE_FILTERS) == 0) {
     UINT16 SaveFilter;
 
-    SaveFilter = GigAdapter->RxFilter;
+    SaveFilter = AdapterInfo->RxFilter;
 
     // if we give the filter same as Rx_Filter, this routine will not set mcast list
     // (it thinks there is no change)
     // to force it, we will reset that flag in the Rx_Filter
-    GigAdapter->RxFilter &= (~PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST);
-    E1000SetFilter (GigAdapter, SaveFilter, (UINT64) 0, (UINT32) 0);
+    AdapterInfo->RxFilter &= (~PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST);
+    E1000SetFilter (AdapterInfo, SaveFilter, (UINT64) 0, (UINT32) 0);
   }
 
   if (OpFlags & PXE_OPFLAGS_RESET_DISABLE_INTERRUPTS) {
-    GigAdapter->IntMask = 0; // disable the interrupts
+    AdapterInfo->IntMask = 0; // disable the interrupts
   }
 
-  E1000SetInterruptState (GigAdapter);
+  E1000SetInterruptState (AdapterInfo);
 
   return PXE_STATCODE_SUCCESS;
 }
 
 /** PCIe function to LAN port mapping.
 
-   @param[in,out]   GigAdapter   Pointer to adapter structure
+   @param[in,out]   AdapterInfo   Pointer to adapter structure
 
    @return   LAN function set accordingly
 **/
 VOID
 E1000LanFunction (
-  GIG_DRIVER_DATA *GigAdapter
+  IN OUT DRIVER_DATA *AdapterInfo
   )
 {
-  GigAdapter->LanFunction = (E1000_READ_REG (&GigAdapter->Hw, E1000_STATUS) &
+  AdapterInfo->LanFunction = (E1000_READ_REG (&AdapterInfo->Hw, E1000_STATUS) &
                             E1000_STATUS_LAN_ID_MASK)
                             >> E1000_STATUS_LAN_ID_OFFSET;
-  DEBUGPRINT (INIT, ("PCI function %d is LAN port %d \n", GigAdapter->Function, GigAdapter->LanFunction));
+  DEBUGPRINT (INIT, ("PCI function %d is LAN port %d \n", AdapterInfo->Function, AdapterInfo->LanFunction));
   DEBUGWAIT (INIT);
 }
 
 /** Sets the force speed and duplex settings for the adapter based on
    EEPROM settings and data set by the SNP
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @return    Speed duplex settings set
 **/
 VOID
 E1000SetSpeedDuplex (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT16 SetupOffset;
@@ -932,51 +955,51 @@ E1000SetSpeedDuplex (
   DEBUGPRINT (E1000, ("E1000SetSpeedDuplex\n"));
 
   // Copy forced speed and duplex settings to shared code structure
-  if ((GigAdapter->LinkSpeed == 10)
-    && (GigAdapter->DuplexMode == PXE_FORCE_HALF_DUPLEX))
+  if ((AdapterInfo->LinkSpeed == 10)
+    && (AdapterInfo->DuplexMode == PXE_FORCE_HALF_DUPLEX))
   {
     DEBUGPRINT (E1000, ("Force 10-Half\n"));
-    GigAdapter->Hw.phy.reset_disable    = FALSE;
-    GigAdapter->Hw.mac.autoneg              = 0;
-    GigAdapter->Hw.mac.forced_speed_duplex  = ADVERTISE_10_HALF;
-    GigAdapter->HwInitialized = FALSE;
+    AdapterInfo->Hw.phy.reset_disable    = FALSE;
+    AdapterInfo->Hw.mac.autoneg              = 0;
+    AdapterInfo->Hw.mac.forced_speed_duplex  = ADVERTISE_10_HALF;
+    AdapterInfo->HwInitialized = FALSE;
   }
 
-  if ((GigAdapter->LinkSpeed == 100)
-    && (GigAdapter->DuplexMode == PXE_FORCE_HALF_DUPLEX))
+  if ((AdapterInfo->LinkSpeed == 100)
+    && (AdapterInfo->DuplexMode == PXE_FORCE_HALF_DUPLEX))
   {
     DEBUGPRINT (E1000, ("Force 100-Half\n"));
-    GigAdapter->Hw.phy.reset_disable    = FALSE;
-    GigAdapter->Hw.mac.autoneg              = 0;
-    GigAdapter->Hw.mac.forced_speed_duplex  = ADVERTISE_100_HALF;
-    GigAdapter->HwInitialized = FALSE;
+    AdapterInfo->Hw.phy.reset_disable    = FALSE;
+    AdapterInfo->Hw.mac.autoneg              = 0;
+    AdapterInfo->Hw.mac.forced_speed_duplex  = ADVERTISE_100_HALF;
+    AdapterInfo->HwInitialized = FALSE;
   }
 
-  if ((GigAdapter->LinkSpeed == 10)
-    && (GigAdapter->DuplexMode == PXE_FORCE_FULL_DUPLEX))
+  if ((AdapterInfo->LinkSpeed == 10)
+    && (AdapterInfo->DuplexMode == PXE_FORCE_FULL_DUPLEX))
   {
     DEBUGPRINT (E1000, ("Force 10-Full\n"));
-    GigAdapter->Hw.phy.reset_disable    = FALSE;
-    GigAdapter->Hw.mac.autoneg              = 0;
-    GigAdapter->Hw.mac.forced_speed_duplex  = ADVERTISE_10_FULL;
-    GigAdapter->HwInitialized = FALSE;
+    AdapterInfo->Hw.phy.reset_disable    = FALSE;
+    AdapterInfo->Hw.mac.autoneg              = 0;
+    AdapterInfo->Hw.mac.forced_speed_duplex  = ADVERTISE_10_FULL;
+    AdapterInfo->HwInitialized = FALSE;
   }
 
-  if ((GigAdapter->LinkSpeed == 100)
-    && (GigAdapter->DuplexMode == PXE_FORCE_FULL_DUPLEX))
+  if ((AdapterInfo->LinkSpeed == 100)
+    && (AdapterInfo->DuplexMode == PXE_FORCE_FULL_DUPLEX))
   {
     DEBUGPRINT (E1000, ("Force 100-Full\n"));
-    GigAdapter->Hw.phy.reset_disable    = FALSE;
-    GigAdapter->Hw.mac.autoneg              = 0;
-    GigAdapter->Hw.mac.forced_speed_duplex  = ADVERTISE_100_FULL;
-    GigAdapter->HwInitialized = FALSE;
+    AdapterInfo->Hw.phy.reset_disable    = FALSE;
+    AdapterInfo->Hw.mac.autoneg              = 0;
+    AdapterInfo->Hw.mac.forced_speed_duplex  = ADVERTISE_100_FULL;
+    AdapterInfo->HwInitialized = FALSE;
   }
 
   // Check for forced speed and duplex
   // The EEPROM settings will override settings passed by the SNP
 
   // Configure offsets depending on function number
-  switch (GigAdapter->Function) {
+  switch (AdapterInfo->Function) {
   case 0:
     ConfigOffset = CONFIG_CUSTOM_WORD;
     SetupOffset  = SETUP_OPTIONS_WORD;
@@ -999,41 +1022,41 @@ E1000SetSpeedDuplex (
     break;
   }
 
-  e1000_read_nvm (&GigAdapter->Hw, SetupOffset, 1, &SetupWord);
-  e1000_read_nvm (&GigAdapter->Hw, ConfigOffset, 1, &CustomConfigWord);
+  e1000_read_nvm (&AdapterInfo->Hw, SetupOffset, 1, &SetupWord);
+  e1000_read_nvm (&AdapterInfo->Hw, ConfigOffset, 1, &CustomConfigWord);
 
   if ((CustomConfigWord & SIG_MASK) == SIG) {
     switch (SetupWord & (FSP_MASK | FDP_FULL_DUPLEX_BIT)) {
     case (FDP_FULL_DUPLEX_BIT | FSP_100MBS):
       DEBUGPRINT (E1000, ("Forcing 100 Full from EEPROM\n"));
-      GigAdapter->Hw.phy.reset_disable = FALSE;
-      GigAdapter->Hw.mac.autoneg = 0;
-      GigAdapter->Hw.mac.forced_speed_duplex = ADVERTISE_100_FULL;
-      GigAdapter->HwInitialized = FALSE;
+      AdapterInfo->Hw.phy.reset_disable = FALSE;
+      AdapterInfo->Hw.mac.autoneg = 0;
+      AdapterInfo->Hw.mac.forced_speed_duplex = ADVERTISE_100_FULL;
+      AdapterInfo->HwInitialized = FALSE;
       break;
     case (FDP_FULL_DUPLEX_BIT | FSP_10MBS):
       DEBUGPRINT (E1000, ("Forcing 10 Full from EEPROM\n"));
-      GigAdapter->Hw.phy.reset_disable = FALSE;
-      GigAdapter->Hw.mac.autoneg = 0;
-      GigAdapter->Hw.mac.forced_speed_duplex = ADVERTISE_10_FULL;
-      GigAdapter->HwInitialized = FALSE;
+      AdapterInfo->Hw.phy.reset_disable = FALSE;
+      AdapterInfo->Hw.mac.autoneg = 0;
+      AdapterInfo->Hw.mac.forced_speed_duplex = ADVERTISE_10_FULL;
+      AdapterInfo->HwInitialized = FALSE;
       break;
     case (FSP_100MBS):
       DEBUGPRINT (E1000, ("Forcing 100 Half from EEPROM\n"));
-      GigAdapter->Hw.phy.reset_disable = FALSE;
-      GigAdapter->Hw.mac.autoneg = 0;
-      GigAdapter->Hw.mac.forced_speed_duplex = ADVERTISE_100_HALF;
-      GigAdapter->HwInitialized = FALSE;
+      AdapterInfo->Hw.phy.reset_disable = FALSE;
+      AdapterInfo->Hw.mac.autoneg = 0;
+      AdapterInfo->Hw.mac.forced_speed_duplex = ADVERTISE_100_HALF;
+      AdapterInfo->HwInitialized = FALSE;
       break;
     case (FSP_10MBS):
       DEBUGPRINT (E1000, ("Forcing 10 Half from EEPROM\n"));
-      GigAdapter->Hw.phy.reset_disable = FALSE;
-      GigAdapter->Hw.mac.autoneg = 0;
-      GigAdapter->Hw.mac.forced_speed_duplex = ADVERTISE_10_HALF;
-      GigAdapter->HwInitialized = FALSE;
+      AdapterInfo->Hw.phy.reset_disable = FALSE;
+      AdapterInfo->Hw.mac.autoneg = 0;
+      AdapterInfo->Hw.mac.forced_speed_duplex = ADVERTISE_10_HALF;
+      AdapterInfo->HwInitialized = FALSE;
       break;
     default:
-      GigAdapter->Hw.mac.autoneg = 1;
+      AdapterInfo->Hw.mac.autoneg = 1;
       break;
     }
   }
@@ -1041,103 +1064,100 @@ E1000SetSpeedDuplex (
 
 /** Initializes the transmit and receive resources for the adapter.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @return   TX/RX resources configured and initialized
 **/
 VOID
 E1000TxRxConfigure (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32                    TempReg;
   UINT64                    MemAddr;
   UINT32                   *MemPtr;
   UINT16                    i;
-  LOCAL_RX_BUFFER          *RxBuffer;
   E1000_RECEIVE_DESCRIPTOR *RxDesc;
+  UINT8                    *PhysicalRxBuffer;
+  LOCAL_RX_BUFFER          *VirtualRxBuffer;
 
   DEBUGPRINT (E1000, ("E1000TxRxConfigure\n"));
 
-  E1000ReceiveStop (GigAdapter);
+  E1000ReceiveStop (AdapterInfo);
 
   DEBUGPRINT (
     E1000, ("Rx Ring %x Tx Ring %X  RX size %X \n",
-    E1000_RX_DESC (&GigAdapter->RxRing, 0),
-    E1000_TX_DESC (&GigAdapter->TxRing, 0),
-    (sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS))
+    E1000_RX_DESC (&AdapterInfo->RxRing, 0),
+    E1000_TX_DESC (&AdapterInfo->TxRing, 0),
+    sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS)
   );
 
-  ZeroMem (GigAdapter->TxBufferMappings, sizeof (GigAdapter->TxBufferMappings));
+  ZeroMem (AdapterInfo->TxBufferMappings, sizeof (AdapterInfo->TxBufferMappings));
 
-  RxBuffer = (LOCAL_RX_BUFFER *) (UINTN) GigAdapter->RxBufferMapping.PhysicalAddress;
+  PhysicalRxBuffer = (UINT8 *) (UINTN) AdapterInfo->RxBufferMapping.PhysicalAddress;
+  VirtualRxBuffer = (LOCAL_RX_BUFFER *) (UINTN) AdapterInfo->RxBufferMapping.UnmappedAddress;
 
   DEBUGPRINT (
-    E1000, ("Local Rx Buffer %X size %X\n",
-    RxBuffer,
-    (sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS))
+    E1000, ("Local RX Buffer: 0x%p (Physical) / 0x%p (Virtual) / 0x%X (Size)\n",
+    PhysicalRxBuffer, VirtualRxBuffer,
+    sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS)
   );
 
   // now to link the RX Ring to the local buffers
   for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
-    RxDesc = E1000_RX_DESC (&GigAdapter->RxRing, i);
-    RxDesc->buffer_addr = (UINT64) ((UINTN) RxBuffer[i].RxBuffer);
-    GigAdapter->DebugRxBuffer[i] = RxDesc->buffer_addr;
+    RxDesc = E1000_RX_DESC (&AdapterInfo->RxRing, i);
+    RxDesc->buffer_addr = (UINT64) E1000_RX_BUFFER_ADDR (PhysicalRxBuffer, i);
     RxDesc->status = E1000_RXD_STAT_IXSM;
-    DEBUGPRINT (E1000, ("Rx Local Buffer %X\n", (RxDesc->buffer_addr)));
+
+    DEBUGPRINT (
+      E1000, ("RX Desc 0x%.2X -> 0x%p (Physical) / 0x%p (Virtual)\n",
+      i, E1000_RX_BUFFER_ADDR (PhysicalRxBuffer, i), E1000_RX_BUFFER_ADDR ((UINT8 *) VirtualRxBuffer, i))
+    );
   }
 
-  // Setup the RDBA, RDLEN
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAL (0), (UINT32) (UINTN) (GigAdapter->RxRing.PhysicalAddress));
+  // Setup the RDBAL (lower 32 bits of the buffer addr), RDBAH (higher 32 bits)
+  // EFI_PHYSICAL/VIRTUAL_ADDRESS is always UINT64. We cast it down to UINT32.
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDBAL (0), (UINT32) AdapterInfo->RxRing.PhysicalAddress);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDBAH (0), (UINT32) (AdapterInfo->RxRing.PhysicalAddress >> 32));
 
-  // Set the MemPtr to the high dword of the rx_ring so we can store it in RDBAH0.
-  // Right shifts do not seem to work with the EFI compiler so we do it like this for now.
-  MemAddr = (UINT64) (UINTN) GigAdapter->RxRing.PhysicalAddress;
-  MemPtr  = (UINT32 *) &MemAddr;
-  MemPtr++;
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAH (0), *MemPtr);
+  // Setup the RDLEN (amount of memory for the RX buffers that hardware can't go over)
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDLEN (0), (sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS));
 
-  E1000_WRITE_REG (
-    &GigAdapter->Hw,
-    E1000_RDLEN (0),
-    (sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS)
-  );
-
-  DEBUGPRINT (E1000, ("Rdbal0 %X\n", (UINT32) E1000_READ_REG (&GigAdapter->Hw, E1000_RDBAL (0))));
-  DEBUGPRINT (E1000, ("RdBah0 %X\n", (UINT32) E1000_READ_REG (&GigAdapter->Hw, E1000_RDBAH (0))));
-  DEBUGPRINT (E1000, ("Rx Ring %X\n", GigAdapter->RxRing.PhysicalAddress));
+  DEBUGPRINT (E1000, ("RDBAL0 %X\n", (UINT32) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDBAL (0))));
+  DEBUGPRINT (E1000, ("RDBAH0 %X\n", (UINT32) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDBAH (0))));
+  DEBUGPRINT (E1000, ("Rx Ring @ %p (Physical)\n", AdapterInfo->RxRing.PhysicalAddress));
 
   // Set the transmit tail equal to the head pointer (we do not want hardware to try to
   // transmit packets yet).
-  GigAdapter->CurTxInd = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_TDH (0));
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDT (0), GigAdapter->CurTxInd);
-  GigAdapter->XmitDoneHead = GigAdapter->CurTxInd;
+  AdapterInfo->CurTxInd = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_TDH (0));
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDT (0), AdapterInfo->CurTxInd);
+  AdapterInfo->XmitDoneHead = AdapterInfo->CurTxInd;
 
-  GigAdapter->CurRxInd = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_RDH (0));
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDT (0), GigAdapter->CurRxInd);
+  AdapterInfo->CurRxInd = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), AdapterInfo->CurRxInd);
 
-  if (GigAdapter->Hw.mac.type != e1000_82575 &&
-    GigAdapter->Hw.mac.type != e1000_82576 &&
-    GigAdapter->Hw.mac.type != e1000_82580
-    && GigAdapter->Hw.mac.type != e1000_i350
-    && GigAdapter->Hw.mac.type  != e1000_i354
-    && GigAdapter->Hw.mac.type != e1000_i210
-    && GigAdapter->Hw.mac.type != e1000_i211
+  if (AdapterInfo->Hw.mac.type != e1000_82575 &&
+    AdapterInfo->Hw.mac.type != e1000_82576 &&
+    AdapterInfo->Hw.mac.type != e1000_82580
+    && AdapterInfo->Hw.mac.type != e1000_i350
+    && AdapterInfo->Hw.mac.type  != e1000_i354
+    && AdapterInfo->Hw.mac.type != e1000_i210
+    && AdapterInfo->Hw.mac.type != e1000_i211
     )
   {
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_SRRCTL (0), E1000_SRRCTL_DESCTYPE_LEGACY);
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_SRRCTL (0), E1000_SRRCTL_DESCTYPE_LEGACY);
 
-    E1000SetRegBits (GigAdapter, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
+    E1000SetRegBits (AdapterInfo, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
     i = 0;
     do {
-      TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RXDCTL (0));
+      TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RXDCTL (0));
       i++;
       if ((TempReg & E1000_RXDCTL_QUEUE_ENABLE) != 0) {
         DEBUGPRINT (E1000, ("RX queue enabled, after attempt i = %d\n", i));
         break;
       }
 
-      DelayInMicroseconds (GigAdapter, 1);
+      DelayInMicroseconds (AdapterInfo, 1);
     } while (i < 1000);
 
     if (i >= 1000) {
@@ -1147,58 +1167,58 @@ E1000TxRxConfigure (
 
 
 #ifndef NO_82575_SUPPORT
-  if (GigAdapter->Hw.mac.type != e1000_82575 &&
-    GigAdapter->Hw.mac.type != e1000_82576 &&
-    GigAdapter->Hw.mac.type != e1000_82580
-    && GigAdapter->Hw.mac.type != e1000_i350
-    && GigAdapter->Hw.mac.type  != e1000_i354
-    && GigAdapter->Hw.mac.type != e1000_i210
-    && GigAdapter->Hw.mac.type != e1000_i211
+  if (AdapterInfo->Hw.mac.type != e1000_82575 &&
+    AdapterInfo->Hw.mac.type != e1000_82576 &&
+    AdapterInfo->Hw.mac.type != e1000_82580
+    && AdapterInfo->Hw.mac.type != e1000_i350
+    && AdapterInfo->Hw.mac.type  != e1000_i354
+    && AdapterInfo->Hw.mac.type != e1000_i210
+    && AdapterInfo->Hw.mac.type != e1000_i211
     )
 #endif /* NO_82575_SUPPORT */
   {
     // Set the software tail pointer just behind head to give hardware the entire ring
-    if (GigAdapter->CurRxInd == 0) {
-      E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDT (0), DEFAULT_RX_DESCRIPTORS - 1);
+    if (AdapterInfo->CurRxInd == 0) {
+      E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), DEFAULT_RX_DESCRIPTORS - 1);
     } else {
-      E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDT (0), GigAdapter->CurRxInd - 1);
+      E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), AdapterInfo->CurRxInd - 1);
     }
   }
 
   // Zero out PSRCTL to use default packet size settings in RCTL
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_PSRCTL, 0);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_MRQC, 0);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_PSRCTL, 0);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_MRQC, 0);
 
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAL (0), (UINT32) (UINTN) (GigAdapter->TxRing.PhysicalAddress));
-  MemAddr = (UINT64) (UINTN) GigAdapter->TxRing.PhysicalAddress;
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDBAL (0), (UINT32) (UINTN) (AdapterInfo->TxRing.PhysicalAddress));
+  MemAddr = (UINT64) (UINTN) AdapterInfo->TxRing.PhysicalAddress;
   MemPtr  = (UINT32 *) &MemAddr;
   MemPtr++;
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAH (0), *MemPtr);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDBAH (0), *MemPtr);
   DEBUGPRINT (E1000, ("TdBah0 %X\n", *MemPtr));
   DEBUGWAIT (E1000);
   E1000_WRITE_REG (
-    &GigAdapter->Hw,
+    &AdapterInfo->Hw,
     E1000_TDLEN (0),
     (sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS)
   );
 
-  if (GigAdapter->Hw.mac.type == e1000_82580
-    || GigAdapter->Hw.mac.type == e1000_i350
-    || GigAdapter->Hw.mac.type  == e1000_i354
-    || GigAdapter->Hw.mac.type == e1000_i210
-    || GigAdapter->Hw.mac.type == e1000_i211
+  if (AdapterInfo->Hw.mac.type == e1000_82580
+    || AdapterInfo->Hw.mac.type == e1000_i350
+    || AdapterInfo->Hw.mac.type  == e1000_i354
+    || AdapterInfo->Hw.mac.type == e1000_i210
+    || AdapterInfo->Hw.mac.type == e1000_i211
     )
   {
-    E1000SetRegBits (GigAdapter, E1000_TXDCTL (0), E1000_TXDCTL_QUEUE_ENABLE);
+    E1000SetRegBits (AdapterInfo, E1000_TXDCTL (0), E1000_TXDCTL_QUEUE_ENABLE);
 
     for (i = 0; i < 1000; i++) {
-      TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_TXDCTL (0));
+      TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_TXDCTL (0));
       if ((TempReg & E1000_TXDCTL_QUEUE_ENABLE) != 0) {
         DEBUGPRINT (E1000, ("TX queue enabled, after attempt i = %d\n", i));
         break;
       }
 
-      DelayInMicroseconds (GigAdapter, 1);
+      DelayInMicroseconds (AdapterInfo, 1);
     }
     if (i >= 1000) {
       DEBUGPRINT (CRITICAL, ("Enable TX queue failed!\n"));
@@ -1206,15 +1226,15 @@ E1000TxRxConfigure (
   }
 
 
-  TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_TCTL);
+  TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_TCTL);
   TempReg = (TempReg | E1000_TCTL_EN | E1000_TCTL_PSP);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TCTL, TempReg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TCTL, TempReg);
 
-  E1000PciFlush (&GigAdapter->Hw);
+  E1000PciFlush (&AdapterInfo->Hw);
 }
 /** This function performs PCI-E initialization for the device.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   EFI_SUCCESS            PCI-E initialized successfully
    @retval   EFI_UNSUPPORTED        Failed to get supported PCI command options
@@ -1224,7 +1244,7 @@ E1000TxRxConfigure (
 **/
 EFI_STATUS
 E1000PciInit (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   EFI_STATUS Status;
@@ -1232,11 +1252,11 @@ E1000PciInit (
   BOOLEAN    PciAttributesSaved = FALSE;
 
   // Save original PCI attributes
-  Status = GigAdapter->PciIo->Attributes (
-                                GigAdapter->PciIo,
+  Status = AdapterInfo->PciIo->Attributes (
+                                AdapterInfo->PciIo,
                                 EfiPciIoAttributeOperationGet,
                                 0,
-                                &GigAdapter->OriginalPciAttributes
+                                &AdapterInfo->OriginalPciAttributes
                                );
 
   if (EFI_ERROR (Status)) {
@@ -1245,8 +1265,8 @@ E1000PciInit (
   PciAttributesSaved = TRUE;
 
   // Get the PCI Command options that are supported by this controller.
-  Status = GigAdapter->PciIo->Attributes (
-                                GigAdapter->PciIo,
+  Status = AdapterInfo->PciIo->Attributes (
+                                AdapterInfo->PciIo,
                                 EfiPciIoAttributeOperationSupported,
                                 0,
                                 &Result
@@ -1258,8 +1278,8 @@ E1000PciInit (
 
     // Set the PCI Command options to enable device memory mapped IO,
     // port IO, and bus mastering.
-    Status = GigAdapter->PciIo->Attributes (
-                                  GigAdapter->PciIo,
+    Status = AdapterInfo->PciIo->Attributes (
+                                  AdapterInfo->PciIo,
                                   EfiPciIoAttributeOperationEnable,
                                   Result & (EFI_PCI_DEVICE_ENABLE |
                                             EFI_PCI_IO_ATTRIBUTE_DUAL_ADDRESS_CYCLE),
@@ -1273,11 +1293,11 @@ E1000PciInit (
   }
 
   // Allocate common DMA buffer for Tx descriptors
-  GigAdapter->TxRing.Size = TX_RING_SIZE;
+  AdapterInfo->TxRing.Size = TX_RING_SIZE;
 
   Status = UndiDmaAllocateCommonBuffer (
-             GigAdapter->PciIo,
-             &GigAdapter->TxRing
+             AdapterInfo->PciIo,
+             &AdapterInfo->TxRing
              );
 
   if (EFI_ERROR (Status)) {
@@ -1285,11 +1305,11 @@ E1000PciInit (
   }
 
   // Allocate common DMA buffer for Rx descriptors
-  GigAdapter->RxRing.Size = RX_RING_SIZE;
+  AdapterInfo->RxRing.Size = RX_RING_SIZE;
 
   Status = UndiDmaAllocateCommonBuffer (
-             GigAdapter->PciIo,
-             &GigAdapter->RxRing
+             AdapterInfo->PciIo,
+             &AdapterInfo->RxRing
              );
 
   if (EFI_ERROR (Status)) {
@@ -1297,11 +1317,11 @@ E1000PciInit (
   }
 
   // Allocate common DMA buffer for Rx buffers
-  GigAdapter->RxBufferMapping.Size = RX_BUFFERS_SIZE;
+  AdapterInfo->RxBufferMapping.Size = RX_BUFFERS_SIZE;
 
   Status = UndiDmaAllocateCommonBuffer (
-             GigAdapter->PciIo,
-             &GigAdapter->RxBufferMapping
+             AdapterInfo->PciIo,
+             &AdapterInfo->RxBufferMapping
              );
 
   if (EFI_ERROR (Status)) {
@@ -1311,26 +1331,26 @@ E1000PciInit (
   return EFI_SUCCESS;
 
 OnAllocError:
-      if (GigAdapter->TxRing.Mapping != NULL) {
-        UndiDmaFreeCommonBuffer (GigAdapter->PciIo, &GigAdapter->TxRing);
+      if (AdapterInfo->TxRing.Mapping != NULL) {
+        UndiDmaFreeCommonBuffer (AdapterInfo->PciIo, &AdapterInfo->TxRing);
       }
 
-      if (GigAdapter->RxRing.Mapping != NULL) {
-        UndiDmaFreeCommonBuffer (GigAdapter->PciIo, &GigAdapter->RxRing);
+      if (AdapterInfo->RxRing.Mapping != NULL) {
+        UndiDmaFreeCommonBuffer (AdapterInfo->PciIo, &AdapterInfo->RxRing);
       }
 
-      if (GigAdapter->RxBufferMapping.Mapping != NULL) {
-        UndiDmaFreeCommonBuffer (GigAdapter->PciIo, &GigAdapter->RxBufferMapping);
+      if (AdapterInfo->RxBufferMapping.Mapping != NULL) {
+        UndiDmaFreeCommonBuffer (AdapterInfo->PciIo, &AdapterInfo->RxBufferMapping);
       }
 
 PciIoError:
   if (PciAttributesSaved) {
 
     // Restore original PCI attributes
-    GigAdapter->PciIo->Attributes (
-                         GigAdapter->PciIo,
+    AdapterInfo->PciIo->Attributes (
+                         AdapterInfo->PciIo,
                          EfiPciIoAttributeOperationSet,
-                         GigAdapter->OriginalPciAttributes,
+                         AdapterInfo->OriginalPciAttributes,
                          NULL
                        );
   }
@@ -1340,7 +1360,7 @@ PciIoError:
 /** This function is called as early as possible during driver start to ensure the
    hardware has enough time to autonegotiate when the real SNP device initialize call is made.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   EFI_SUCCESS        Hardware init success
    @retval   EFI_DEVICE_ERROR   Hardware init failed
@@ -1353,7 +1373,7 @@ PciIoError:
 **/
 EFI_STATUS
 E1000FirstTimeInit (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PCI_CONFIG_HEADER *PciConfigHeader;
@@ -1366,18 +1386,18 @@ E1000FirstTimeInit (
 
   DEBUGPRINT (E1000, ("E1000FirstTimeInit\n"));
 
-  GigAdapter->DriverBusy = FALSE;
+  AdapterInfo->DriverBusy = FALSE;
 
   // Read all the registers from the device's PCI Configuration space
-  GigAdapter->PciIo->Pci.Read (
-                           GigAdapter->PciIo,
+  AdapterInfo->PciIo->Pci.Read (
+                           AdapterInfo->PciIo,
                            EfiPciIoWidthUint32,
                            0,
                            MAX_PCI_CONFIG_LEN,
-                           GigAdapter->PciConfig
+                           AdapterInfo->PciConfig
                          );
 
-  PciConfigHeader = (PCI_CONFIG_HEADER *) GigAdapter->PciConfig;
+  PciConfigHeader = (PCI_CONFIG_HEADER *) AdapterInfo->PciConfig;
 
   // Enumerate through the PCI BARs for the device to determine which one is
   // the IO BAR.  Save the index of the BAR into the adapter info structure.
@@ -1395,7 +1415,7 @@ E1000FirstTimeInit (
     if ((*TempBar & PCI_BAR_IO_MASK) == PCI_BAR_IO_MODE) {
 
       // Here is the IO Bar - save it to the Gigabit adapter struct.
-      GigAdapter->IoBarIndex = BarIndex;
+      AdapterInfo->IoBarIndex = BarIndex;
       break;
     }
 
@@ -1403,121 +1423,121 @@ E1000FirstTimeInit (
     TempBar++;
   }
 
-  GigAdapter->PciIo->GetLocation (
-                       GigAdapter->PciIo,
-                       &GigAdapter->Segment,
-                       &GigAdapter->Bus,
-                       &GigAdapter->Device,
-                       &GigAdapter->Function
+  AdapterInfo->PciIo->GetLocation (
+                       AdapterInfo->PciIo,
+                       &AdapterInfo->Segment,
+                       &AdapterInfo->Bus,
+                       &AdapterInfo->Device,
+                       &AdapterInfo->Function
                      );
 
-  DEBUGPRINT (INIT, ("GigAdapter->IoBarIndex = %X\n", GigAdapter->IoBarIndex));
+  DEBUGPRINT (INIT, ("AdapterInfo->IoBarIndex = %X\n", AdapterInfo->IoBarIndex));
   DEBUGPRINT (INIT, ("PCI Command Register = %X\n", PciConfigHeader->Command));
   DEBUGPRINT (INIT, ("PCI Status Register = %X\n", PciConfigHeader->Status));
   DEBUGPRINT (INIT, ("PCI VendorID = %X\n", PciConfigHeader->VendorId));
   DEBUGPRINT (INIT, ("PCI DeviceID = %X\n", PciConfigHeader->DeviceId));
   DEBUGPRINT (INIT, ("PCI SubVendorID = %X\n", PciConfigHeader->SubVendorId));
   DEBUGPRINT (INIT, ("PCI SubSystemID = %X\n", PciConfigHeader->SubSystemId));
-  DEBUGPRINT (INIT, ("PCI Segment = %X\n", GigAdapter->Segment));
-  DEBUGPRINT (INIT, ("PCI Bus = %X\n", GigAdapter->Bus));
-  DEBUGPRINT (INIT, ("PCI Device = %X\n", GigAdapter->Device));
-  DEBUGPRINT (INIT, ("PCI Function = %X\n", GigAdapter->Function));
+  DEBUGPRINT (INIT, ("PCI Segment = %X\n", AdapterInfo->Segment));
+  DEBUGPRINT (INIT, ("PCI Bus = %X\n", AdapterInfo->Bus));
+  DEBUGPRINT (INIT, ("PCI Device = %X\n", AdapterInfo->Device));
+  DEBUGPRINT (INIT, ("PCI Function = %X\n", AdapterInfo->Function));
 
-  ZeroMem (GigAdapter->BroadcastNodeAddress, PXE_MAC_LENGTH);
-  SetMem (GigAdapter->BroadcastNodeAddress, PXE_HWADDR_LEN_ETHER, 0xFF);
+  ZeroMem (AdapterInfo->BroadcastNodeAddress, PXE_MAC_LENGTH);
+  SetMem (AdapterInfo->BroadcastNodeAddress, PXE_HWADDR_LEN_ETHER, 0xFF);
 
   // Initialize all parameters needed for the shared code
-  GigAdapter->Hw.hw_addr                = (UINT8 *) (UINTN) PciConfigHeader->BaseAddressReg0;
-  GigAdapter->Hw.back                   = GigAdapter;
-  GigAdapter->Hw.vendor_id              = PciConfigHeader->VendorId;
-  GigAdapter->Hw.device_id              = PciConfigHeader->DeviceId;
-  GigAdapter->Hw.subsystem_vendor_id    = PciConfigHeader->SubVendorId;
-  GigAdapter->Hw.subsystem_device_id    = PciConfigHeader->SubSystemId;
-  GigAdapter->Hw.revision_id            = PciConfigHeader->RevId;
+  AdapterInfo->Hw.hw_addr                = (UINT8 *) (UINTN) PciConfigHeader->BaseAddressReg0;
+  AdapterInfo->Hw.back                   = AdapterInfo;
+  AdapterInfo->Hw.vendor_id              = PciConfigHeader->VendorId;
+  AdapterInfo->Hw.device_id              = PciConfigHeader->DeviceId;
+  AdapterInfo->Hw.subsystem_vendor_id    = PciConfigHeader->SubVendorId;
+  AdapterInfo->Hw.subsystem_device_id    = PciConfigHeader->SubSystemId;
+  AdapterInfo->Hw.revision_id            = PciConfigHeader->RevId;
 
-  GigAdapter->Hw.mac.autoneg            = TRUE;
-  GigAdapter->Hw.fc.current_mode        = e1000_fc_full;
-  GigAdapter->Hw.fc.requested_mode      = e1000_fc_full;
+  AdapterInfo->Hw.mac.autoneg            = TRUE;
+  AdapterInfo->Hw.fc.current_mode        = e1000_fc_full;
+  AdapterInfo->Hw.fc.requested_mode      = e1000_fc_full;
 
-  GigAdapter->Hw.phy.autoneg_wait_to_complete = FALSE;
-  GigAdapter->Hw.phy.reset_disable      = FALSE;
-  GigAdapter->Hw.phy.autoneg_advertised = E1000_ALL_SPEED_DUPLEX;
-  GigAdapter->Hw.phy.autoneg_mask       = AUTONEG_ADVERTISE_SPEED_DEFAULT;
+  AdapterInfo->Hw.phy.autoneg_wait_to_complete = FALSE;
+  AdapterInfo->Hw.phy.reset_disable      = FALSE;
+  AdapterInfo->Hw.phy.autoneg_advertised = E1000_ALL_SPEED_DUPLEX;
+  AdapterInfo->Hw.phy.autoneg_mask       = AUTONEG_ADVERTISE_SPEED_DEFAULT;
 
-  GigAdapter->PciClass       = PciConfigHeader->ClassIdMain;
-  GigAdapter->PciSubClass    = PciConfigHeader->ClassIdSubclass;
-  GigAdapter->PciClassProgIf = PciConfigHeader->ClassIdProgIf;
+  AdapterInfo->PciClass       = PciConfigHeader->ClassIdMain;
+  AdapterInfo->PciSubClass    = PciConfigHeader->ClassIdSubclass;
+  AdapterInfo->PciClassProgIf = PciConfigHeader->ClassIdProgIf;
 
   // We need to set the IO bar to zero for the shared code because the EFI PCI protocol
   // gets the BAR for us.
-  GigAdapter->Hw.io_base               = 0;
+  AdapterInfo->Hw.io_base               = 0;
 
   //  This variable is set only to make the flash shared code work on ICH8.
   //  Set to 1 because the flash BAR will always be BAR 1.
-  GigAdapter->Hw.flash_address         = (UINT8 *) ((UINTN) 1);
+  AdapterInfo->Hw.flash_address         = (UINT8 *) ((UINTN) 1);
 
-  if (e1000_set_mac_type (&GigAdapter->Hw) != E1000_SUCCESS) {
+  if (e1000_set_mac_type (&AdapterInfo->Hw) != E1000_SUCCESS) {
     DEBUGPRINT (CRITICAL, ("Unsupported MAC type!\n"));
     return EFI_UNSUPPORTED;
   }
 
-  if (e1000_setup_init_funcs (&GigAdapter->Hw, TRUE) != E1000_SUCCESS) {
+  if (e1000_setup_init_funcs (&AdapterInfo->Hw, TRUE) != E1000_SUCCESS) {
     DEBUGPRINT (CRITICAL, ("e1000_setup_init_funcs failed!\n"));
     return EFI_UNSUPPORTED;
   }
 
-  E1000LanFunction (GigAdapter);
+  E1000LanFunction (AdapterInfo);
 
 
   DEBUGPRINT (E1000, ("Calling e1000_get_bus_info\n"));
-  if (e1000_get_bus_info (&GigAdapter->Hw) != E1000_SUCCESS) {
+  if (e1000_get_bus_info (&AdapterInfo->Hw) != E1000_SUCCESS) {
     DEBUGPRINT (CRITICAL, ("Could not read bus information\n"));
     return EFI_UNSUPPORTED;
   }
 
   DEBUGPRINT (E1000, ("Calling e1000_read_mac_addr\n"));
-  if (e1000_read_mac_addr (&GigAdapter->Hw) != E1000_SUCCESS) {
+  if (e1000_read_mac_addr (&AdapterInfo->Hw) != E1000_SUCCESS) {
     DEBUGPRINT (CRITICAL, ("Could not read MAC address\n"));
     return EFI_UNSUPPORTED;
   }
 
   DEBUGPRINT (INIT, ("MAC Address: "));
   for (i = 0; i < 6; i++) {
-    DEBUGPRINT (INIT, ("%2x ", GigAdapter->Hw.mac.perm_addr[i]));
+    DEBUGPRINT (INIT, ("%2x ", AdapterInfo->Hw.mac.perm_addr[i]));
   }
   DEBUGPRINT (INIT, ("\n"));
 
-  Reg = E1000_READ_REG (&GigAdapter->Hw, E1000_CTRL_EXT);
+  Reg = E1000_READ_REG (&AdapterInfo->Hw, E1000_CTRL_EXT);
   if ((Reg & E1000_CTRL_EXT_DRV_LOAD) != 0) {
     DEBUGPRINT (CRITICAL, ("iSCSI Boot detected on port!\n"));
     return EFI_ACCESS_DENIED;
   }
 
 
-  ScStatus = e1000_reset_hw (&GigAdapter->Hw);
+  ScStatus = e1000_reset_hw (&AdapterInfo->Hw);
   if (ScStatus != E1000_SUCCESS) {
     DEBUGPRINT (CRITICAL, ("e1000_reset_hw returns %d\n", ScStatus));
     return EFI_DEVICE_ERROR;
   }
 
   // Now that the structures are in place, we can configure the hardware to use it all.
-  ScStatus = e1000_init_hw (&GigAdapter->Hw);
+  ScStatus = e1000_init_hw (&AdapterInfo->Hw);
   if (ScStatus == E1000_SUCCESS) {
     DEBUGPRINT (E1000, ("e1000_init_hw success\n"));
     Status = EFI_SUCCESS;
-    GigAdapter->HwInitialized = TRUE;
+    AdapterInfo->HwInitialized = TRUE;
   } else {
     DEBUGPRINT (CRITICAL, ("Hardware Init failed status=%x\n", ScStatus));
-    GigAdapter->HwInitialized = FALSE;
+    AdapterInfo->HwInitialized = FALSE;
     Status = EFI_DEVICE_ERROR;
   }
 
 
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDH (0), 0);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDH (0), 0);
-  GigAdapter->CurTxInd = 0;
-  GigAdapter->XmitDoneHead = 0;
-  GigAdapter->CurRxInd = 0;
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDH (0), 0);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDH (0), 0);
+  AdapterInfo->CurTxInd = 0;
+  AdapterInfo->XmitDoneHead = 0;
+  AdapterInfo->CurRxInd = 0;
 
 #ifndef NO_82571_SUPPORT
 
@@ -1526,17 +1546,17 @@ E1000FirstTimeInit (
   // address using the StnAddr command then the 82571 will reset the MAC address
   // the next time either port is reset.  This check resets the MAC
   // address to the default value specified by the user.
-  if (GigAdapter->Hw.mac.type == e1000_82571
-    && GigAdapter->MacAddrOverride)
+  if (AdapterInfo->Hw.mac.type == e1000_82571
+    && AdapterInfo->MacAddrOverride)
   {
     DEBUGPRINT (E1000, ("RESETING STATION ADDRESS\n"));
-    e1000_rar_set (&GigAdapter->Hw, GigAdapter->Hw.mac.addr, 0);
+    e1000_rar_set (&AdapterInfo->Hw, AdapterInfo->Hw.mac.addr, 0);
   }
 #endif /* NO_82571_SUPPORT */
 
-  Reg = E1000_READ_REG (&GigAdapter->Hw, E1000_CTRL_EXT);
+  Reg = E1000_READ_REG (&AdapterInfo->Hw, E1000_CTRL_EXT);
   Reg |= E1000_CTRL_EXT_DRV_LOAD;
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_CTRL_EXT, Reg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_CTRL_EXT, Reg);
 
   return Status;
 }
@@ -1544,14 +1564,14 @@ E1000FirstTimeInit (
 /** Initializes the gigabit adapter, setting up memory addresses, MAC Addresses,
    Type of card, etc.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   PXE_STATCODE_SUCCESS       Initialization succeeded
    @retval   PXE_STATCODE_NOT_STARTED   Hardware Init failed
 **/
 PXE_STATCODE
 E1000Inititialize (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   PXE_STATCODE PxeStatcode = PXE_STATCODE_SUCCESS;
@@ -1559,35 +1579,35 @@ E1000Inititialize (
   DEBUGPRINT (E1000, ("E1000Inititialize\n"));
 
   ZeroMem (
-    (VOID *) (UINTN) GigAdapter->RxRing.UnmappedAddress,
+    (VOID *) (UINTN) AdapterInfo->RxRing.UnmappedAddress,
     RX_RING_SIZE
     );
 
   ZeroMem (
-    (VOID *) (UINTN) GigAdapter->TxRing.UnmappedAddress,
+    (VOID *) (UINTN) AdapterInfo->TxRing.UnmappedAddress,
     TX_RING_SIZE
     );
 
   ZeroMem (
-    (VOID *) (UINTN) GigAdapter->RxBufferMapping.UnmappedAddress,
+    (VOID *) (UINTN) AdapterInfo->RxBufferMapping.UnmappedAddress,
     RX_BUFFERS_SIZE
     );
 
 
   DEBUGWAIT (E1000);
 
-  E1000SetSpeedDuplex (GigAdapter);
+  E1000SetSpeedDuplex (AdapterInfo);
 
   // If the hardware has already been initialized then don't bother with a reset
   // We want to make sure we do not have to restart autonegotiation and two-pair
   // downshift.
-  if (!GigAdapter->HwInitialized) {
+  if (!AdapterInfo->HwInitialized) {
     DEBUGPRINT (E1000, ("Initializing hardware!\n"));
 
-    if (e1000_init_hw (&GigAdapter->Hw) == 0) {
+    if (e1000_init_hw (&AdapterInfo->Hw) == 0) {
       DEBUGPRINT (E1000, ("e1000_init_hw success\n"));
       PxeStatcode = PXE_STATCODE_SUCCESS;
-      GigAdapter->HwInitialized      = TRUE;
+      AdapterInfo->HwInitialized      = TRUE;
     } else {
       DEBUGPRINT (CRITICAL, ("Hardware Init failed\n"));
       PxeStatcode = PXE_STATCODE_NOT_STARTED;
@@ -1598,12 +1618,12 @@ E1000Inititialize (
   }
 
   if (PxeStatcode == PXE_STATCODE_SUCCESS) {
-    E1000TxRxConfigure (GigAdapter);
+    E1000TxRxConfigure (AdapterInfo);
   }
 
   // Re-read the MAC address.  The CLP configured MAC address is being reset by
   // hardware to the factory address after init, so we need to reset it here.
-  if (e1000_read_mac_addr (&GigAdapter->Hw) != E1000_SUCCESS) {
+  if (e1000_read_mac_addr (&AdapterInfo->Hw) != E1000_SUCCESS) {
     DEBUGPRINT (CRITICAL, ("Could not read MAC address.\n"));
   }
 
@@ -1614,56 +1634,56 @@ E1000Inititialize (
 
 /** Enables Rx unit.
 
-   @param[in]   GigAdapter   Pointer to the adapter structure
+   @param[in]   AdapterInfo   Pointer to the adapter structure
 
    @return   RX unit enabled
 **/
 VOID
 RxEnable (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 RctlReg;
 
-  RctlReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
+  RctlReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
   RctlReg |= E1000_RCTL_EN;
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, RctlReg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, RctlReg);
 }
 
 /** Disables Rx unit.
 
-   @param[in]   GigAdapter   Pointer to the adapter structure
+   @param[in]   AdapterInfo   Pointer to the adapter structure
 
    @return   RX unit disabled or not depending on device MAC type
 **/
 VOID
 RxDisable (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 RctlReg;
 
   // No need to disable RX on the following devices
   // when changing receive filters
-  if ((GigAdapter->Hw.mac.type == e1000_82574)
-    || (GigAdapter->Hw.mac.type == e1000_82575)
-    || (GigAdapter->Hw.mac.type == e1000_82583)
-    || (GigAdapter->Hw.mac.type == e1000_i350)
-    || (GigAdapter->Hw.mac.type == e1000_i354)
-    || (GigAdapter->Hw.mac.type == e1000_i210)
-    || (GigAdapter->Hw.mac.type == e1000_i211))
+  if ((AdapterInfo->Hw.mac.type == e1000_82574)
+    || (AdapterInfo->Hw.mac.type == e1000_82575)
+    || (AdapterInfo->Hw.mac.type == e1000_82583)
+    || (AdapterInfo->Hw.mac.type == e1000_i350)
+    || (AdapterInfo->Hw.mac.type == e1000_i354)
+    || (AdapterInfo->Hw.mac.type == e1000_i210)
+    || (AdapterInfo->Hw.mac.type == e1000_i211))
   {
     return;
   }
 
-  RctlReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
+  RctlReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
   RctlReg &= ~E1000_RCTL_EN;
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, RctlReg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, RctlReg);
 }
 
 /** Changes filter settings
 
-   @param[in]   GigAdapter  Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo  Pointer to the NIC data structure information which the
                             UNDI driver is layering on..
    @param[in]   NewFilter   A PXE_OPFLAGS bit field indicating what filters to use.
    @param[in]   Cpb         The command parameter Block address.  64 bits since this is Itanium(tm)
@@ -1674,10 +1694,10 @@ RxDisable (
 **/
 UINTN
 E1000SetFilter (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT16           NewFilter,
-  UINT64           Cpb,
-  UINT32           CpbSize
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT16       NewFilter,
+  IN UINT64       Cpb,
+  IN UINT32       CpbSize
   )
 {
   PXE_CPB_RECEIVE_FILTERS *CpbReceiveFilter;
@@ -1691,7 +1711,7 @@ E1000SetFilter (
   DEBUGPRINT (E1000, ("E1000SetFilter\n"));
 
   CpbReceiveFilter = (PXE_CPB_RECEIVE_FILTERS *) (UINTN) Cpb;
-  OldFilter = GigAdapter->RxFilter;
+  OldFilter = AdapterInfo->RxFilter;
 
   // only these bits need a change in the configuration
   // actually change in bcast requires configure but we ignore that change
@@ -1701,7 +1721,7 @@ E1000SetFilter (
 
   if ((OldFilter & CfgFilter) != (NewFilter & CfgFilter)) {
 
-    UpdateRCTL = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
+    UpdateRCTL = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
 
     if (NewFilter & PXE_OPFLAGS_RECEIVE_FILTER_PROMISCUOUS) {
 
@@ -1719,16 +1739,16 @@ E1000SetFilter (
     // Put the card into the proper mode...
     // Rx unit needs to be disabled and re-enabled
     // while changing filters.
-    if (GigAdapter->ReceiveStarted) {
-      RxDisable (GigAdapter);
+    if (AdapterInfo->ReceiveStarted) {
+      RxDisable (AdapterInfo);
     }
 
     UpdateRCTL |= E1000_RCTL_BAM;
-    GigAdapter->RxFilter = NewFilter;
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, UpdateRCTL);
+    AdapterInfo->RxFilter = NewFilter;
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, UpdateRCTL);
 
-    if (GigAdapter->ReceiveStarted) {
-      RxEnable (GigAdapter);
+    if (AdapterInfo->ReceiveStarted) {
+      RxEnable (AdapterInfo);
     }
   }
 
@@ -1742,12 +1762,12 @@ E1000SetFilter (
     if (CpbReceiveFilter != NULL) {
       UINT8 McAddrList[MAX_MCAST_ADDRESS_CNT][ETH_ADDR_LEN];
 
-      MulticastCount = GigAdapter->McastList.Length = (UINT16) (CpbSize / PXE_MAC_LENGTH);
+      MulticastCount = AdapterInfo->McastList.Length = (UINT16) (CpbSize / PXE_MAC_LENGTH);
       DEBUGPRINT (E1000, ("E1000: MulticastCount=%d\n", MulticastCount));
 
-      ZeroMem (GigAdapter->McastList.McAddr, MAX_MCAST_ADDRESS_CNT * PXE_MAC_LENGTH);
+      ZeroMem (AdapterInfo->McastList.McAddr, MAX_MCAST_ADDRESS_CNT * PXE_MAC_LENGTH);
       CopyMem (
-        GigAdapter->McastList.McAddr,
+        AdapterInfo->McastList.McAddr,
         (VOID *) (UINTN) CpbReceiveFilter->MCastList,
         CpbSize
       );
@@ -1757,49 +1777,49 @@ E1000SetFilter (
       for (i = 0; (i < MulticastCount && i < MAX_MCAST_ADDRESS_CNT); i++) {
         DEBUGPRINT (E1000, ("E1000: MulticastAddress %d:", i));
         for (j = 0; j < ETH_ADDR_LEN; j++) {
-          McAddrList[i][j] = GigAdapter->McastList.McAddr[i][j];
+          McAddrList[i][j] = AdapterInfo->McastList.McAddr[i][j];
           DEBUGPRINT (E1000, ("%02x", CpbReceiveFilter->MCastList[i][j]));
         }
         DEBUGPRINT (E1000, ("\n"));
       }
 
-      E1000BlockIt (GigAdapter, TRUE);
+      E1000BlockIt (AdapterInfo, TRUE);
 
       //Rx unit needs to be disabled while changing filters.
-      if (GigAdapter->ReceiveStarted) {
-        RxDisable (GigAdapter);
+      if (AdapterInfo->ReceiveStarted) {
+        RxDisable (AdapterInfo);
       }
       e1000_update_mc_addr_list (
-        &GigAdapter->Hw,
+        &AdapterInfo->Hw,
         &McAddrList[0][0],
         MulticastCount
       );
-      if (GigAdapter->ReceiveStarted) {
-        RxEnable (GigAdapter);
+      if (AdapterInfo->ReceiveStarted) {
+        RxEnable (AdapterInfo);
       }
-      E1000BlockIt (GigAdapter, FALSE);
+      E1000BlockIt (AdapterInfo, FALSE);
     }
 
     // are we setting the list or resetting??
     if ((NewFilter & PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST) != 0) {
       DEBUGPRINT (E1000, ("E1000: Creating new multicast list.\n"));
-      GigAdapter->RxFilter |= PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST;
+      AdapterInfo->RxFilter |= PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST;
     } else {
       DEBUGPRINT (E1000, ("E1000: Disabling multicast list.\n"));
-      GigAdapter->RxFilter &= (~PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST);
+      AdapterInfo->RxFilter &= (~PXE_OPFLAGS_RECEIVE_FILTER_FILTERED_MULTICAST);
     }
   }
 
   if (NewFilter != 0) {
 
     // Enable unicast and start the RU
-    GigAdapter->RxFilter |= (NewFilter | PXE_OPFLAGS_RECEIVE_FILTER_UNICAST);
-    E1000ReceiveStart (GigAdapter);
+    AdapterInfo->RxFilter |= (NewFilter | PXE_OPFLAGS_RECEIVE_FILTER_UNICAST);
+    E1000ReceiveStart (AdapterInfo);
   } else {
 
     // may be disabling everything!
-    GigAdapter->RxFilter = NewFilter;
-    E1000ReceiveStop (GigAdapter);
+    AdapterInfo->RxFilter = NewFilter;
+    E1000ReceiveStop (AdapterInfo);
   }
 
   return 0;
@@ -1807,14 +1827,14 @@ E1000SetFilter (
 
 /** Stops the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @return   Receive unit stopped
 **/
 VOID
 E1000ReceiveStop (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   E1000_RECEIVE_DESCRIPTOR *ReceiveDesc;
@@ -1824,35 +1844,35 @@ E1000ReceiveStop (
 
   DEBUGPRINT (E1000, ("E1000ReceiveStop\n"));
 
-  if (!GigAdapter->ReceiveStarted) {
+  if (!AdapterInfo->ReceiveStarted) {
     DEBUGPRINT (CRITICAL, ("Receive unit already disabled!\n"));
     return;
   }
 
-  if (GigAdapter->Hw.mac.type == e1000_82571) {
-    TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
+  if (AdapterInfo->Hw.mac.type == e1000_82571) {
+    TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
     TempReg &= ~E1000_RCTL_EN;
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, TempReg);
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, TempReg);
   }
 
   // On I82575 the ring must be reset when the recieve unit is disabled.
-  if (GigAdapter->Hw.mac.type == e1000_82575
-    || GigAdapter->Hw.mac.type == e1000_82576
+  if (AdapterInfo->Hw.mac.type == e1000_82575
+    || AdapterInfo->Hw.mac.type == e1000_82576
 #ifndef NO_82580_SUPPORT
-    || GigAdapter->Hw.mac.type == e1000_82580
+    || AdapterInfo->Hw.mac.type == e1000_82580
 #endif /* NO_82580_SUPPORT */
-    || GigAdapter->Hw.mac.type == e1000_i350
-    || GigAdapter->Hw.mac.type  == e1000_i354
-    || GigAdapter->Hw.mac.type == e1000_i210
-    || GigAdapter->Hw.mac.type == e1000_i211
+    || AdapterInfo->Hw.mac.type == e1000_i350
+    || AdapterInfo->Hw.mac.type  == e1000_i354
+    || AdapterInfo->Hw.mac.type == e1000_i210
+    || AdapterInfo->Hw.mac.type == e1000_i211
     )
   {
-    E1000ClearRegBits (GigAdapter, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
+    E1000ClearRegBits (AdapterInfo, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
 
     i = 0;
     do {
       gBS->Stall (1);
-      RxdCtl = E1000_READ_REG (&GigAdapter->Hw, E1000_RXDCTL (0));
+      RxdCtl = E1000_READ_REG (&AdapterInfo->Hw, E1000_RXDCTL (0));
 
       i++;
       if (i >= MAX_QUEUE_DISABLE_TIME) {
@@ -1861,25 +1881,25 @@ E1000ReceiveStop (
     } while ((RxdCtl & E1000_RXDCTL_QUEUE_ENABLE) != 0);
     DEBUGPRINT (E1000, ("Receiver Disabled\n"));
 
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDH (0), 0);
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDT (0), 0);
-    GigAdapter->CurRxInd = 0;
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDH (0), 0);
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), 0);
+    AdapterInfo->CurRxInd = 0;
   }
 
-  if (GigAdapter->Hw.mac.type == e1000_82575
-    || GigAdapter->Hw.mac.type == e1000_82576
+  if (AdapterInfo->Hw.mac.type == e1000_82575
+    || AdapterInfo->Hw.mac.type == e1000_82576
 #ifndef NO_82580_SUPPORT
-    || GigAdapter->Hw.mac.type == e1000_82580
+    || AdapterInfo->Hw.mac.type == e1000_82580
 #endif /* NO_82580_SUPPORT */
-    || GigAdapter->Hw.mac.type == e1000_i350
-    || GigAdapter->Hw.mac.type  == e1000_i354
-    || GigAdapter->Hw.mac.type == e1000_i210
-    || GigAdapter->Hw.mac.type == e1000_i211
-    || GigAdapter->Hw.mac.type == e1000_82571
+    || AdapterInfo->Hw.mac.type == e1000_i350
+    || AdapterInfo->Hw.mac.type  == e1000_i354
+    || AdapterInfo->Hw.mac.type == e1000_i210
+    || AdapterInfo->Hw.mac.type == e1000_i211
+    || AdapterInfo->Hw.mac.type == e1000_82571
     )
   {
     // Clean up any left over packets
-    ReceiveDesc = E1000_RX_DESC (&GigAdapter->RxRing, 0);
+    ReceiveDesc = E1000_RX_DESC (&AdapterInfo->RxRing, 0);
     for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
       ReceiveDesc->length = 0;
       ReceiveDesc->status = 0;
@@ -1888,20 +1908,20 @@ E1000ReceiveStop (
     }
   }
 
-  GigAdapter->ReceiveStarted = FALSE;
+  AdapterInfo->ReceiveStarted = FALSE;
   return;
 }
 
 /** Starts the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @return   Receive unit started
 **/
 VOID
 E1000ReceiveStart (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 TempReg;
@@ -1909,40 +1929,40 @@ E1000ReceiveStart (
 
   DEBUGPRINT (E1000, ("E1000ReceiveStart\n"));
 
-  if (GigAdapter->ReceiveStarted) {
+  if (AdapterInfo->ReceiveStarted) {
     DEBUGPRINT (CRITICAL, ("Receive unit already started!\n"));
     return;
   }
 
-  TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
+  TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
   TempReg |= (E1000_RCTL_EN | E1000_RCTL_BAM);
-  E1000_WRITE_REG (&GigAdapter->Hw, E1000_RCTL, TempReg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, TempReg);
 
   // Move the tail descriptor to begin receives on I82575
 #ifndef NO_82575_SUPPORT
-  if (GigAdapter->Hw.mac.type == e1000_82575
+  if (AdapterInfo->Hw.mac.type == e1000_82575
 #ifndef NO_82576_SUPPORT
-    || GigAdapter->Hw.mac.type == e1000_82576
+    || AdapterInfo->Hw.mac.type == e1000_82576
 #ifndef NO_82580_SUPPORT
-    || GigAdapter->Hw.mac.type == e1000_82580
+    || AdapterInfo->Hw.mac.type == e1000_82580
 #endif /* NO_82580_SUPPORT */
-    || GigAdapter->Hw.mac.type == e1000_i350
-    || GigAdapter->Hw.mac.type == e1000_i354
-    || GigAdapter->Hw.mac.type == e1000_i210
-    || GigAdapter->Hw.mac.type == e1000_i211
+    || AdapterInfo->Hw.mac.type == e1000_i350
+    || AdapterInfo->Hw.mac.type == e1000_i354
+    || AdapterInfo->Hw.mac.type == e1000_i210
+    || AdapterInfo->Hw.mac.type == e1000_i211
 #endif /* NO_82576_SUPPORT */
     )
   {
-    if (GigAdapter->Hw.mac.type == e1000_82575) {
-      e1000_rx_fifo_flush_base (&GigAdapter->Hw);
+    if (AdapterInfo->Hw.mac.type == e1000_82575) {
+      e1000_rx_fifo_flush_base (&AdapterInfo->Hw);
     }
 
-    E1000SetRegBits (GigAdapter, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
+    E1000SetRegBits (AdapterInfo, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
 
     i = 0;
     do {
       gBS->Stall (1);
-      TempReg = E1000_READ_REG (&GigAdapter->Hw, E1000_RXDCTL (0));
+      TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RXDCTL (0));
 
       i++;
       if (i >= MAX_QUEUE_ENABLE_TIME) {
@@ -1950,26 +1970,26 @@ E1000ReceiveStart (
       }
     } while ((TempReg & E1000_RXDCTL_QUEUE_ENABLE) == 0);
 
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDT (0), DEFAULT_RX_DESCRIPTORS - 1);
-    E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDH (0), 0);
-    GigAdapter->CurRxInd = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_RDH (0));
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), DEFAULT_RX_DESCRIPTORS - 1);
+    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDH (0), 0);
+    AdapterInfo->CurRxInd = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
 
   }
 #endif /* NO_82575_SUPPORT */
 
-  GigAdapter->ReceiveStarted = TRUE;
+  AdapterInfo->ReceiveStarted = TRUE;
 }
 
 /** Stops the transmit unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @retval   Transmit unit disabled
 **/
 VOID
 E1000TransmitDisable (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINTN  i;
@@ -1978,7 +1998,7 @@ E1000TransmitDisable (
   DEBUGPRINT (E1000, ("E1000TransmitDisable\n"));
 
 
-  switch (GigAdapter->Hw.mac.type) {
+  switch (AdapterInfo->Hw.mac.type) {
 #ifndef NO_82575_SUPPORT
   case e1000_82575:
   case e1000_82576:
@@ -1990,11 +2010,11 @@ E1000TransmitDisable (
   case e1000_i354:
   case e1000_i210:
   case e1000_i211:
-    E1000ClearRegBits (GigAdapter, E1000_TXDCTL (0), E1000_TXDCTL_QUEUE_ENABLE);
+    E1000ClearRegBits (AdapterInfo, E1000_TXDCTL (0), E1000_TXDCTL_QUEUE_ENABLE);
     i = 0;
     do {
       gBS->Stall (1);
-      TxdCtl = E1000_READ_REG (&GigAdapter->Hw, E1000_TXDCTL (0));
+      TxdCtl = E1000_READ_REG (&AdapterInfo->Hw, E1000_TXDCTL (0));
     } while ((++i < MAX_QUEUE_DISABLE_TIME)
       && ((TxdCtl & E1000_TXDCTL_QUEUE_ENABLE) != 0));
     DEBUGPRINT (E1000, ("Transmitter Disabled\n"));
@@ -2006,7 +2026,7 @@ E1000TransmitDisable (
 
 /** This routine blocks until auto-negotiation completes or times out (after 4.5 seconds).
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @retval   TRUE   Auto-negotiation completed successfully,
@@ -2014,7 +2034,7 @@ E1000TransmitDisable (
 **/
 BOOLEAN
 E1000WaitForAutoNeg (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   BOOLEAN AutoNegComplete;
@@ -2027,7 +2047,7 @@ E1000WaitForAutoNeg (
 
   DEBUGPRINT (E1000, ("E1000WaitForAutoNeg\n"));
 
-  if (!GigAdapter->CableDetect) {
+  if (!AdapterInfo->CableDetect) {
 
     // Caller specified not to detect cable, so we return true.
     DEBUGPRINT (E1000, ("Cable detection disabled.\n"));
@@ -2036,11 +2056,11 @@ E1000WaitForAutoNeg (
 
 
   for (i = 0; i < 500; i++) {
-    Status = E1000_READ_REG (&GigAdapter->Hw, E1000_STATUS);
+    Status = E1000_READ_REG (&AdapterInfo->Hw, E1000_STATUS);
     if ((Status & E1000_STATUS_LU) != 0) {
-      if ((E1000_DEV_ID_I210_COPPER == GigAdapter->Hw.device_id) ||
-        (E1000_DEV_ID_I210_COPPER_FLASHLESS == GigAdapter->Hw.device_id) ||
-        (E1000_DEV_ID_I211_COPPER == GigAdapter->Hw.device_id))
+      if ((E1000_DEV_ID_I210_COPPER == AdapterInfo->Hw.device_id) ||
+        (E1000_DEV_ID_I210_COPPER_FLASHLESS == AdapterInfo->Hw.device_id) ||
+        (E1000_DEV_ID_I211_COPPER == AdapterInfo->Hw.device_id))
       {
         DELAY_IN_MILLISECONDS (1000);
       }
@@ -2051,23 +2071,23 @@ E1000WaitForAutoNeg (
   }
   DEBUGPRINT (E1000, ("Link up not detected\n"));
 
-  if (GigAdapter->Hw.phy.type == e1000_phy_igp) {
+  if (AdapterInfo->Hw.phy.type == e1000_phy_igp) {
     DEBUGPRINT (E1000, ("IGP PHY\n"));
     for (i = 5; i != 0; i--) {
-      e1000_read_phy_reg (&GigAdapter->Hw, PHY_1000T_STATUS, &Reg);
+      e1000_read_phy_reg (&AdapterInfo->Hw, PHY_1000T_STATUS, &Reg);
       if (Reg != 0) {
-        AutoNegComplete = E1000DownShift (GigAdapter);
+        AutoNegComplete = E1000DownShift (AdapterInfo);
         break;
       }
       DELAY_IN_MILLISECONDS (1000);
-      Status = E1000_READ_REG (&GigAdapter->Hw, E1000_STATUS);
+      Status = E1000_READ_REG (&AdapterInfo->Hw, E1000_STATUS);
       if ((Status & E1000_STATUS_LU) != 0) {
         AutoNegComplete = TRUE;
         break;
       }
     }
 
-  } else if (GigAdapter->Hw.phy.type == e1000_phy_m88) {
+  } else if (AdapterInfo->Hw.phy.type == e1000_phy_m88) {
 
     // We are on a Marvel PHY that supports 2-pair downshift
     // Check the real time link status bit to see if there is actually a cable connected
@@ -2075,10 +2095,10 @@ E1000WaitForAutoNeg (
     // Wait for up to 1 second for real time link detected
     for (i = 100; i != 0; i--) {
       DEBUGPRINT (E1000, ("."));
-      e1000_read_phy_reg (&GigAdapter->Hw, M88E1000_PHY_SPEC_STATUS, &Reg);
+      e1000_read_phy_reg (&AdapterInfo->Hw, M88E1000_PHY_SPEC_STATUS, &Reg);
       if ((Reg & M88E1000_PSSR_LINK) != 0) {
         DEBUGPRINT (E1000, ("E1000DownShift - Real Time Link Detected\n"));
-        AutoNegComplete = E1000DownShift (GigAdapter);
+        AutoNegComplete = E1000DownShift (AdapterInfo);
         break;
       }
 
@@ -2093,7 +2113,7 @@ E1000WaitForAutoNeg (
 
 /** Free TX buffers that have been transmitted by the hardware.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
    @param[in]   NumEntries   Number of entries in the array which can be freed.
    @param[out]  TxBuffer     Array to pass back free TX buffer
@@ -2102,9 +2122,9 @@ E1000WaitForAutoNeg (
 **/
 UINT16
 E1000FreeTxBuffers (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT16           NumEntries,
-  OUT UINT64 *        TxBuffer
+  IN  DRIVER_DATA *AdapterInfo,
+  IN  UINT16       NumEntries,
+  OUT UINT64      *TxBuffer
   )
 {
   E1000_TRANSMIT_DESCRIPTOR *TransmitDescriptor;
@@ -2115,8 +2135,8 @@ E1000FreeTxBuffers (
   DEBUGPRINT (E1000, ("E1000FreeTxBuffers\n"));
 
   // Read the TX head posistion so we can see which packets have been sent out on the wire.
-  Tdh = E1000_READ_REG (&GigAdapter->Hw, E1000_TDH (0));
-  DEBUGPRINT (E1000, ("TDH = %d, GigAdapter->XmitDoneHead = %d\n", Tdh, GigAdapter->XmitDoneHead));
+  Tdh = E1000_READ_REG (&AdapterInfo->Hw, E1000_TDH (0));
+  DEBUGPRINT (E1000, ("TDH = %d, AdapterInfo->XmitDoneHead = %d\n", Tdh, AdapterInfo->XmitDoneHead));
 
   // If Tdh does not equal xmit_done_head then we will fill all the transmitted buffer
   // addresses between Tdh and xmit_done_head into the completed buffers array
@@ -2127,8 +2147,8 @@ E1000FreeTxBuffers (
       break;
     }
 
-    TransmitDescriptor = E1000_TX_DESC (&GigAdapter->TxRing, GigAdapter->XmitDoneHead);
-    TxBufMapping = &GigAdapter->TxBufferMappings[GigAdapter->XmitDoneHead];
+    TransmitDescriptor = E1000_TX_DESC (&AdapterInfo->TxRing, AdapterInfo->XmitDoneHead);
+    TxBufMapping = &AdapterInfo->TxBufferMappings[AdapterInfo->XmitDoneHead];
 
     if ((TransmitDescriptor->upper.fields.status & E1000_TXD_STAT_DD) != 0) {
 
@@ -2138,7 +2158,7 @@ E1000FreeTxBuffers (
       }
 
       DEBUGPRINT (E1000, ("Writing buffer address %d, %x\n", i, TxBuffer[i]));
-      UndiDmaUnmapMemory (GigAdapter->PciIo, TxBufMapping);
+      UndiDmaUnmapMemory (AdapterInfo->PciIo, TxBufMapping);
 
       TxBuffer[i] = TxBufMapping->UnmappedAddress;
       i++;
@@ -2147,21 +2167,21 @@ E1000FreeTxBuffers (
       ZeroMem (TxBufMapping, sizeof (UNDI_DMA_MAPPING));
       TransmitDescriptor->upper.fields.status = 0;
 
-      GigAdapter->XmitDoneHead++;
-      if (GigAdapter->XmitDoneHead >= DEFAULT_TX_DESCRIPTORS) {
-        GigAdapter->XmitDoneHead = 0;
+      AdapterInfo->XmitDoneHead++;
+      if (AdapterInfo->XmitDoneHead >= DEFAULT_TX_DESCRIPTORS) {
+        AdapterInfo->XmitDoneHead = 0;
       }
     } else {
-      DEBUGPRINT (E1000, ("TX Descriptor %d not done\n", GigAdapter->XmitDoneHead));
+      DEBUGPRINT (E1000, ("TX Descriptor %d not done\n", AdapterInfo->XmitDoneHead));
       break;
     }
-  } while (Tdh != GigAdapter->XmitDoneHead);
+  } while (Tdh != AdapterInfo->XmitDoneHead);
   return i;
 }
 
 /** Sets specified bits in a device register
 
-   @param[in]   GigAdapter   Pointer to the device instance
+   @param[in]   AdapterInfo   Pointer to the device instance
    @param[in]   Register     Register to write
    @param[in]   BitMask      Bits to set
 
@@ -2169,23 +2189,23 @@ E1000FreeTxBuffers (
 **/
 UINT32
 E1000SetRegBits (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT32           Register,
-  UINT32           BitMask
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Register,
+  IN UINT32       BitMask
   )
 {
   UINT32 TempReg;
 
-  TempReg = E1000_READ_REG (&GigAdapter->Hw, Register);
+  TempReg = E1000_READ_REG (&AdapterInfo->Hw, Register);
   TempReg |= BitMask;
-  E1000_WRITE_REG (&GigAdapter->Hw, Register, TempReg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, Register, TempReg);
 
   return TempReg;
 }
 
 /** Clears specified bits in a device register
 
-   @param[in]   GigAdapter   Pointer to the device instance
+   @param[in]   AdapterInfo   Pointer to the device instance
    @param[in]   Register     Register to write
    @param[in]   BitMask      Bits to clear
 
@@ -2193,23 +2213,23 @@ E1000SetRegBits (
 **/
 UINT32
 E1000ClearRegBits (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT32           Register,
-  UINT32           BitMask
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Register,
+  IN UINT32       BitMask
   )
 {
   UINT32 TempReg;
 
-  TempReg = E1000_READ_REG (&GigAdapter->Hw, Register);
+  TempReg = E1000_READ_REG (&AdapterInfo->Hw, Register);
   TempReg &= ~BitMask;
-  E1000_WRITE_REG (&GigAdapter->Hw, Register, TempReg);
+  E1000_WRITE_REG (&AdapterInfo->Hw, Register, TempReg);
 
   return TempReg;
 }
 
 /** Checks if link is up
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
 
    @retval   TRUE   Link is up
@@ -2217,12 +2237,12 @@ E1000ClearRegBits (
 **/
 BOOLEAN
 IsLinkUp (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 Reg;
 
-  Reg = E1000_READ_REG (&GigAdapter->Hw, E1000_STATUS);
+  Reg = E1000_READ_REG (&AdapterInfo->Hw, E1000_STATUS);
   if ((Reg & E1000_STATUS_LU) == 0) {
     return FALSE;
   } else {
@@ -2233,7 +2253,7 @@ IsLinkUp (
 /** Gets current link speed and duplex from shared code and converts it to UNDI
    driver format
 
-   @param[in]   GigAdapter   Pointer to the device instance
+   @param[in]   AdapterInfo   Pointer to the device instance
 
    @retval    LINK_SPEED_10FULL    10 MBit full duplex
    @retval    LINK_SPEED_100FULL   100 MBit full duplex
@@ -2245,14 +2265,14 @@ IsLinkUp (
 **/
 UINT8
 GetLinkSpeed (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT16 Speed     = 0;
   UINT16 Duplex    = 0;
   UINT8  LinkSpeed = LINK_SPEED_UNKNOWN;
 
-  e1000_get_speed_and_duplex (&GigAdapter->Hw, &Speed, &Duplex);
+  e1000_get_speed_and_duplex (&AdapterInfo->Hw, &Speed, &Duplex);
   switch (Speed) {
   case SPEED_10:
     if (Duplex == FULL_DUPLEX) {
@@ -2285,20 +2305,20 @@ GetLinkSpeed (
 
 /** Blinks LED on a port for time given in seconds
 
-   @param[in]   GigAdapter   Pointer to the device instance
+   @param[in]   AdapterInfo   Pointer to the device instance
    @param[in]   Seconds      Seconds to blink
 
    @return    LED is blinking for Seconds seconds
 **/
 VOID
 BlinkLeds (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT32           Seconds
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Seconds
   )
 {
-  e1000_setup_led (&GigAdapter->Hw);
+  e1000_setup_led (&AdapterInfo->Hw);
 
-  switch (GigAdapter->Hw.mac.type) {
+  switch (AdapterInfo->Hw.mac.type) {
 #ifndef NO_82574_SUPPORT
   case e1000_82574:
 #endif /* NO_82574_SUPPORT */
@@ -2306,14 +2326,14 @@ BlinkLeds (
       UINT32 Miliseconds = Seconds * 1000;
 
       while (Miliseconds > 0) {
-        e1000_led_on (&GigAdapter->Hw);
-        DelayInMicroseconds (GigAdapter, 200 * 1000);
+        e1000_led_on (&AdapterInfo->Hw);
+        DelayInMicroseconds (AdapterInfo, 200 * 1000);
         Miliseconds -= 200;
-        e1000_led_off (&GigAdapter->Hw);
+        e1000_led_off (&AdapterInfo->Hw);
 
         // Do not wait last 200ms with LEDs off.
         if (Miliseconds > 200) {
-          DelayInMicroseconds (GigAdapter, 200 * 1000);
+          DelayInMicroseconds (AdapterInfo, 200 * 1000);
           Miliseconds -= 200;
         } else {
 
@@ -2326,17 +2346,17 @@ BlinkLeds (
     break;
 
   default:
-    e1000_blink_led (&GigAdapter->Hw);
-    DelayInMicroseconds (GigAdapter, Seconds * 1000 * 1000);
+    e1000_blink_led (&AdapterInfo->Hw);
+    DelayInMicroseconds (AdapterInfo, Seconds * 1000 * 1000);
     break;
   }
 
-  e1000_cleanup_led (&GigAdapter->Hw);
+  e1000_cleanup_led (&AdapterInfo->Hw);
 }
 
 /** Reads PBA string from NVM
 
-   @param[in]       GigAdapter     Pointer to the device instance
+   @param[in]       AdapterInfo     Pointer to the device instance
    @param[in,out]   PbaNumber      Pointer to buffer for PBA string
    @param[in]       PbaNumberSize  Size of PBA string
 
@@ -2345,12 +2365,12 @@ BlinkLeds (
 **/
 EFI_STATUS
 ReadPbaString (
-  IN     GIG_DRIVER_DATA *GigAdapter,
-  IN OUT UINT8 *          PbaNumber,
-  IN     UINT32           PbaNumberSize
+  IN     DRIVER_DATA *AdapterInfo,
+  IN OUT UINT8       *PbaNumber,
+  IN     UINT32       PbaNumberSize
   )
 {
-  if (e1000_read_pba_string (&GigAdapter->Hw, PbaNumber, PbaNumberSize) == E1000_SUCCESS) {
+  if (e1000_read_pba_string (&AdapterInfo->Hw, PbaNumber, PbaNumberSize) == E1000_SUCCESS) {
     return EFI_SUCCESS;
   } else {
     return EFI_DEVICE_ERROR;
@@ -2359,35 +2379,66 @@ ReadPbaString (
 
 /** Detects surprise removal device status in PCI controller register
 
-   @param[in]   Adapter   Pointer to the device instance
+   @param[in]   AdapterInfo   Pointer to the device instance
 
    @retval   TRUE    Surprise removal has been detected
    @retval   FALSE   Surprise removal has not been detected
 **/
 BOOLEAN
 IsSurpriseRemoval (
-  IN  GIG_DRIVER_DATA *Adapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT32 Results;
 
-  if (Adapter->SurpriseRemoval) {
+  if (AdapterInfo->SurpriseRemoval) {
     return TRUE;
   }
 
   MemoryFence ();
-  Adapter->PciIo->Mem.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint32,
-                        0,
-                        E1000_STATUS,
-                        1,
-                        (VOID *) (&Results)
-                      );
+  AdapterInfo->PciIo->Mem.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint32,
+                            0,
+                            E1000_STATUS,
+                            1,
+                            (VOID *) (&Results)
+                          );
   MemoryFence ();
 
   if (Results == INVALID_STATUS_REGISTER_VALUE) {
-    Adapter->SurpriseRemoval = TRUE;
+
+    if ((AdapterInfo->Hw.mac.type >= e1000_i210)
+      && !( e1000_get_flash_presence_i210 (&AdapterInfo->Hw)))
+    {
+      // during e1000_pll_workaround_i210 flow, flashless springville adapter
+      // may be put in D3 power state for a milisecond. In order to avoid
+      // SurpriseRemoval state need to check if the device is in D3 power state
+      UINT16 PciWord;
+      MemoryFence ();
+      AdapterInfo->PciIo->Pci.Read (
+                                AdapterInfo->PciIo,
+                                EfiPciIoWidthUint16,
+                                E1000_PCI_PMCSR,
+                                1,
+                                (VOID *) &PciWord
+                              );
+      MemoryFence ();
+
+      if (PciWord == 0xFFFF) {
+        // if we've read an 0xFFFF from PCI config space value
+        // it still means that we're it's a surprise removal state
+        AdapterInfo->SurpriseRemoval = TRUE;
+        return TRUE;
+      }
+
+      PciWord &= E1000_PCI_PMCSR_D3;
+      if (PciWord == E1000_PCI_PMCSR_D3) {
+        return FALSE;
+      }
+
+    }
+    AdapterInfo->SurpriseRemoval = TRUE;
     return TRUE;
   }
   return FALSE;
@@ -2395,7 +2446,7 @@ IsSurpriseRemoval (
 
 /** Delay a specified number of microseconds
 
-   @param[in]   Adapter        Pointer to the NIC data structure information
+   @param[in]   AdapterInfo    Pointer to the NIC data structure information
                                which the UNDI driver is layering on..
    @param[in]   MicroSeconds   Time to delay in Microseconds.
 
@@ -2403,12 +2454,12 @@ IsSurpriseRemoval (
 **/
 VOID
 DelayInMicroseconds (
-  IN GIG_DRIVER_DATA *Adapter,
-  IN UINTN               MicroSeconds
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINTN        MicroSeconds
   )
 {
-  if (Adapter->Delay != NULL) {
-    (*Adapter->Delay) (Adapter->UniqueId, MicroSeconds);
+  if (AdapterInfo->Delay != NULL) {
+    (*AdapterInfo->Delay) (AdapterInfo->UniqueId, MicroSeconds);
   } else {
     gBS->Stall (MicroSeconds);
   }

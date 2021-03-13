@@ -211,6 +211,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RX_DESC(R, i)          \
           (&(((struct e1000_rx_desc *) (UINTN) ((R)->UnmappedAddress))[i]))
 
+/** Retrieves the address of the N-th RX buffer from the passed base address of
+    all RX buffers. The passed address may be virtual (usable by the driver for
+    reading received data) or physical (usable by the hardware to DMA stuff).
+
+  @param[in]   Address   Memory address (physical or virtual) of the RX buffer.
+  @param[in]   N         RX buffer index you want (0..DEFAULT_RX_DESCRIPTORS).
+
+  @return   Address of the requested RX buffer.
+*/
+#define E1000_RX_BUFFER_ADDR(Address, N) \
+          ((UINTN) (Address + (sizeof (LOCAL_RX_BUFFER) * N) + OFFSET_OF (LOCAL_RX_BUFFER, RxBuffer)))
+
 /** Retrieves TX descriptor from TX ring structure
 
    @param[in]   R   TX ring
@@ -591,11 +603,10 @@ typedef struct DRIVER_DATA_S {
   UINT16                     XmitDoneHead;
   UNDI_DMA_MAPPING           TxBufferMappings[DEFAULT_TX_DESCRIPTORS];
   BOOLEAN                    MacAddrOverride;
-  UINT64                     DebugRxBuffer[DEFAULT_RX_DESCRIPTORS];
   BOOLEAN                    FlashWriteInProgress;
   BOOLEAN                    SurpriseRemoval;
   UINTN                      VersionFlag; // Indicates UNDI version 3.0 or 3.1
-} GIG_DRIVER_DATA, *PADAPTER_STRUCT;
+} DRIVER_DATA, *PADAPTER_STRUCT;
 
 typedef struct UNDI_PRIVATE_DATA_S {
   UINTN                                     Signature;
@@ -608,7 +619,7 @@ typedef struct UNDI_PRIVATE_DATA_S {
   EFI_HANDLE                                FmpInstallHandle;
   EFI_DEVICE_PATH_PROTOCOL *                Undi32BaseDevPath;
   EFI_DEVICE_PATH_PROTOCOL *                Undi32DevPath;
-  GIG_DRIVER_DATA                           NicInfo;
+  DRIVER_DATA                               NicInfo;
   EFI_UNICODE_STRING_TABLE *                ControllerNameTable;
 
   CHAR16 *                                  Brand;
@@ -663,7 +674,7 @@ typedef struct {
 
 /** This function performs PCI-E initialization for the device.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   EFI_SUCCESS            PCI-E initialized successfully
    @retval   EFI_UNSUPPORTED        Failed to get supported PCI command options
@@ -673,7 +684,7 @@ typedef struct {
 **/
 EFI_STATUS
 E1000PciInit (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Checks if alternate MAC address is supported
@@ -685,7 +696,7 @@ E1000PciInit (
 **/
 BOOLEAN
 IsAltMacAddrSupported (
-  UNDI_PRIVATE_DATA *UndiPrivateData
+  IN UNDI_PRIVATE_DATA *UndiPrivateData
   );
 
 
@@ -693,14 +704,14 @@ IsAltMacAddrSupported (
 /** Initializes the gigabit adapter, setting up memory addresses, MAC Addresses,
    Type of card, etc.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   PXE_STATCODE_SUCCESS       Initialization succeeded
    @retval   PXE_STATCODE_NOT_STARTED   Hardware Init failed
 **/
 PXE_STATCODE
 E1000Inititialize (
-  GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   );
 
 #define PCI_CLASS_MASK          0xFF00
@@ -709,7 +720,7 @@ E1000Inititialize (
 /** This function is called as early as possible during driver start to ensure the
    hardware has enough time to autonegotiate when the real SNP device initialize call is made.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   EFI_SUCCESS        Hardware init success
    @retval   EFI_DEVICE_ERROR   Hardware init failed
@@ -722,58 +733,58 @@ E1000Inititialize (
 **/
 EFI_STATUS
 E1000FirstTimeInit (
-  GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   );
 
 #define MAX_QUEUE_ENABLE_TIME   200
 
 /** Starts the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on..
 
    @return   Receive unit started
 **/
 VOID
 E1000ReceiveStart (
-  IN GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   );
 
 #define MAX_QUEUE_DISABLE_TIME  200
 
 /** Stops the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on..
 
    @return   Receive unit stopped
 **/
 VOID
 E1000ReceiveStop (
-  IN GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   );
 
 #define MAX_QUEUE_DISABLE_TIME  200
 
 /** Stops the transmit unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on..
 
    @retval   Transmit unit disabled
 **/
 VOID
 E1000TransmitDisable (
-  IN GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Takes a command Block pointer (cpb) and sends the frame.  Takes either one fragment or many
    and places them onto the wire.  Cleanup of the send happens in the function UNDI_Status in DECODE.C
 
-   @param[in]   GigAdapter   Pointer to the instance data
-   @param[in]   Cpb       The command parameter Block address.  64 bits since this is Itanium(tm)
-                          processor friendly
-   @param[in]   OpFlags   The operation flags, tells if there is any special sauce on this transmit
+   @param[in]   AdapterInfo   Pointer to the instance data
+   @param[in]   Cpb           The command parameter Block address.  64 bits since this is Itanium(tm)
+                              processor friendly
+   @param[in]   OpFlags       The operation flags, tells if there is any special sauce on this transmit
 
    @retval   PXE_STATCODE_SUCCESS        If the frame goes out
    @retval   PXE_STATCODE_QUEUE_FULL     Transmit buffers aren't freed by upper layer
@@ -782,12 +793,12 @@ E1000TransmitDisable (
 **/
 UINTN
 E1000Transmit (
-  GIG_DRIVER_DATA *GigAdapterInfo,
-  UINT64           Cpb,
-  UINT16           OpFlags
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT64       Cpb,
+  IN UINT16       OpFlags
   );
 
-/** Copies the frame from our internal storage ring (As pointed to by GigAdapter->rx_ring)
+/** Copies the frame from our internal storage ring (As pointed to by AdapterInfo->rx_ring)
    to the command Block passed in as part of the cpb parameter.
 
    The flow:
@@ -801,61 +812,61 @@ E1000Transmit (
    Finally we clean up the frame, set the return value to _SUCCESS, and inc the cur_rx_ind, watching
    for wrapping.  Then with all the loose ends nicely wrapped up, fade to black and return.
 
-   @param[in]   GigAdapter   pointer to the driver data
-   @param[in]   Cpb          Pointer (Ia-64 friendly) to the command parameter Block.
-                             The frame will be placed inside of it.
-   @param[out]  Db     The data buffer.  The out of band method of passing pre-digested
-                       information to the protocol.
+   @param[in]   AdapterInfo   Pointer to the driver data
+   @param[in]   Cpb           Pointer (Ia-64 friendly) to the command parameter
+                              block. The frame will be placed inside of it.
+   @param[out]  Db            The data buffer. The out of band method of passing
+                              pre-digested information to the protocol.
 
    @retval   PXE_STATCODE_NO_DATA If there is no data
    @retval   PXE_STATCODE_SUCCESS If we passed the goods to the protocol.
 **/
 UINTN
 E1000Receive (
-  GIG_DRIVER_DATA *GigAdapterInfo,
-  UINT64           Cpb,
-  UINT64           Db
+  IN  DRIVER_DATA *AdapterInfo,
+  IN  UINT64       Cpb,
+  OUT UINT64       Db
   );
 
 /** Resets the hardware and put it all (including the PHY) into a known good state.
 
-   @param[in]   GigAdapter   The pointer to our context data
-   @param[in]   OpFlags      The information on what else we need to do.
+   @param[in]   AdapterInfo   The pointer to our context data
+   @param[in]   OpFlags       The information on what else we need to do.
 
    @retval   PXE_STATCODE_SUCCESS        Successfull hardware reset
    @retval   PXE_STATCODE_NOT_STARTED    Hardware init failed
 **/
 UINTN
 E1000Reset (
-  GIG_DRIVER_DATA *GigAdapterInfo,
-  UINT16           OpFlags
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT16       OpFlags
   );
 
 /** Stop the hardware and put it all (including the PHY) into a known good state.
 
-   @param[in]   GigAdapter   Pointer to the driver structure
+   @param[in]   AdapterInfo   Pointer to the driver structure
 
    @retval   PXE_STATCODE_SUCCESS    Hardware stopped
 **/
 UINTN
 E1000Shutdown (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Free TX buffers that have been transmitted by the hardware.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on.
-   @param[in]   NumEntries   Number of entries in the array which can be freed.
-   @param[out]  TxBuffer     Array to pass back free TX buffer
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on.
+   @param[in]   NumEntries    Number of entries in the array which can be freed.
+   @param[out]  TxBuffer      Array to pass back free TX buffer
 
    @return   Number of TX buffers written.
 **/
 UINT16
 E1000FreeTxBuffers (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT16           NumEntries,
-  OUT UINT64 *        TxBuffer
+  IN  DRIVER_DATA *AdapterInfo,
+  IN  UINT16       NumEntries,
+  OUT UINT64      *TxBuffer
   );
 
 /** This is the drivers copy function so it does not need to rely on the BootServices
@@ -880,86 +891,86 @@ E1000MemCopy (
 
 /** Sets specified bits in a device register
 
-   @param[in]   GigAdapter   Pointer to the device instance
-   @param[in]   Register     Register to write
-   @param[in]   BitMask      Bits to set
+   @param[in]   AdapterInfo   Pointer to the device instance
+   @param[in]   Register      Register to write
+   @param[in]   BitMask       Bits to set
 
    @return   Returns the value read from the PCI register.
 **/
 UINT32
 E1000SetRegBits (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT32           Register,
-  UINT32           BitMask
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Register,
+  IN UINT32       BitMask
   );
 
 /** Clears specified bits in a device register
 
-   @param[in]   GigAdapter   Pointer to the device instance
-   @param[in]   Register     Register to write
-   @param[in]   BitMask      Bits to clear
+   @param[in]   AdapterInfo   Pointer to the device instance
+   @param[in]   Register      Register to write
+   @param[in]   BitMask       Bits to clear
 
    @return    Returns the value read from the PCI register.
 **/
 UINT32
 E1000ClearRegBits (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT32           Register,
-  UINT32           BitMask
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Register,
+  IN UINT32       BitMask
   );
 
 /** Checks if link is up
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on.
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on.
 
    @retval   TRUE   Link is up
    @retval   FALSE  Link is down
 **/
 BOOLEAN
 IsLinkUp (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Gets current link speed and duplex from shared code and converts it to UNDI
    driver format
 
-   @param[in]   GigAdapter   Pointer to the device instance
+   @param[in]   AdapterInfo   Pointer to the device instance
 
    @return    Returns the link speed information.
 **/
 UINT8
 GetLinkSpeed (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Blinks LED on a port for time given in seconds
 
-   @param[in]   GigAdapter   Pointer to the device instance
-   @param[in]   Seconds      Seconds to blink
+   @param[in]   AdapterInfo   Pointer to the device instance
+   @param[in]   Seconds       Seconds to blink
 
    @return    LED is blinking for Seconds seconds
 **/
 VOID
 BlinkLeds (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT32           Seconds
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT32       Seconds
   );
 
 /** Reads PBA string from NVM
 
-   @param[in]       GigAdapter     Pointer to the device instance
-   @param[in,out]   PbaNumber      Pointer to buffer for PBA string
-   @param[in]       PbaNumberSize  Size of PBA string
+   @param[in]       AdapterInfo     Pointer to the device instance
+   @param[in,out]   PbaNumber       Pointer to buffer for PBA string
+   @param[in]       PbaNumberSize   Size of PBA string
 
    @retval   EFI_SUCCESS            PBA string successfully read
    @retval   EFI_DEVICE_ERROR       Failed to read PBA string
 **/
 EFI_STATUS
 ReadPbaString (
-  IN     GIG_DRIVER_DATA *GigAdapter,
-  IN OUT UINT8 *          PbaNumber,
-  IN     UINT32           PbaNumberSize
+  IN     DRIVER_DATA *AdapterInfo,
+  IN OUT UINT8       *PbaNumber,
+  IN     UINT32       PbaNumberSize
   );
 
 /** Detects surprise removal device status in PCI controller register
@@ -971,36 +982,36 @@ ReadPbaString (
 **/
 BOOLEAN
 IsSurpriseRemoval (
-  IN  GIG_DRIVER_DATA *Adapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Stop the hardware and put it all (including the PHY) into a known good state.
 
-   @param[in]   GigAdapter   Pointer to the driver structure
+   @param[in]   AdapterInfo   Pointer to the driver structure
 
    @retval   PXE_STATCODE_SUCCESS    Hardware stopped
 **/
 UINTN
 E1000Shutdown (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Changes filter settings
 
-   @param[in]   GigAdapter  Pointer to the NIC data structure information which the UNDI driver is layering on..
-   @param[in]   NewFilter   A PXE_OPFLAGS bit field indicating what filters to use.
-   @param[in]   Cpb         The command parameter Block address.  64 bits since this is Itanium(tm)
-                            processor friendly
-   @param[in]   CpbSize     Command parameter Block size
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the UNDI driver is layering on..
+   @param[in]   NewFilter     A PXE_OPFLAGS bit field indicating what filters to use.
+   @param[in]   Cpb           The command parameter Block address.  64 bits since this is Itanium(tm)
+                              processor friendly
+   @param[in]   CpbSize       Command parameter Block size
 
    @retval   0   Filters changed according to NewFilter settings
 **/
 UINTN
 E1000SetFilter (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT16           NewFilter,
-  UINT64           Cpb,
-  UINT32           CpbSize
+  DRIVER_DATA *AdapterInfo,
+  UINT16       NewFilter,
+  UINT64       Cpb,
+  UINT32       CpbSize
   );
 
 /** Updates or resets field in E1000 HW statistics structure
@@ -1047,42 +1058,42 @@ E1000SetFilter (
    It means it will read our read and clear numbers, so some adding is required before
    we copy it over to the protocol.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on..
-   @param[in]   DbAddr   The data Block address
-   @param[in]   DbSize   The data Block size
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on..
+   @param[in]   DbAddr        The data Block address
+   @param[in]   DbSize        The data Block size
 
    @retval   PXE_STATCODE_SUCCESS  Statistics copied successfully
 **/
 UINTN
 E1000Statistics (
-  GIG_DRIVER_DATA *GigAdapter,
-  UINT64           DbAddr,
-  UINT16           DbSize
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT64       DbAddr,
+  IN UINT16       DbSize
   );
 
 /** Allows the protocol to control our interrupt behaviour.
 
-   @param[in]   GigAdapter   Pointer to the driver structure
+   @param[in]   AdapterInfo   Pointer to the driver structure
 
    @retval   PXE_STATCODE_SUCCESS   Interrupt state set successfully
 **/
 UINTN
 E1000SetInterruptState (
-  GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** This routine blocks until auto-negotiation completes or times out (after 4.5 seconds).
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on..
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on..
 
    @retval   TRUE   Auto-negotiation completed successfully,
    @retval   FALSE  Auto-negotiation did not complete (i.e., timed out)
 **/
 BOOLEAN
 E1000WaitForAutoNeg (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   );
 
 /** Delay a specified number of microseconds
@@ -1095,8 +1106,8 @@ E1000WaitForAutoNeg (
 **/
 VOID
 DelayInMicroseconds (
-  IN GIG_DRIVER_DATA *Adapter,
-  IN UINTN            MicroSeconds
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINTN        MicroSeconds
   );
 
 // Time translations.
@@ -1106,6 +1117,6 @@ DelayInMicroseconds (
 
    @return   Execution of code delayed
 **/
-#define DELAY_IN_MILLISECONDS(x)  DelayInMicroseconds (GigAdapter, x * 1000)
+#define DELAY_IN_MILLISECONDS(x)  DelayInMicroseconds (AdapterInfo, x * 1000)
 
 #endif /* E1000_H_ */

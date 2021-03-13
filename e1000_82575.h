@@ -210,10 +210,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_IMS_LSECPNS	E1000_ICR_LSECPNS /* PN threshold - server */
 #define E1000_ICS_LSECPNS	E1000_ICR_LSECPNS /* PN threshold - server */
 
-/* ETQF register bit definitions */
-#define E1000_ETQF_FILTER_ENABLE	(1 << 26)
-#define E1000_ETQF_IMM_INT		(1 << 29)
-#define E1000_ETQF_QUEUE_ENABLE		(1 << 31)
 /*
  * ETQF filter list: one static filter per filter consumer. This is
  *                   to avoid filter collisions later. Add new filters

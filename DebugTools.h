@@ -289,5 +289,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               DEBUGWAIT(Lvl)
 #endif /* End generic UNIMPLEMENTED */
 
+// STATIC_ASSERT macro borrowed from edk2 master branch.
+// Can be removed from driver once that macro gets integrated
+// into a edk2 release.
+#ifdef MDE_CPU_EBC
+  #define STATIC_ASSERT(Expression, Message)
+#elif _MSC_EXTENSIONS
+  #define STATIC_ASSERT static_assert
+#else /* !MDE_CPU_EBC && !_MSC_EXTENSIONS */
+  #define STATIC_ASSERT _Static_assert
+#endif /* STATIC_ASSERT */
 
 #endif /* DEBUG_TOOLS_H_ */

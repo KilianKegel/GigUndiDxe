@@ -32,5 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Uefi.h>
 
 #include "E1000.h"
+typedef struct e1000_hw SHARED_HW;
+/* endif UNDI_1G */
+
 
 #endif /* COMMON_DRIVER_H_ */

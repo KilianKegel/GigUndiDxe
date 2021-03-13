@@ -254,6 +254,14 @@ s32 e1000_set_mac_type(struct e1000_hw *hw)
 		mac->type = e1000_pch_tgp;
 		break;
 #endif /* NAHUM9_HW */
+#ifdef NAHUM10_HW
+	case E1000_DEV_ID_PCH_ADL_1219_LM16:
+	case E1000_DEV_ID_PCH_ADL_1219_V16:
+	case E1000_DEV_ID_PCH_ADL_1219_LM17:
+	case E1000_DEV_ID_PCH_ADL_1219_V17:
+		mac->type = e1000_pch_adp;
+		break;
+#endif /* NAHUM10_HW */
 #endif /*NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT
 	case E1000_DEV_ID_82575EB_COPPER:
@@ -397,9 +405,11 @@ s32 e1000_setup_init_funcs(struct e1000_hw *hw, bool init_device)
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
 	case e1000_pch_cnp:
-	/* fall-through */
 #ifdef NAHUM9_HW
 	case e1000_pch_tgp:
+#endif
+#ifdef NAHUM10_HW
+	case e1000_pch_adp:
 #endif
 		e1000_init_function_pointers_ich8lan(hw);
 		break;

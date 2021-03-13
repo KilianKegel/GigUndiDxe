@@ -84,7 +84,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-#pragma pack(1)
+#pragma pack(2)
 typedef struct {
   UINT8  LLDPSettingsSupported;
   UINT8  DefaultLLDPAgent;

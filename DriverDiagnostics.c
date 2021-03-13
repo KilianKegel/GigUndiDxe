@@ -110,15 +110,15 @@ _WritePhyRegister16Ex (
 
 /** Build a packet to transmit in the phy loopback test.
 
-   @param[in]   GigAdapterInfo   Pointer to the NIC data structure information
-                               which the UNDI driver is layering on so that we can
-                               get the MAC address
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on so that we can
+                              get the MAC address
 
    @return   Packet is built
 **/
 VOID
 _BuildPacket (
-  GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   ETHERNET_HDR *EthernetHdr;
@@ -133,8 +133,8 @@ _BuildPacket (
 
   // First copy the source and destination addresses
   EthernetHdr = (ETHERNET_HDR *) mPacket;
-  CopyMem ((CHAR8 *) &EthernetHdr->SourceAddr, (CHAR8 *) GigAdapterInfo->Hw.mac.addr, ETH_ADDR_LEN);
-  CopyMem ((CHAR8 *) &EthernetHdr->DestAddr, (CHAR8 *) GigAdapterInfo->BroadcastNodeAddress, ETH_ADDR_LEN);
+  CopyMem ((CHAR8 *) &EthernetHdr->SourceAddr, (CHAR8 *) AdapterInfo->Hw.mac.addr, ETH_ADDR_LEN);
+  CopyMem ((CHAR8 *) &EthernetHdr->DestAddr, (CHAR8 *) AdapterInfo->BroadcastNodeAddress, ETH_ADDR_LEN);
 
   // Calculate the data segment size and store it in the header big Endian style
   Length                  = TEST_PACKET_SIZE - sizeof (ETHERNET_HDR);
@@ -149,15 +149,15 @@ _BuildPacket (
 
 /** Display the buffer and descriptors for debuging the PHY loopback test.
 
-   @param[in]   GigAdapterInfo   Pointer to the NIC data structure information
-                                 which the UNDI driver is layering on so that we can
-                                 get the MAC address
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information
+                              which the UNDI driver is layering on so that we can
+                              get the MAC address
 
    @return   Buffers and descriptors displayed
 **/
 VOID
 _DisplayBuffersAndDescriptors (
-  GIG_DRIVER_DATA *GigAdapterInfo
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   E1000_RECEIVE_DESCRIPTOR * ReceiveDesc;
@@ -165,12 +165,12 @@ _DisplayBuffersAndDescriptors (
   UINT32                     j;
 
   DEBUGPRINT (DIAG, ("Receive Descriptor\n"));
-  DEBUGPRINT (DIAG, ("RCTL=%X ", E1000_READ_REG (&GigAdapterInfo->Hw, E1000_RCTL)));
-  DEBUGPRINT (DIAG, ("RDH0=%x ", (UINT16) E1000_READ_REG (&GigAdapterInfo->Hw, E1000_RDH (0))));
-  DEBUGPRINT (DIAG, ("RDT0=%x ", (UINT16) E1000_READ_REG (&GigAdapterInfo->Hw, E1000_RDT (0))));
-  DEBUGPRINT (DIAG, ("cur_rx_ind=%X\n", GigAdapterInfo->CurRxInd));
+  DEBUGPRINT (DIAG, ("RCTL=%X ", E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL)));
+  DEBUGPRINT (DIAG, ("RDH0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0))));
+  DEBUGPRINT (DIAG, ("RDT0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT (0))));
+  DEBUGPRINT (DIAG, ("cur_rx_ind=%X\n", AdapterInfo->CurRxInd));
 
-  ReceiveDesc = E1000_RX_DESC (&GigAdapterInfo->RxRing, 0);
+  ReceiveDesc = E1000_RX_DESC (&AdapterInfo->RxRing, 0);
   for (j = 0; j < DEFAULT_RX_DESCRIPTORS; j++) {
     DEBUGPRINT (DIAG, ("Buff=%x,", ReceiveDesc->buffer_addr));
     DEBUGPRINT (DIAG, ("Len=%x,", ReceiveDesc->length));
@@ -182,12 +182,12 @@ _DisplayBuffersAndDescriptors (
 
   DEBUGWAIT (DIAG);
   DEBUGPRINT (DIAG, ("Transmit Descriptor\n"));
-  DEBUGPRINT (DIAG, ("TCTL=%X ", E1000_READ_REG (&GigAdapterInfo->Hw, E1000_TCTL)));
-  DEBUGPRINT (DIAG, ("TDH0=%x ", (UINT16) E1000_READ_REG (&GigAdapterInfo->Hw, E1000_TDH (0))));
-  DEBUGPRINT (DIAG, ("TDT0=%x ", (UINT16) E1000_READ_REG (&GigAdapterInfo->Hw, E1000_TDT (0))));
-  DEBUGPRINT (DIAG, ("cur_tx_ind=%X\n", GigAdapterInfo->CurTxInd));
+  DEBUGPRINT (DIAG, ("TCTL=%X ", E1000_READ_REG (&AdapterInfo->Hw, E1000_TCTL)));
+  DEBUGPRINT (DIAG, ("TDH0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_TDH (0))));
+  DEBUGPRINT (DIAG, ("TDT0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_TDT (0))));
+  DEBUGPRINT (DIAG, ("cur_tx_ind=%X\n", AdapterInfo->CurTxInd));
 
-  TransmitDesc = E1000_TX_DESC (&GigAdapterInfo->RxRing, 0);
+  TransmitDesc = E1000_TX_DESC (&AdapterInfo->RxRing, 0);
   for (j = 0; j < DEFAULT_TX_DESCRIPTORS; j++) {
     DEBUGPRINT (DIAG, ("Buff=%x,", TransmitDesc->buffer_addr));
     DEBUGPRINT (DIAG, ("Cmd=%x,", TransmitDesc->lower.flags.cmd));
@@ -1104,7 +1104,7 @@ E1000SetPhyLoopback (
    checks to see if it was received.  If any of the packets are not received then it will be interpreted as
    a failure.
 
-   @param[in]   GigAdapterInfo   Pointer to the NIC data structure the PHY loopback test will be run on.
+   @param[in]   AdapterInfo      Pointer to the NIC data structure the PHY loopback test will be run on.
    @param[in]   PxeCpbTransmit   Pointer to the packet to transmit.
 
    @retval   EFI_SUCCESS            All packets were received successfully
@@ -1114,8 +1114,8 @@ E1000SetPhyLoopback (
 **/
 EFI_STATUS
 GigUndiRunPhyLoopback (
-  GIG_DRIVER_DATA *GigAdapterInfo,
-  PXE_CPB_TRANSMIT PxeCpbTransmit
+  IN DRIVER_DATA      *AdapterInfo,
+  IN PXE_CPB_TRANSMIT  PxeCpbTransmit
   )
 {
   PXE_CPB_RECEIVE  CpbReceive;
@@ -1127,11 +1127,11 @@ GigUndiRunPhyLoopback (
 
   while (j < PHY_LOOPBACK_ITERATIONS) {
     Status = E1000Transmit (
-               GigAdapterInfo,
+               AdapterInfo,
                (UINT64) (UINTN) &PxeCpbTransmit,
                PXE_OPFLAGS_TRANSMIT_WHOLE
              );
-    _DisplayBuffersAndDescriptors (GigAdapterInfo);
+    _DisplayBuffersAndDescriptors (AdapterInfo);
 
     if (EFI_ERROR (Status)) {
       DEBUGPRINT (CRITICAL, ("E1000Transmit error Status %X. Iteration=%d\n", Status, j));
@@ -1152,7 +1152,7 @@ GigUndiRunPhyLoopback (
 
     for (i = 0; i <= 100000; i++) {
       Status = E1000Receive (
-                 GigAdapterInfo,
+                 AdapterInfo,
                  (UINT64) (UINTN) &CpbReceive,
                  (UINT64) (UINTN) &DbReceive
                );
@@ -1189,7 +1189,7 @@ GigUndiRunPhyLoopback (
     }
 
     E1000FreeTxBuffers (
-      GigAdapterInfo,
+      AdapterInfo,
       DEFAULT_TX_DESCRIPTORS,
       FreeTxBuffer
     );

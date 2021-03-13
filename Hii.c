@@ -282,6 +282,8 @@ ExtractConfig (
       LastElementWidth = UNDI_CONFIG_WIDTH (AltMacAddrSupport);
       continue;
     }
+
+
     if (ElementOffset == UNDI_CONFIG_OFFSET (LinkSpeedSettingsSupported)) {
       UndiPrivateData->Configuration.LinkSpeedSettingsSupported = UndiPrivateData->LinkSpeedSettingsSupported;
       LastElementWidth = UNDI_CONFIG_WIDTH (LinkSpeedSettingsSupported);
@@ -431,6 +433,7 @@ RouteConfig (
   } else if (UndiPrivateData->Configuration.BlinkLed > 0) {
     BlinkLeds (&UndiPrivateData->NicInfo, UndiPrivateData->Configuration.BlinkLed);
   }
+
 
 
 

@@ -27,5 +27,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
 #define MAJORVERSION 9 /* GigUndi major version */ 
-#define MINORVERSION 1 /* GigUndi minor version */ 
-#define BUILDNUMBER 12 /* GigUndi build version */ 
+#define MINORVERSION 2 /* GigUndi minor version */ 
+#define BUILDNUMBER 6 /* GigUndi build version */ 

@@ -43,6 +43,8 @@ extern UINT8 GigUndiDxeStrings[];
   May be adjusted in the future if needed */
 #define HII_STRING_LEN                    1024
 
+#define HII_INVALID_DELL_LANG             "x-RIS-UEFI"
+
 #define MAX_PBA_STR_LENGTH                15 // normally it is 10 chars string
 
 /* Variables are used for determination of default number of advertised VFs */

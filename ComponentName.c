@@ -34,11 +34,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 EFI_COMPONENT_NAME_PROTOCOL  gUndiComponentName;
 EFI_COMPONENT_NAME2_PROTOCOL gUndiComponentName2;
 
+// The define rodeo below creates the driver component name based on the build env.
+// Be careful with space placement! Add spaces after each name part put before the
+// version, add spaces before parts put after the version, so that you get:
+// L"Before " L"Version " L"1.2.34" L" And" L" After"
+#if defined (DBG_LVL) && ((DBG_LVL) != (NONE))
+  #define COMP_NAME_PREFIX L"[DEBUG] "
+#else /* Production component name */
+  #define COMP_NAME_PREFIX L""
+#endif /* [DEBUG] prefix */
 
+#define COMP_NAME_VENDOR L"Intel(R) "
 
-/* To differentiate between standard and open source versions .1 suffix has been added
- to open source version number */
-CHAR16 * mDriverNameFormat = L"Intel(R) PRO/1000 Open Source %1d.%1d.%02d PCI-E";
+  #define COMP_NAME_PRODUCT L"PRO/1000 "
+
+// Extras between the product name and version.
+  #define COMP_NAME_EXTRA L"Open Source "
+
+  #define COMP_NAME_VERSION L"%1d.%1d.%02d"
+
+    #define COMP_NAME_SUFFIX L" PCI-E"
+
+#define COMP_NAME COMP_NAME_PREFIX COMP_NAME_VENDOR COMP_NAME_PRODUCT COMP_NAME_EXTRA COMP_NAME_VERSION COMP_NAME_SUFFIX
+CHAR16 * mDriverNameFormat = COMP_NAME;
 
 
 // Version and Branding Information

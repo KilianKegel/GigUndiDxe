@@ -309,7 +309,7 @@ EepromSetWol (
 
 /** Reads the currently assigned MAC address and factory default MAC address.
 
-   @param[in]    GigAdapter           Pointer to adapter structure
+   @param[in]    AdapterInfo          Pointer to adapter structure
    @param[in]    LanFunction          Required to calculate LAN function offset
                                       where factory MAC address is located
    @param[out]   DefaultMacAddress    Factory default MAC address of the adapter
@@ -321,10 +321,10 @@ EepromSetWol (
 **/
 EFI_STATUS
 _EepromMacAddressGet82580 (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN  UINT32          LanFunction,
-  OUT UINT16 *        DefaultMacAddress,
-  OUT UINT16 *        AssignedMacAddress
+  IN  DRIVER_DATA *AdapterInfo,
+  IN  UINT32       LanFunction,
+  OUT UINT16      *DefaultMacAddress,
+  OUT UINT16      *AssignedMacAddress
   )
 {
   UINT16 BackupMacOffset;
@@ -339,25 +339,25 @@ _EepromMacAddressGet82580 (
 
   DEBUGPRINT (CLP, ("Factory MAC address at offset %X\n", FactoryMacOffset));
 
-  e1000_read_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &AssignedMacAddress[0]);
+  e1000_read_nvm (&AdapterInfo->Hw, FactoryMacOffset, 3, &AssignedMacAddress[0]);
 
   // Check to see if the backup MAC address location is being used, otherwise the
   // factory MAC address location will be the default.
-  e1000_read_nvm (&GigAdapter->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacOffset);
+  e1000_read_nvm (&AdapterInfo->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacOffset);
 
   if (BackupMacOffset == 0xFFFF
     || BackupMacOffset == 0x0000)
   {
     DEBUGPRINT (CLP, ("Alt MAC Address feature not enabled.\n"));
-    e1000_read_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &DefaultMacAddress[0]);
+    e1000_read_nvm (&AdapterInfo->Hw, FactoryMacOffset, 3, &DefaultMacAddress[0]);
   } else {
 
     // Adjust the MAC address offset if this is the second port (function 1)
-    BackupMacOffset = BackupMacOffset + (UINT16) (3 * GigAdapter->Function);
+    BackupMacOffset = BackupMacOffset + (UINT16) (3 * AdapterInfo->Function);
     DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", BackupMacOffset));
 
     // Check if MAC address is backed up
-    e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 1, &BackupMacAddress[0]);
+    e1000_read_nvm (&AdapterInfo->Hw, BackupMacOffset, 1, &BackupMacAddress[0]);
     if (BackupMacAddress[0] == 0xFFFF) {
 
       // In this case the factory MAC address is not in the backup location, so the factory
@@ -369,7 +369,7 @@ _EepromMacAddressGet82580 (
     } else {
 
       // Read in the factory default Mac address.
-      e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 3, &DefaultMacAddress[0]);
+      e1000_read_nvm (&AdapterInfo->Hw, BackupMacOffset, 3, &DefaultMacAddress[0]);
     }
   }
   return EFI_SUCCESS;
@@ -379,16 +379,16 @@ _EepromMacAddressGet82580 (
 /** Programs the port with an alternate MAC address, and backs up the factory default
    MAC address.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
-   @param[in]   MacAddress   Value to set the MAC address to.
+   @param[in]   AdapterInfo   Pointer to adapter structure
+   @param[in]   MacAddress    Value to set the MAC address to.
 
    @retval   EFI_UNSUPPORTED   Alternate MAC Address feature not enabled
    @retval   EFI_SUCCESS       Alternate MAC Address set successfully
 **/
 EFI_STATUS
 _EepromMacAddressSet82580 (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT16 *         MacAddress
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT16      *MacAddress
   )
 {
   UINT16 BackupMacOffset;
@@ -396,7 +396,7 @@ _EepromMacAddressSet82580 (
   UINT16 BackupMacAddress[3];
 
   // Read the address where the override MAC address is stored.
-  e1000_read_nvm (&GigAdapter->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacOffset);
+  e1000_read_nvm (&AdapterInfo->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacOffset);
 
   if (BackupMacOffset == 0xFFFF
     || BackupMacOffset == 0x0000)
@@ -406,44 +406,44 @@ _EepromMacAddressSet82580 (
   }
 
   // Adjust the MAC address offset if this is the second port (function 1)
-  BackupMacOffset = BackupMacOffset + (UINT16) (3 * GigAdapter->Function);
+  BackupMacOffset = BackupMacOffset + (UINT16) (3 * AdapterInfo->Function);
   DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", BackupMacOffset));
 
   // Factory MAC address is located at the start of the LAN configuration block in EEPROM
-  FactoryMacOffset = NVM_82580_LAN_FUNC_OFFSET (GigAdapter->LanFunction);
+  FactoryMacOffset = NVM_82580_LAN_FUNC_OFFSET (AdapterInfo->LanFunction);
 
   DEBUGPRINT (CLP, ("Factory MAC address at offset %X\n", FactoryMacOffset));
 
   // Check if MAC address is backed up
-  e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 1, &BackupMacAddress[0]);
+  e1000_read_nvm (&AdapterInfo->Hw, BackupMacOffset, 1, &BackupMacAddress[0]);
   if (BackupMacAddress[0] == 0xFFFF) {
 
     // Read in the factory MAC address
-    e1000_read_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &BackupMacAddress[0]);
+    e1000_read_nvm (&AdapterInfo->Hw, FactoryMacOffset, 3, &BackupMacAddress[0]);
 
     // Now back it up
-    e1000_write_nvm (&GigAdapter->Hw, BackupMacOffset, 3, &BackupMacAddress[0]);
+    e1000_write_nvm (&AdapterInfo->Hw, BackupMacOffset, 3, &BackupMacAddress[0]);
   }
 
   // At this point the factory MAC address should be in the backup location.  Now
   // write the new CLP assigned MAC address into the original factory location.
-  e1000_write_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &MacAddress[0]);
+  e1000_write_nvm (&AdapterInfo->Hw, FactoryMacOffset, 3, &MacAddress[0]);
 
-  e1000_update_nvm_checksum (&GigAdapter->Hw);
+  e1000_update_nvm_checksum (&AdapterInfo->Hw);
 
   return EFI_SUCCESS;
 }
 
 /** Restores the factory default MAC address.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   EFI_UNSUPPORTED   Alternate MAC Address feature not enabled
    @retval   EFI_SUCCESS       Factory default MAC address restored
 **/
 EFI_STATUS
 _EepromMacAddressDefault82580 (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT16 BackupMacOffset;
@@ -453,7 +453,7 @@ _EepromMacAddressDefault82580 (
   DEBUGPRINT (CLP, ("EepromMacAddressDefault_82580 .\n"));
 
   // Read the address where the override MAC address is stored.
-  e1000_read_nvm (&GigAdapter->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacOffset);
+  e1000_read_nvm (&AdapterInfo->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacOffset);
 
   if (BackupMacOffset == 0xFFFF
     || BackupMacOffset == 0x0000)
@@ -463,11 +463,11 @@ _EepromMacAddressDefault82580 (
   }
 
   // Adjust the MAC address offset if this is the second port (function 1)
-  BackupMacOffset = BackupMacOffset + (UINT16) (3 * GigAdapter->Function);
+  BackupMacOffset = BackupMacOffset + (UINT16) (3 * AdapterInfo->Function);
   DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", BackupMacOffset));
 
   // Check if MAC address is backed up
-  e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 3, &BackupMacAddress[0]);
+  e1000_read_nvm (&AdapterInfo->Hw, BackupMacOffset, 3, &BackupMacAddress[0]);
   if (BackupMacAddress[0] == 0xFFFF) {
     DEBUGPRINT (CRITICAL, ("No backup MAC addresses\n"));
     return EFI_SUCCESS;
@@ -475,13 +475,13 @@ _EepromMacAddressDefault82580 (
 
   // Restore the factory MAC address
   // Factory MAC address is located at the start of the LAN configuration block in EEPROM
-  FactoryMacOffset = NVM_82580_LAN_FUNC_OFFSET (GigAdapter->LanFunction);
+  FactoryMacOffset = NVM_82580_LAN_FUNC_OFFSET (AdapterInfo->LanFunction);
 
   DEBUGPRINT (CLP, ("Factory MAC address at offset %X\n", FactoryMacOffset));
 
-  e1000_write_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &BackupMacAddress[0]);
+  e1000_write_nvm (&AdapterInfo->Hw, FactoryMacOffset, 3, &BackupMacAddress[0]);
 
-  e1000_update_nvm_checksum (&GigAdapter->Hw);
+  e1000_update_nvm_checksum (&AdapterInfo->Hw);
 
   return EFI_SUCCESS;
 }
@@ -489,7 +489,7 @@ _EepromMacAddressDefault82580 (
 
 /** Reads the currently assigned MAC address and factory default MAC address.
 
-   @param[in]    GigAdapter          Pointer to adapter structure
+   @param[in]    AdapterInfo          Pointer to adapter structure
    @param[out]   DefaultMacAddress   Factory default MAC address of the adapter
    @param[out]   AssignedMacAddress  CLP Assigned MAC address of the adapter,
                                      or the factory MAC address if an alternate MAC
@@ -499,9 +499,9 @@ _EepromMacAddressDefault82580 (
 **/
 EFI_STATUS
 _EepromMacAddressGetGeneric (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  OUT UINT16 *        DefaultMacAddress,
-  OUT UINT16 *        AssignedMacAddress
+  IN  DRIVER_DATA *AdapterInfo,
+  OUT UINT16      *DefaultMacAddress,
+  OUT UINT16      *AssignedMacAddress
   )
 {
   UINT16 AlternateMacOffset;
@@ -514,13 +514,13 @@ _EepromMacAddressGetGeneric (
 
   DEBUGPRINT (CLP, ("Factory MAC address at offset %X\n", FactoryMacOffset));
 
-  e1000_read_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &AssignedMacAddress[0]);
-  DEBUGPRINT (CLP, ("Adjusting MAC address for PCI function %d\n", (CHAR8) GigAdapter->Function));
-  ((CHAR8 *) AssignedMacAddress)[5] ^= (CHAR8) GigAdapter->Function;
+  e1000_read_nvm (&AdapterInfo->Hw, FactoryMacOffset, 3, &AssignedMacAddress[0]);
+  DEBUGPRINT (CLP, ("Adjusting MAC address for PCI function %d\n", (CHAR8) AdapterInfo->Function));
+  ((CHAR8 *) AssignedMacAddress)[5] ^= (CHAR8) AdapterInfo->Function;
 
   // Check to see if alternate MAC address is available, otherwise the
   // factory MAC address location will be the default.
-  e1000_read_nvm (&GigAdapter->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &AlternateMacOffset);
+  e1000_read_nvm (&AdapterInfo->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &AlternateMacOffset);
 
   if (AlternateMacOffset == 0xFFFF
     || AlternateMacOffset == 0x0000)
@@ -532,11 +532,11 @@ _EepromMacAddressGetGeneric (
   } else {
 
     // Adjust the MAC address offset if this is the second port (function 1)
-    AlternateMacOffset = AlternateMacOffset + (UINT16) (3 * GigAdapter->LanFunction);
+    AlternateMacOffset = AlternateMacOffset + (UINT16) (3 * AdapterInfo->LanFunction);
     DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", AlternateMacOffset));
 
     // Check if MAC address is set up
-    e1000_read_nvm (&GigAdapter->Hw, AlternateMacOffset, 1, &AlternateMacAddress[0]);
+    e1000_read_nvm (&AdapterInfo->Hw, AlternateMacOffset, 1, &AlternateMacAddress[0]);
     if (AlternateMacAddress[0] == 0xFFFF) {
 
       // In this case the alternate MAC address is not set, so the alternate
@@ -547,7 +547,7 @@ _EepromMacAddressGetGeneric (
     } else {
 
       // Read in the alternate MAC address.
-      e1000_read_nvm (&GigAdapter->Hw, AlternateMacOffset, 3, &DefaultMacAddress[0]);
+      e1000_read_nvm (&AdapterInfo->Hw, AlternateMacOffset, 3, &DefaultMacAddress[0]);
     }
   }
   return EFI_SUCCESS;
@@ -623,16 +623,16 @@ EepromMacAddressGet (
 
 /** Sets the override MAC address to the default value.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
-   @param[in]   MacAddress   Value to set the MAC address to.
+   @param[in]   AdapterInfo   Pointer to adapter structure
+   @param[in]   MacAddress    Value to set the MAC address to.
 
    @retval   EFI_UNSUPPORTED   Invalid offset for alternate MAC address
    @retval   EFI_SUCCESS       Default MAC address set successfully
 **/
 EFI_STATUS
 _EepromMacAddressSetGeneric (
-  IN GIG_DRIVER_DATA *GigAdapter,
-  IN UINT16 *         MacAddress
+  IN DRIVER_DATA *AdapterInfo,
+  IN UINT16      *MacAddress
   )
 {
   UINT16 MacOffset;
@@ -647,16 +647,16 @@ _EepromMacAddressSetGeneric (
 #endif /* (DBG_LVL) */
 
   // Determine the location of the card.
-  GigAdapter->PciIo->GetLocation (
-                       GigAdapter->PciIo,
-                       &GigAdapter->Segment,
-                       &GigAdapter->Bus,
-                       &GigAdapter->Device,
-                       &GigAdapter->Function
-                     );
+  AdapterInfo->PciIo->GetLocation (
+                        AdapterInfo->PciIo,
+                        &AdapterInfo->Segment,
+                        &AdapterInfo->Bus,
+                        &AdapterInfo->Device,
+                        &AdapterInfo->Function
+                      );
 
   // Read the address where the override MAC address is stored.
-  e1000_read_nvm (&GigAdapter->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &MacOffset);
+  e1000_read_nvm (&AdapterInfo->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &MacOffset);
 
   if (MacOffset == 0xFFFF) {
     DEBUGPRINT (CLP, ("Invalid offset for alt MAC address\n"));
@@ -665,17 +665,17 @@ _EepromMacAddressSetGeneric (
 
   DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", MacOffset));
 
-  MacOffset = MacOffset + (UINT16) (3 * GigAdapter->Function);
+  MacOffset = MacOffset + (UINT16) (3 * AdapterInfo->Function);
 
   // Read the current stored MAC address to see if it needs to be changed
-  e1000_read_nvm (&GigAdapter->Hw, MacOffset, 3, OldMacAddress);
+  e1000_read_nvm (&AdapterInfo->Hw, MacOffset, 3, OldMacAddress);
 
   if ((MacAddress[0] != OldMacAddress[0])
     || (MacAddress[1] != OldMacAddress[1])
     || (MacAddress[2] != OldMacAddress[2]))
   {
     DEBUGPRINT (CLP, ("Updating MAC addresses in EEPROM\n"));
-    e1000_write_nvm (&GigAdapter->Hw, MacOffset, 3, MacAddress);
+    e1000_write_nvm (&AdapterInfo->Hw, MacOffset, 3, MacAddress);
   } else {
     DEBUGPRINT (CLP, ("No need to update MAC addresses in EEPROM\n"));
   }
@@ -714,14 +714,14 @@ EepromMacAddressSet (
 
 /** Sets the override MAC address back to FF-FF-FF-FF-FF-FF to disable.
 
-   @param[in]   GigAdapter   Pointer to adapter structure
+   @param[in]   AdapterInfo   Pointer to adapter structure
 
    @retval   EFI_UNSUPPORTED   Invalid offset for alternate MAC address
    @retval   EFI_SUCCESS       Default MAC address set successfully
 **/
 EFI_STATUS
 _EepromMacAddressDefaultGeneric (
-  IN GIG_DRIVER_DATA *GigAdapter
+  IN DRIVER_DATA *AdapterInfo
   )
 {
   UINT16 MacOffset;
@@ -729,16 +729,16 @@ _EepromMacAddressDefaultGeneric (
   UINT16 MacDefault[3] = {0xFFFF, 0xFFFF, 0xFFFF};
 
   // Determine the location of the card.
-  GigAdapter->PciIo->GetLocation (
-                       GigAdapter->PciIo,
-                       &GigAdapter->Segment,
-                       &GigAdapter->Bus,
-                       &GigAdapter->Device,
-                       &GigAdapter->Function
-                     );
+  AdapterInfo->PciIo->GetLocation (
+                        AdapterInfo->PciIo,
+                        &AdapterInfo->Segment,
+                        &AdapterInfo->Bus,
+                        &AdapterInfo->Device,
+                        &AdapterInfo->Function
+                      );
 
   // Read the address where the override MAC address is stored.
-  e1000_read_nvm (&GigAdapter->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &MacOffset);
+  e1000_read_nvm (&AdapterInfo->Hw, NVM_ALT_MAC_ADDR_PTR, 1, &MacOffset);
 
   if (MacOffset == 0xFFFF) {
     DEBUGPRINT (CLP, ("Invalid offset for alt MAC address\n"));
@@ -748,17 +748,17 @@ _EepromMacAddressDefaultGeneric (
   DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", MacOffset));
 
   // Adjust the MAC address offset if this is the second port (function 1)
-  MacOffset = MacOffset + (UINT16) (3 * GigAdapter->Function);
+  MacOffset = MacOffset + (UINT16) (3 * AdapterInfo->Function);
 
   // Read the current stored MAC address to see if it needs to be changed
-  e1000_read_nvm (&GigAdapter->Hw, MacOffset, 3, (UINT16 *) MacAddress);
+  e1000_read_nvm (&AdapterInfo->Hw, MacOffset, 3, (UINT16 *) MacAddress);
 
   if ((MacAddress[0] != 0xFFFF)
     || (MacAddress[1] != 0xFFFF)
     || (MacAddress[2] != 0xFFFF))
   {
     DEBUGPRINT (CLP, ("Setting default MAC addresses in EEPROM\n"));
-    e1000_write_nvm (&GigAdapter->Hw, MacOffset, 3, MacDefault);
+    e1000_write_nvm (&AdapterInfo->Hw, MacOffset, 3, MacDefault);
   } else {
     DEBUGPRINT (CLP, ("No need to update MAC addresses in EEPROM\n"));
   }

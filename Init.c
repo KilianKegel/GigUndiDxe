@@ -256,7 +256,7 @@ GigUndiNotifyExitBs (
                                  device path with the MAC node attached.
    @param[in]       BaseDevPtr   Pointer to the device path which the
                                  UNDI device driver is latching on to.
-   @param[in]   GigAdapterInfo   Pointer to the NIC data structure information
+   @param[in]       AdapterInfo  Pointer to the NIC data structure information
                                  which the UNDI driver is layering on..
 
    @retval   EFI_SUCCESS           A MAC address was successfully appended to the Base Device Path.
@@ -264,9 +264,9 @@ GigUndiNotifyExitBs (
 **/
 EFI_STATUS
 GigAppendMac2DevPath (
-  IN OUT EFI_DEVICE_PATH_PROTOCOL ** DevPtr,
-  IN EFI_DEVICE_PATH_PROTOCOL *      BaseDevPtr,
-  IN GIG_DRIVER_DATA *               GigAdapterInfo
+  IN OUT EFI_DEVICE_PATH_PROTOCOL **DevPtr,
+  IN     EFI_DEVICE_PATH_PROTOCOL  *BaseDevPtr,
+  IN     DRIVER_DATA               *AdapterInfo
   )
 {
   MAC_ADDR_DEVICE_PATH      MacAddrNode;
@@ -283,7 +283,7 @@ GigAppendMac2DevPath (
     sizeof (MacAddrNode)
   );
 
-  E1000_COPY_MAC (MacAddrNode.MacAddress.Addr, GigAdapterInfo->Hw.mac.perm_addr);
+  E1000_COPY_MAC (MacAddrNode.MacAddress.Addr, AdapterInfo->Hw.mac.perm_addr);
 
   DEBUGPRINT (INIT, ("\n"));
   for (i = 0; i < 6; i++) {
@@ -292,7 +292,7 @@ GigAppendMac2DevPath (
 
   DEBUGPRINT (INIT, ("\n"));
   for (i = 0; i < 6; i++) {
-    DEBUGPRINT (INIT, ("%2x ", GigAdapterInfo->Hw.mac.perm_addr[i]));
+    DEBUGPRINT (INIT, ("%2x ", AdapterInfo->Hw.mac.perm_addr[i]));
   }
 
   DEBUGPRINT (INIT, ("\n"));
@@ -361,12 +361,12 @@ E1000ChkSum (
 
 /** Updates active children number and PXE structure on child stop/init
 
-   When called with a null NicPtr, this routine decrements the number of NICs
+   When called with a null AdapterInfo, this routine decrements the number of NICs
    this UNDI is supporting and removes the NIC_DATA_POINTER from the array.
    Otherwise, it increments the number of NICs this UNDI is supported and
    updates the PXE. Fudge to ensure a proper check sum results.
 
-   @param[in]   NicPtr   Pointer to the NIC data structure information which the
+   @param[in]   AdapterInfo   Pointer to the NIC data structure information which the
                          UNDI driver is layering on..
    @param[in]   PxePtr   Pointer to the PXE structure
 
@@ -375,11 +375,11 @@ E1000ChkSum (
 **/
 EFI_STATUS
 GigUndiPxeUpdate (
-  IN GIG_DRIVER_DATA *NicPtr,
-  IN PXE_SW_UNDI     *PxePtr
+  IN DRIVER_DATA *AdapterInfo,
+  IN PXE_SW_UNDI *PxePtr
   )
 {
-  if (NicPtr == NULL) {
+  if (AdapterInfo == NULL) {
 
     // IFcnt is equal to the number of NICs this UNDI supports - 1
     if (mActiveChildren > 0) {
@@ -1017,25 +1017,25 @@ InitNiiPointerProtocol (
 
 /** Initializes Undi Callback functions in Adapter structure.
 
-    @param[out]      NicInfo    Adapter Structure which shall be initialized
+    @param[out]      AdapterInfo    Adapter Structure which shall be initialized
 
-    @return          NicInfo    Initialized adapter structure
+    @return          AdapterInfo    Initialized adapter structure
 **/
 VOID
 InitUndiCallbackFunctions (
-  OUT GIG_DRIVER_DATA *NicInfo
+  OUT DRIVER_DATA *AdapterInfo
   )
 {
   // Initialize the UNDI callback functions to 0 so that the default boot services
   // callback is used instead of the SNP callback.
-  NicInfo->Delay       = (VOID *) 0;
-  NicInfo->Virt2Phys   = (VOID *) 0;
-  NicInfo->Block       = (VOID *) 0;
-  NicInfo->MapMem      = (VOID *) 0;
-  NicInfo->UnMapMem    = (VOID *) 0;
-  NicInfo->SyncMem     = (VOID *) 0;
-  NicInfo->UniqueId    = (UINT64) (UINTN) NicInfo;
-  NicInfo->VersionFlag = 0x31;
+  AdapterInfo->Delay       = (VOID *) 0;
+  AdapterInfo->Virt2Phys   = (VOID *) 0;
+  AdapterInfo->Block       = (VOID *) 0;
+  AdapterInfo->MapMem      = (VOID *) 0;
+  AdapterInfo->UnMapMem    = (VOID *) 0;
+  AdapterInfo->SyncMem     = (VOID *) 0;
+  AdapterInfo->UniqueId    = (UINT64) (UINTN) AdapterInfo;
+  AdapterInfo->VersionFlag = 0x31;
 }
 
 

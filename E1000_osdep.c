@@ -49,10 +49,9 @@ e1000_read_pcie_cap_reg (
   UINT16 NextPtrOffset = PCI_CAP_PTR;
   UINT16 NextPtrValue = 0;
 
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return INVALID_STATUS_REGISTER_VALUE;
   }
 
@@ -109,10 +108,9 @@ e1000_write_pcie_cap_reg (
   UINT16 NextPtrOffset = PCI_CAP_PTR;
   UINT16 NextPtrValue = 0;
 
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return INVALID_STATUS_REGISTER_VALUE;
   }
 
@@ -163,36 +161,34 @@ E1000WriteRegIo (
   UINT32           Value
   )
 {
-  GIG_DRIVER_DATA *Adapter;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  Adapter  = Hw->back;
-
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   DEBUGPRINT (IO, ("e1000_write_reg_io\n"));
-  DEBUGPRINT (IO, ("IO bAR INDEX = %d\n", Adapter->IoBarIndex));
+  DEBUGPRINT (IO, ("IO bAR INDEX = %d\n", AdapterInfo->IoBarIndex));
   DEBUGWAIT (IO);
 
   MemoryFence ();
-  Adapter->PciIo->Io.Write (
-                       Adapter->PciIo,
-                       EfiPciIoWidthUint32,
-                       Adapter->IoBarIndex,
-                       0,                          // IO location offset
-                       1,
-                       (VOID *) (&Offset)
-                     );
+  AdapterInfo->PciIo->Io.Write (
+                           AdapterInfo->PciIo,
+                           EfiPciIoWidthUint32,
+                           AdapterInfo->IoBarIndex,
+                           0,                          // IO location offset
+                           1,
+                           (VOID *) (&Offset)
+                         );
   MemoryFence ();
-  Adapter->PciIo->Io.Write (
-                       Adapter->PciIo,
-                       EfiPciIoWidthUint32,
-                       Adapter->IoBarIndex,
-                       4,                          // IO data offset
-                       1,
-                       (VOID *) (&Value)
-                     );
+  AdapterInfo->PciIo->Io.Write (
+                           AdapterInfo->PciIo,
+                           EfiPciIoWidthUint32,
+                           AdapterInfo->IoBarIndex,
+                           4,                          // IO data offset
+                           1,
+                           (VOID *) (&Value)
+                         );
   MemoryFence ();
   return;
 }
@@ -213,22 +209,21 @@ e1000_read_pci_cfg (
   UINT16 *         Value
   )
 {
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   MemoryFence ();
 
-  Adapter->PciIo->Pci.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        Port,
-                        1,
-                        (VOID *) Value
-                      );
+  AdapterInfo->PciIo->Pci.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            Port,
+                            1,
+                            (VOID *) Value
+                          );
   MemoryFence ();
   return;
 }
@@ -249,22 +244,51 @@ e1000_write_pci_cfg (
   UINT16 *         Value
   )
 {
-  GIG_DRIVER_DATA *Adapter;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  Adapter = Hw->back;
-
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   MemoryFence ();
-  Adapter->PciIo->Pci.Write (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        Port,
-                        1,
-                        (VOID *) Value
-                      );
+  AdapterInfo->PciIo->Pci.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            Port,
+                            1,
+                            (VOID *) Value
+                          );
+  MemoryFence ();
+
+  return;
+}
+
+/** This function calls the EFI PCI IO protocol to write a value to the device's PCI
+   register space, omitting IsSurpriseRemoval check
+
+   @param[in]   Hw      Pointer to the shared code hw structure.
+   @param[in]   Port    Which register to write to.
+   @param[out]  Value   Value to write to the PCI register.
+
+   @return   Value written to register successfully
+**/
+VOID
+e1000_write_pci_cfg_pb (
+  struct e1000_hw *Hw,
+  UINT32           Port,
+  UINT16 *         Value
+  )
+{
+  DRIVER_DATA *AdapterInfo = Hw->back;
+
+  MemoryFence ();
+  AdapterInfo->PciIo->Pci.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            Port,
+                            1,
+                            (VOID *) Value
+                          );
   MemoryFence ();
 
   return;
@@ -304,23 +328,22 @@ E1000InDword (
   IN UINT32           Port
   )
 {
-  UINT32           Results;
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  UINT32       Results;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return INVALID_STATUS_REGISTER_VALUE;
   }
 
   MemoryFence ();
-  Adapter->PciIo->Mem.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint32,
-                        0,
-                        Port,
-                        1,
-                        (VOID *) (&Results)
-                      );
+  AdapterInfo->PciIo->Mem.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint32,
+                            0,
+                            Port,
+                            1,
+                            (VOID *) (&Results)
+                          );
   MemoryFence ();
 
   return Results;
@@ -346,26 +369,26 @@ E1000OutDword (
   IN UINT32           Data
   )
 {
-  UINT32           Value;
-  GIG_DRIVER_DATA *Adapter;
+  UINT32       Value;
+  DRIVER_DATA *AdapterInfo;
 
-  Adapter = Hw->back;
+  AdapterInfo = Hw->back;
   Value = Data;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   MemoryFence ();
 
-  Adapter->PciIo->Mem.Write (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint32,
-                        0,
-                        Port,
-                        1,
-                        (VOID *) (&Value)
-                      );
+  AdapterInfo->PciIo->Mem.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint32,
+                            0,
+                            Port,
+                            1,
+                            (VOID *) (&Value)
+                          );
 
   MemoryFence ();
 
@@ -390,23 +413,22 @@ E1000FlashRead (
   IN UINT32           Port
   )
 {
-  UINT32           Results;
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  UINT32       Results;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return INVALID_STATUS_REGISTER_VALUE;
   }
 
   MemoryFence ();
-  Adapter->PciIo->Mem.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint32,
-                        1,
-                        Port,
-                        1,
-                        (VOID *) (&Results)
-                      );
+  AdapterInfo->PciIo->Mem.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint32,
+                            1,
+                            Port,
+                            1,
+                            (VOID *) (&Results)
+                          );
   MemoryFence ();
 
   return Results;
@@ -431,23 +453,22 @@ E1000FlashRead16 (
   IN UINT32           Port
   )
 {
-  UINT16           Results;
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  UINT16       Results;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return 0xFFFF;
   }
 
   MemoryFence ();
-  Adapter->PciIo->Mem.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        1,
-                        Port,
-                        1,
-                        (VOID *) (&Results)
-                      );
+  AdapterInfo->PciIo->Mem.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            1,
+                            Port,
+                            1,
+                            (VOID *) (&Results)
+                          );
   MemoryFence ();
 
   return Results;
@@ -474,26 +495,26 @@ E1000FlashWrite (
   IN UINT32           Data
   )
 {
-  UINT32           Value;
-  GIG_DRIVER_DATA *Adapter;
+  UINT32       Value;
+  DRIVER_DATA *AdapterInfo;
 
-  Adapter = Hw->back;
+  AdapterInfo = Hw->back;
   Value = Data;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   MemoryFence ();
 
-  Adapter->PciIo->Mem.Write (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint32,
-                        1,
-                        Port,
-                        1,
-                        (VOID *) (&Value)
-                      );
+  AdapterInfo->PciIo->Mem.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint32,
+                            1,
+                            Port,
+                            1,
+                            (VOID *) (&Value)
+                          );
 
   MemoryFence ();
   return;
@@ -519,24 +540,22 @@ E1000FlashWrite16 (
   IN UINT16           Data
   )
 {
-  GIG_DRIVER_DATA *GigAdapter;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  GigAdapter = Hw->back;
-
-  if (IsSurpriseRemoval (GigAdapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   MemoryFence ();
 
-  GigAdapter->PciIo->Mem.Write (
-                           GigAdapter->PciIo,
-                           EfiPciIoWidthUint16,
-                           1,
-                           Port,
-                           1,
-                           (VOID *) (&Data)
-                         );
+  AdapterInfo->PciIo->Mem.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            1,
+                            Port,
+                            1,
+                            (VOID *) (&Data)
+                          );
 
   MemoryFence ();
 }
@@ -552,16 +571,15 @@ E1000PciFlush (
   IN struct e1000_hw *Hw
   )
 {
-  GIG_DRIVER_DATA *Adapter;
-  Adapter = Hw->back;
+  DRIVER_DATA *AdapterInfo = Hw->back;
 
-  if (IsSurpriseRemoval (Adapter)) {
+  if (IsSurpriseRemoval (AdapterInfo)) {
     return;
   }
 
   MemoryFence ();
 
-  Adapter->PciIo->Flush (Adapter->PciIo);
+  AdapterInfo->PciIo->Flush (AdapterInfo->PciIo);
 
   MemoryFence ();
 }
@@ -577,29 +595,29 @@ e1000_pci_set_mwi (
   struct e1000_hw *Hw
   )
 {
-  GIG_DRIVER_DATA *Adapter;
-  UINT32           CommandReg;
+  DRIVER_DATA *AdapterInfo;
+  UINT32       CommandReg;
 
-  Adapter = Hw->back;
+  AdapterInfo = Hw->back;
 
   MemoryFence ();
-  Adapter->PciIo->Pci.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        PCI_COMMAND,
-                        1,
-                        (VOID *) (&CommandReg)
-                      );
+  AdapterInfo->PciIo->Pci.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            PCI_COMMAND,
+                            1,
+                            (VOID *) (&CommandReg)
+                          );
 
   CommandReg |= PCI_COMMAND_MWI;
 
-  Adapter->PciIo->Pci.Write (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        PCI_COMMAND,
-                        1,
-                        (VOID *) (&CommandReg)
-                      );
+  AdapterInfo->PciIo->Pci.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            PCI_COMMAND,
+                            1,
+                            (VOID *) (&CommandReg)
+                          );
   MemoryFence ();
 }
 
@@ -614,28 +632,28 @@ e1000_pci_clear_mwi (
   struct e1000_hw *Hw
   )
 {
-  GIG_DRIVER_DATA *Adapter;
-  UINT32           CommandReg;
+  DRIVER_DATA *AdapterInfo;
+  UINT32       CommandReg;
 
-  Adapter = Hw->back;
+  AdapterInfo = Hw->back;
 
-  Adapter->PciIo->Pci.Read (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        PCI_COMMAND,
-                        1,
-                        (VOID *) (&CommandReg)
-                      );
+  AdapterInfo->PciIo->Pci.Read (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            PCI_COMMAND,
+                            1,
+                            (VOID *) (&CommandReg)
+                          );
 
   CommandReg &= ~PCI_COMMAND_MWI;
 
-  Adapter->PciIo->Pci.Write (
-                        Adapter->PciIo,
-                        EfiPciIoWidthUint16,
-                        PCI_COMMAND,
-                        1,
-                        (VOID *) (&CommandReg)
-                      );
+  AdapterInfo->PciIo->Pci.Write (
+                            AdapterInfo->PciIo,
+                            EfiPciIoWidthUint16,
+                            PCI_COMMAND,
+                            1,
+                            (VOID *) (&CommandReg)
+                          );
 }
 
 

@@ -134,6 +134,12 @@ struct e1000_hw;
 #define E1000_DEV_ID_PCH_TGP_I219_V14		0x15FA
 #define E1000_DEV_ID_PCH_TGP_I219_LM15		0x15F4
 #endif /* NAHUM9_HW */
+#ifdef NAHUM10_HW
+#define E1000_DEV_ID_PCH_ADL_1219_LM16		0x1A1E
+#define E1000_DEV_ID_PCH_ADL_1219_V16		0x1A1F
+#define E1000_DEV_ID_PCH_ADL_1219_LM17		0x1A1C
+#define E1000_DEV_ID_PCH_ADL_1219_V17		0x1A1D
+#endif /* NAHUM10_HW */
 #endif /* NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT
 #define E1000_DEV_ID_82576			0x10C9
@@ -232,6 +238,9 @@ enum e1000_mac_type {
 	e1000_pch_cnp,
 #ifdef NAHUM9_HW
 	e1000_pch_tgp,
+#endif
+#ifdef NAHUM10_HW
+	e1000_pch_adp,
 #endif
 #endif /* NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT

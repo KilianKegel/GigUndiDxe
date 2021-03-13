@@ -154,6 +154,7 @@
   MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses.common]
+  StdLibC
   BaseLib
   MemoryAllocationLib
   UefiBootServicesTableLib
