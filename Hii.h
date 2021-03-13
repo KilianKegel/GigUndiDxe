@@ -60,7 +60,7 @@ extern UINT8 GigUndiDxeStrings[];
 #define IS_MULTICAST(address) (BOOLEAN)(((UINT8 *)(address))[0] & ((UINT8)0x01))
 
 
-  
+
 
 
 /** Installs the HII user interface screen in the UEFI device manager.

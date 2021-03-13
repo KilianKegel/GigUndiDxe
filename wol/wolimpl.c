@@ -181,6 +181,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
   }
 
+
   UINT8 _WolGetFunction(WOL_ADAPTER_HANDLE_TYPE Handle)
   {
     return Handle->NicInfo.Function;

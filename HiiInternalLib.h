@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HII_INTERNAL_LIB_H_
 #define HII_INTERNAL_LIB_H_
 
-#define BIT0     0x00000001
+#define MAC_ADDRESS_STRING_LENGTH 17
 
 
 /** Return the pointer to the section of the Request string that begins just
@@ -57,6 +57,8 @@ SkipConfigHeader (
                                 to free memory.
   @param[out]  Len              Length of the <Number>, in characters.
 
+  @retval EFI_INVALID_PARAMETER  NULL pointers to OUT or IN parameters or empty
+                                 input string.
   @retval EFI_OUT_OF_RESOURCES   Insufficient resources to store neccessary
                                  structures.
   @retval EFI_SUCCESS            Value of <Number> is outputted in Number

@@ -1369,6 +1369,7 @@ s32 e1000_copper_link_setup_m88_gen2(struct e1000_hw *hw)
 		phy_data |= M88E1000_PSCR_POLARITY_REVERSAL;
 
 	/* Enable downshift and setting it to X6 */
+#ifndef NO_82580_SUPPORT
 	if (phy->id == M88E1543_E_PHY_ID) {
 		phy_data &= ~I347AT4_PSCR_DOWNSHIFT_ENABLE;
 		ret_val =
@@ -1383,6 +1384,7 @@ s32 e1000_copper_link_setup_m88_gen2(struct e1000_hw *hw)
 		}
 	}
 
+#endif /* !NO_82580_SUPPORT */
 	phy_data &= ~I347AT4_PSCR_DOWNSHIFT_MASK;
 	phy_data |= I347AT4_PSCR_DOWNSHIFT_6X;
 	phy_data |= I347AT4_PSCR_DOWNSHIFT_ENABLE;

@@ -31,27 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Dma.h"
 
-/** Convert bytes to pages
-
-    @param[in]  Bytes         Number of bytes
-
-    @retval                   Number of pages fitting the given number of bytes
-**/
-UINTN
-BytesToPages (
-  UINTN       Bytes
-  )
-{
-  UINTN   Result;
-
-  Result = Bytes & 0xFFF ? 1 : 0;
-  Result += Bytes >> 12;
-
-  DEBUGPRINT (DMA, ("Bytes: %d, Pages: %d\n", Bytes, Result));
-
-  return Result;
-}
-
 /** Allocate DMA common buffer (aligned to the page)
 
     @param[in]  PciIo         Pointer to PCI IO protocol installed on controller
@@ -83,7 +62,7 @@ UndiDmaAllocateCommonBuffer (
              PciIo,
              AllocateAnyPages,
              EfiBootServicesData,
-             BytesToPages (DmaMapping->Size),
+             EFI_SIZE_TO_PAGES (DmaMapping->Size),
              (VOID **) &DmaMapping->UnmappedAddress,
              0
              );
@@ -126,7 +105,7 @@ UNMAP_ON_ERROR:
 FREE_BUF_ON_ERROR:
   PciIo->FreeBuffer (
            PciIo,
-           BytesToPages (DmaMapping->Size),
+           EFI_SIZE_TO_PAGES (DmaMapping->Size),
            (VOID *) (UINTN) DmaMapping->UnmappedAddress
            );
   DmaMapping->Size = 0;
@@ -170,11 +149,13 @@ UndiDmaFreeCommonBuffer (
     return Status;
   }
 
-  PciIo->FreeBuffer (
-           PciIo,
-           BytesToPages (DmaMapping->Size),
-           (VOID *) (UINTN) DmaMapping->UnmappedAddress
-           );
+  if (!mExitBootServicesTriggered) {
+    PciIo->FreeBuffer (
+             PciIo,
+             EFI_SIZE_TO_PAGES (DmaMapping->Size),
+             (VOID *) (UINTN) DmaMapping->UnmappedAddress
+             );
+  }
 
   DmaMapping->UnmappedAddress = 0;
   DmaMapping->Size = 0;

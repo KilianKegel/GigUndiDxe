@@ -1934,7 +1934,7 @@ E1000ReceiveStart (
     )
   {
     if (GigAdapter->Hw.mac.type == e1000_82575) {
-      e1000_rx_fifo_flush_82575 (&GigAdapter->Hw);
+      e1000_rx_fifo_flush_base (&GigAdapter->Hw);
     }
 
     E1000SetRegBits (GigAdapter, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);

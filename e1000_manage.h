@@ -39,9 +39,9 @@ s32  e1000_mng_write_cmd_header_generic(struct e1000_hw *hw,
 s32  e1000_mng_write_dhcp_info_generic(struct e1000_hw *hw,
 				       u8 *buffer, u16 length);
 bool e1000_enable_mng_pass_thru(struct e1000_hw *hw);
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 u8 e1000_calculate_checksum(u8 *buffer, u32 length);
-#endif
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 #if !defined(NO_82575_SUPPORT) 
 s32 e1000_host_interface_command(struct e1000_hw *hw, u8 *buffer, u32 length);
 #endif
@@ -78,11 +78,11 @@ enum e1000_mng_mode {
 #define E1000_VFTA_ENTRY_MASK			0x7F
 #define E1000_VFTA_ENTRY_BIT_SHIFT_MASK		0x1F
 
-#if !defined(NO_82575_SUPPORT) || !defined(NO_I210_SUPPORT)
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_HI_MAX_BLOCK_BYTE_LENGTH		1792 /* Num of bytes in range */
 #define E1000_HI_MAX_BLOCK_DWORD_LENGTH		448 /* Num of dwords in range */
 #define E1000_HI_COMMAND_TIMEOUT		500 /* Process HI cmd limit */
-#endif /* !NO_82575_SUPPORT || !EXTERNAL_RELEASE || !NO_I210_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !EXTERNAL_RELEASE || !NO_I225_SUPPORT */
 #ifndef NO_I210_SUPPORT
 #define E1000_HI_FW_BASE_ADDRESS		0x10000
 #define E1000_HI_FW_MAX_LENGTH			(64 * 1024) /* Num of bytes */
@@ -98,5 +98,4 @@ enum e1000_mng_mode {
 
 /* Intel(R) Active Management Technology signature */
 #define E1000_IAMT_SIGNATURE		0x544D4149
-
 #endif

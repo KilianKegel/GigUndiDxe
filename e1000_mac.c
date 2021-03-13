@@ -31,7 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 STATIC s32 e1000_validate_mdi_setting_generic(struct e1000_hw *hw);
 STATIC void e1000_set_lan_id_multi_port_pcie(struct e1000_hw *hw);
 STATIC void e1000_config_collision_dist_generic(struct e1000_hw *hw);
-STATIC int e1000_rar_set_generic(struct e1000_hw *hw, u8 *addr, u32 index);
 
 /**
  *  e1000_init_mac_ops_generic - Initialize MAC function pointers
@@ -82,8 +81,8 @@ void e1000_init_mac_ops_generic(struct e1000_hw *hw)
 	mac->ops.clear_vfta = e1000_null_mac_generic;
 	mac->ops.write_vfta = e1000_null_write_vfta;
 #endif /* NO_NULL_OPS_SUPPORT */
-	mac->ops.rar_set = e1000_rar_set_generic;
 	mac->ops.validate_mdi_setting = e1000_validate_mdi_setting_generic;
+	mac->ops.rar_set = e1000_rar_set_generic;
 }
 
 #ifndef NO_NULL_OPS_SUPPORT
@@ -496,7 +495,7 @@ s32 e1000_check_alt_mac_addr_generic(struct e1000_hw *hw)
  *  Sets the receive address array register at index to the address passed
  *  in by addr.
  **/
-STATIC int e1000_rar_set_generic(struct e1000_hw *hw, u8 *addr, u32 index)
+int e1000_rar_set_generic(struct e1000_hw *hw, u8 *addr, u32 index)
 {
 	u32 rar_low, rar_high;
 

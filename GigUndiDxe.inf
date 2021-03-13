@@ -40,13 +40,16 @@
   UNLOAD_IMAGE         = GigUndiUnload
 
 [BuildOptions.common]
-  *_*_*_CC_FLAGS = -D UNDI_1G
+  *_*_*_CC_FLAGS = -D UNDI_1G -D PREBOOT_SUPPORT
 
   # Enable to use PciIo protocols for PCI reads/writes. (Experimental!)
   #*_*_*_CC_FLAGS = -D CONFIG_ACCESS_TO_CSRS
 
   # Generates extra debug info when building with Microsoft compilers.
   MSFT:*_*_*_CC_FLAGS = /FAcs
+
+  # Disable deprecated/unsafe functions (will cause build errors on use)
+  *_*_*_CC_FLAGS = -D DISABLE_NEW_DEPRECATED_INTERFACES
 
   # Disable debug macros for RELEASE builds.
   RELEASE_*_*_CC_FLAGS = -D MDEPKG_NDEBUG
@@ -119,6 +122,8 @@
   e1000_api.h
   e1000_defines.h
   e1000_hw.h
+  e1000_base.c
+  e1000_base.h
   e1000_i210.c
   e1000_i210.h
   e1000_ich8lan.c

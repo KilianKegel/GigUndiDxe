@@ -1107,9 +1107,10 @@ E1000SetPhyLoopback (
    @param[in]   GigAdapterInfo   Pointer to the NIC data structure the PHY loopback test will be run on.
    @param[in]   PxeCpbTransmit   Pointer to the packet to transmit.
 
-   @retval   EFI_SUCCESS       All packets were received successfully
-   @retval   EFI_DEVICE_ERROR  Received packet data has been corrupted
-   @retval   EFI_DEVICE_ERROR  No data received
+   @retval   EFI_SUCCESS            All packets were received successfully
+   @retval   EFI_OUT_OF_RESOURCES   Not enough memory to allocate packet buffers for testing.
+   @retval   EFI_DEVICE_ERROR       Received packet data has been corrupted
+   @retval   EFI_DEVICE_ERROR       No data received
 **/
 EFI_STATUS
 GigUndiRunPhyLoopback (
@@ -1139,14 +1140,10 @@ GigUndiRunPhyLoopback (
     }
 
     // Wait a little, then check to see if the packet has arrived
-    Status = gBS->AllocatePool (
-                    EfiBootServicesData,
-                    RX_BUFFER_SIZE,
-                    (VOID **) &CpbReceive.BufferAddr
-                  );
-
-    if (EFI_ERROR (Status)) {
-      DEBUGPRINT (CRITICAL, ("AllocatePool error Status %X. Iteration=%d\n", Status, j));
+    CpbReceive.BufferAddr = (PXE_UINT64) (UINTN) AllocateZeroPool (RX_BUFFER_SIZE);
+    if (CpbReceive.BufferAddr == (PXE_UINT64) (UINTN) NULL) {
+      DEBUGPRINT (CRITICAL, ("Failed to alloc CpbReceive.BufferAddr on iteration %d\n", j));
+      Status = EFI_OUT_OF_RESOURCES;
       DEBUGWAIT (CRITICAL);
       break;
     }

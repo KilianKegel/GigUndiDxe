@@ -1778,8 +1778,8 @@ E1000UndiApiEntry (
   GigAdapter              = &(mE1000Undi32DeviceList[CdbPtr->IFnum]->NicInfo);
 
   // Check if InitUndiNotifyExitBs was called before
-  if (GigAdapter->ExitBootServicesTriggered) {
-    DEBUGPRINT (CRITICAL, ("Pci Bus Mastering Disabled !\n"));
+  if (mExitBootServicesTriggered) {
+    DEBUGPRINT (CRITICAL, ("Exit Boot Services triggered prior to entering UNDI API entry.\n"));
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     CdbPtr->StatCode  = PXE_STATCODE_NOT_INITIALIZED;
     return;
@@ -1833,8 +1833,6 @@ E1000UndiApiEntry (
   {
     goto BadCdb;
   }
-
-  GigAdapter = &(mE1000Undi32DeviceList[CdbPtr->IFnum]->NicInfo);
 
   // Check if UNDI_State is valid for this call.
   if (TabPtr->State != (UINT16) (-1)) {

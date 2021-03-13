@@ -37,7 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Library/PrintLib.h>
 #include <Library/UefiLib.h>
 
+#include "HiiInternalLib.h"
 #include "NVDataStruc.h"
+#include "DebugTools.h"
 
 
 /** Return the pointer to the section of the Request string that begins just
@@ -102,6 +104,8 @@ SkipConfigHeader (
                                 to free memory.
   @param[out]  Len              Length of the <Number>, in characters.
 
+  @retval EFI_INVALID_PARAMETER  NULL pointers to OUT or IN parameters or empty
+                                 input string.
   @retval EFI_OUT_OF_RESOURCES   Insufficient resources to store neccessary
                                  structures.
   @retval EFI_SUCCESS            Value of <Number> is outputted in Number
@@ -114,22 +118,18 @@ GetValueOfNumber (
   OUT UINTN *   Len
   )
 {
-  EFI_STRING TmpPtr;
-  UINTN      Length;
-  EFI_STRING Str;
-  UINT8 *    Buf;
-  EFI_STATUS Status;
-  UINT8      DigitUint8;
-  UINTN      Index;
+  EFI_STATUS Status = EFI_SUCCESS;
+  EFI_STRING TmpPtr = NULL;
+  UINTN      Length = 0;
+  EFI_STRING Str = NULL;
+  UINT8 *    Buf = NULL;
+  UINT8      DigitUint8 = 0;
+  UINTN      Index = 0;
   CHAR16     TemStr[2];
 
-  ASSERT (StringPtr != NULL
-    && Number != NULL
-    && Len != NULL);
-
-  ASSERT (*StringPtr != L'\0');
-
-  Buf = NULL;
+  if (StringPtr == NULL || Number == NULL || Len == NULL || *StringPtr == L'\0') {
+    return EFI_INVALID_PARAMETER;
+  }
 
   TmpPtr = StringPtr;
   while ((*StringPtr != L'\0')
@@ -137,11 +137,14 @@ GetValueOfNumber (
   {
     StringPtr++;
   }
+
+  // Calculate the token size.
   *Len   = StringPtr - TmpPtr;
   Length = *Len + 1;
 
   Str = (EFI_STRING) AllocateZeroPool (Length * sizeof (CHAR16));
   if (Str == NULL) {
+    DEBUGPRINT (CRITICAL, ("Failed to allocate Str!"));
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
   }
@@ -151,6 +154,7 @@ GetValueOfNumber (
   Length = (Length + 1) / 2;
   Buf = (UINT8 *) AllocateZeroPool (Length);
   if (Buf == NULL) {
+    DEBUGPRINT (CRITICAL, ("Failed to allocate Buf!"));
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
   }
@@ -291,23 +295,17 @@ IsHexDigit (
   IN  CHAR16 Char
   )
 {
-  if ((Char >= L'0')
-    && (Char <= L'9'))
-  {
+  if ((Char >= L'0') && (Char <= L'9')) {
     *Digit = (UINT8) (Char - L'0');
     return TRUE;
   }
 
-  if ((Char >= L'A')
-    && (Char <= L'F'))
-  {
+  if ((Char >= L'A') && (Char <= L'F')) {
     *Digit = (UINT8) (Char - L'A' + 0x0A);
     return TRUE;
   }
 
-  if ((Char >= L'a')
-    && (Char <= L'f'))
-  {
+  if ((Char >= L'a') && (Char <= L'f')) {
     *Digit = (UINT8) (Char - L'a' + 0x0A);
     return TRUE;
   }

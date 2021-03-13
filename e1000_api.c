@@ -218,8 +218,42 @@ s32 e1000_set_mac_type(struct e1000_hw *hw)
 	case E1000_DEV_ID_PCH_SPT_I219_V:
 	case E1000_DEV_ID_PCH_SPT_I219_LM2:
 	case E1000_DEV_ID_PCH_SPT_I219_V2:
+	case E1000_DEV_ID_PCH_LBG_I219_LM3:
+	case E1000_DEV_ID_PCH_SPT_I219_LM4:
+	case E1000_DEV_ID_PCH_SPT_I219_V4:
+	case E1000_DEV_ID_PCH_SPT_I219_LM5:
+	case E1000_DEV_ID_PCH_SPT_I219_V5:
+#ifdef COMET_LAKE_HW
+	case E1000_DEV_ID_PCH_CMP_I219_LM12:
+	case E1000_DEV_ID_PCH_CMP_I219_V12:
+#endif /* COMET_LAKE_HW */
 		mac->type = e1000_pch_spt;
 		break;
+	case E1000_DEV_ID_PCH_CNP_I219_LM6:
+	case E1000_DEV_ID_PCH_CNP_I219_V6:
+	case E1000_DEV_ID_PCH_CNP_I219_LM7:
+	case E1000_DEV_ID_PCH_CNP_I219_V7:
+	case E1000_DEV_ID_PCH_ICP_I219_LM8:
+	case E1000_DEV_ID_PCH_ICP_I219_V8:
+	case E1000_DEV_ID_PCH_ICP_I219_LM9:
+	case E1000_DEV_ID_PCH_ICP_I219_V9:
+#ifdef COMET_LAKE_HW
+	case E1000_DEV_ID_PCH_CMP_I219_LM10:
+	case E1000_DEV_ID_PCH_CMP_I219_V10:
+	case E1000_DEV_ID_PCH_CMP_I219_LM11:
+	case E1000_DEV_ID_PCH_CMP_I219_V11:
+#endif /* COMET_LAKE_HW */
+		mac->type = e1000_pch_cnp;
+		break;
+#ifdef NAHUM9_HW
+	case E1000_DEV_ID_PCH_TGP_I219_LM13:
+	case E1000_DEV_ID_PCH_TGP_I219_V13:
+	case E1000_DEV_ID_PCH_TGP_I219_LM14:
+	case E1000_DEV_ID_PCH_TGP_I219_V14:
+	case E1000_DEV_ID_PCH_TGP_I219_LM15:
+		mac->type = e1000_pch_tgp;
+		break;
+#endif /* NAHUM9_HW */
 #endif /*NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT
 	case E1000_DEV_ID_82575EB_COPPER:
@@ -263,6 +297,7 @@ s32 e1000_set_mac_type(struct e1000_hw *hw)
 #ifndef NO_I210_SUPPORT
 	case E1000_DEV_ID_I210_COPPER_FLASHLESS:
 	case E1000_DEV_ID_I210_SERDES_FLASHLESS:
+	case E1000_DEV_ID_I210_SGMII_FLASHLESS:
 	case E1000_DEV_ID_I210_COPPER:
 	case E1000_DEV_ID_I210_COPPER_OEM1:
 	case E1000_DEV_ID_I210_COPPER_IT:
@@ -275,7 +310,8 @@ s32 e1000_set_mac_type(struct e1000_hw *hw)
 		mac->type = e1000_i211;
 		break;
 #endif /* NO_I210_SUPPORT */
-
+#endif /* NO_82575_SUPPORT */
+#ifndef NO_82575_SUPPORT
 	case E1000_DEV_ID_I354_BACKPLANE_1GBPS:
 	case E1000_DEV_ID_I354_SGMII:
 	case E1000_DEV_ID_I354_BACKPLANE_2_5GBPS:
@@ -360,6 +396,11 @@ s32 e1000_setup_init_funcs(struct e1000_hw *hw, bool init_device)
 	case e1000_pch2lan:
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
+	/* fall-through */
+#ifdef NAHUM9_HW
+	case e1000_pch_tgp:
+#endif
 		e1000_init_function_pointers_ich8lan(hw);
 		break;
 #endif /* NO_ICH8LAN_SUPPORT */
@@ -379,6 +420,8 @@ s32 e1000_setup_init_funcs(struct e1000_hw *hw, bool init_device)
 		e1000_init_function_pointers_i210(hw);
 		break;
 #endif /* NO_I210_SUPPORT */
+#endif /* NO_82575_SUPPORT */
+#ifndef NO_82575_SUPPORT
 #endif /* NO_82575_SUPPORT */
 	default:
 		DEBUGOUT("Hardware not supported\n");
@@ -775,6 +818,7 @@ u32 e1000_hash_mc_addr(struct e1000_hw *hw, u8 *mc_addr)
 {
 	return e1000_hash_mc_addr_generic(hw, mc_addr);
 }
+
 
 /**
  *  e1000_enable_tx_pkt_filtering - Enable packet filtering on TX

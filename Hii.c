@@ -163,8 +163,14 @@ ExtractConfig (
       DEBUGPRINT(HII, ("Failed to construct <ConfigHdr> template\n"));
       return EFI_DEVICE_ERROR;
     }
+
     Size = (StrLen (ConfigRequestHdr) + 32 + 1) * sizeof (CHAR16);
     ConfigRequest = AllocateZeroPool (Size);
+    if (ConfigRequest == NULL) {
+      DEBUGPRINT (CRITICAL, ("Failed to allocate ConfigRequest!\n"));
+      return EFI_OUT_OF_RESOURCES;
+    }
+
     AllocatedRequest = TRUE;
     UnicodeSPrint (ConfigRequest, Size, L"%s&OFFSET=0&WIDTH=%016LX", ConfigRequestHdr, (UINT64) BufferSize);
     FreePool (ConfigRequestHdr);
@@ -236,7 +242,7 @@ ExtractConfig (
           (AltMac[4] == MacAddr[4]) &&
           (AltMac[5] == MacAddr[5]))
         {
-          SetMem (AltMac, sizeof (AltMac), 0);
+          ZeroMem (AltMac, sizeof (AltMac));
         }
 
         // Convert it to a MAC string

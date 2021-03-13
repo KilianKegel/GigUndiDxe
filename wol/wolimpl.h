@@ -84,10 +84,14 @@ UINT8 _WolGetFunction(WOL_ADAPTER_HANDLE_TYPE Handle);
 WOL_STATUS _WolEepromRead16(WOL_ADAPTER_HANDLE_TYPE Handle, UINT16 Offset, UINT16 *Data);
 WOL_STATUS _WolEepromWrite16(WOL_ADAPTER_HANDLE_TYPE Handle, UINT16 Offset, UINT16 Data);
 WOL_STATUS _WolEepromUpdateChecksum(WOL_ADAPTER_HANDLE_TYPE Handle);
+WOL_STATUS _WolReadNvmFeatureConfig(WOL_ADAPTER_HANDLE_TYPE Handle, UINT32 FcId, UINT8* ConfigData, UINT16 BufferSize, UINT16* ItemCount);
+WOL_STATUS _WolWriteNvmFeatureConfig(WOL_ADAPTER_HANDLE_TYPE Handle, UINT8* ConfigData, UINT16 BufferSize, UINT16 ItemCount);
 #else /* HAF */
 #define _WolEepromRead16 NalReadEeprom16
 #define _WolEepromWrite16 NalWriteEeprom16
 #define _WolEepromUpdateChecksum NalUpdateEepromChecksum
+#define _WolReadNvmFeatureConfig NalReadNvmFeatureConfig
+#define _WolWriteNvmFeatureConfig NalWriteNvmFeatureConfig
 #endif
 
 #endif /* __WOLIMPL_H */

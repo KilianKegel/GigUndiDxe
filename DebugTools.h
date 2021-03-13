@@ -199,7 +199,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        @param[in]   Msg   Debug message
     **/
     #define DEBUGDUMP(Lvl, Msg) \
-              if ((DBG_LVL & Lvl) != 0) { \
+              if ((DBG_LVL & (Lvl)) != 0) { \
                 DebugPrint (EFI_D_UNDI, NO_PARENTH Msg); \
               }
 
@@ -215,7 +215,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        @param[in]   Msg   Debug message
     **/
     #define DEBUGDUMP(Lvl, Msg) \
-              if ((DBG_LVL & Lvl) != 0) { \
+              if ((DBG_LVL & (Lvl)) != 0) { \
                 AsciiPrint Msg; \
               }
 
@@ -247,7 +247,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        @param[in]   Msg   Debug message
     **/
     #define DEBUGPRINTTIME(Lvl) \
-              if ((DBG_LVL & Lvl) != 0) { \
+              if ((DBG_LVL & (Lvl)) != 0) { \
                 gRT->GetTime (&gTime, NULL); \
                 DEBUGPRINT (Lvl, \
                   ("Timestamp - %dH:%dM:%dS:%dNS\n", \
@@ -264,7 +264,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        @param[in]   Lvl   Debug level
     **/
     #define DEBUGWAIT(Lvl) \
-              if ((DBG_LVL & Lvl) != 0) { \
+              if ((DBG_LVL & (Lvl)) != 0) { \
                 EFI_INPUT_KEY Key; \
                 DEBUGPRINT (Lvl, ("Press Enter to continue...\n")); \
                 do { \
@@ -272,6 +272,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 } while (Key.UnicodeChar != 0xD); \
               }
 #endif /* End generic DEBUGWAIT */
+
+#if defined (DBG_LVL) && !defined (DEBUGPRINTWAIT)
+    /** Print a message and wait for the user to press any button.
+    
+       @param[in]   Lvl   Debug level.
+       @param[in]   Msg   Message to pass to DEBUGPRINT.
+    **/
+    #define DEBUGPRINTWAIT(Lvl, Msg) \
+              { DEBUGPRINT (Lvl, Msg); DEBUGWAIT (Lvl); }
+#endif /* End generic DEBUGPRINTWAIT */
 
 #if defined (DBG_LVL) && !defined (UNIMPLEMENTED)
     #define UNIMPLEMENTED(Lvl) \

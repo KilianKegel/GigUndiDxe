@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _E1000_REGS_H_
 #define _E1000_REGS_H_
 
+/* General Register Descriptions */
 #define E1000_CTRL	0x00000  /* Device Control - RW */
 #define E1000_STATUS	0x00008  /* Device Status - RO */
 #define E1000_EECD	0x00010  /* EEPROM/Flash Control - RW */
@@ -36,8 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_CTRL_EXT	0x00018  /* Extended Device Control - RW */
 #define E1000_FLA	0x0001C  /* Flash Access - RW */
 #define E1000_MDIC	0x00020  /* MDI Control - RW */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_MDICNFG	0x00E04  /* MDI Config - RW */
+#endif
+#ifndef NO_82575_SUPPORT
 #define E1000_REGISTER_SET_SIZE		0x20000 /* CSR Size */
 #define E1000_EEPROM_INIT_CTRL_WORD_2	0x0F /* EEPROM Init Ctrl Word 2 */
 #define E1000_EEPROM_PCIE_CTRL_WORD_2	0x28 /* EEPROM PCIe Ctrl Word 2 */
@@ -48,11 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_MPHY_DATA		0x0E10 /* GBE MPHY Data */
 #define E1000_MPHY_STAT		0x0E0C /* GBE MPHY Statistics */
 #define E1000_PPHY_CTRL		0x5b48 /* PCIe PHY Control */
-#endif
+#endif /* NO_82575_SUPPORT */
 #if !defined(NO_I350_SUPPORT) || !defined(NO_I210_SUPPORT)
 #define E1000_I350_BARCTRL		0x5BFC /* BAR ctrl reg */
 #define E1000_I350_DTXMXPKTSZ		0x355C /* Maximum sent packet size reg*/
-#endif
+#endif /* NO_I350_SUPPORT NO_I210_SUPPORT */
 #define E1000_SCTL	0x00024  /* SerDes Control - RW */
 #define E1000_FCAL	0x00028  /* Flow Control Address Low - RW */
 #define E1000_FCAH	0x0002C  /* Flow Control Address High -RW */
@@ -67,9 +70,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_PCIEANACFG	0x00F18 /* PCIE Analog Config */
 #endif /* NO_ICH8LAN_SUPPORT */
 #define E1000_FCT	0x00030  /* Flow Control Type - RW */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_CONNSW	0x00034  /* Copper/Fiber switch control - RW */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and  N0_I225_SUPPORT */
 #define E1000_VET	0x00038  /* VLAN Ether Type - RW */
 #define E1000_ICR	0x000C0  /* Interrupt Cause Read - R/clr */
 #define E1000_ITR	0x000C4  /* Interrupt Throttling Rate - RW */
@@ -92,7 +95,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NO_82571_SUPPORT
 #define E1000_PBA_ECC	0x01100  /* PBA ECC Register */
 #endif /* NO_82571_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_EICR	0x01580  /* Ext. Interrupt Cause Read - R/clr */
 #define E1000_EITR(_n)	(0x01680 + (0x4 * (_n)))
 #define E1000_EICS	0x01520  /* Ext. Interrupt Cause Set - W0 */
@@ -103,7 +106,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_GPIE	0x01514  /* General Purpose Interrupt Enable - RW */
 #define E1000_IVAR0	0x01700  /* Interrupt Vector Allocation (array) - RW */
 #define E1000_IVAR_MISC	0x01740 /* IVAR for "other" causes - RW */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 #define E1000_TCTL	0x00400  /* Tx Control - RW */
 #define E1000_TCTL_EXT	0x00404  /* Extended Tx Control - RW */
 #define E1000_TIPG	0x00410  /* Tx Inter-packet gap -RW */
@@ -138,11 +141,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_I2CCMD	0x01028  /* SFPI2C Command Register - RW */
 #define E1000_I2CPARAMS	0x0102C /* SFPI2C Parameters Register - RW */
 #endif /* NO_82575_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_WDSTP	0x01040  /* Watchdog Setup - RW */
 #define E1000_SWDSTS	0x01044  /* SW Device Status - RW */
 #define E1000_FRTIMER	0x01048  /* Free Running Timer - RW */
 #define E1000_TCPTIMER	0x0104C  /* TCP Timer - RW */
+#endif /* NO_82575_SUPPORT || NO_I225-SUPPORT */
+#ifndef NO_82575_SUPPORT
 #define E1000_VPDDIAG	0x01060  /* VPD Diagnostic - RO */
 #define E1000_ICR_V2	0x01500  /* Intr Cause - new location - RC */
 #define E1000_ICS_V2	0x01504  /* Intr Cause Set - new location - WO */
@@ -159,10 +164,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RDFHS	0x02420  /* Rx Data FIFO Head Saved - RW */
 #define E1000_RDFTS	0x02428  /* Rx Data FIFO Tail Saved - RW */
 #define E1000_RDFPC	0x02430  /* Rx Data FIFO Packet Count - RW */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_PBRTH	0x02458  /* PB Rx Arbitration Threshold - RW */
 #define E1000_FCRTV	0x02460  /* Flow Control Refresh Timer Value - RW */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 /* Split and Replication Rx Control - RW */
 #ifndef NO_82575_SUPPORT
 #define E1000_RDPUMB	0x025CC  /* DMA Rx Descriptor uC Mailbox - RW */
@@ -171,8 +176,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RDPURD	0x025D8  /* DMA Rx Descriptor uC Data Read - RW */
 #define E1000_RDPUCTL	0x025DC  /* DMA Rx Descriptor uC Control - RW */
 #define E1000_PBDIAG	0x02458  /* Packet Buffer Diagnostic - RW */
-#define E1000_RXPBS	0x02404  /* Rx Packet Buffer Size - RW */
 #endif /* NO_82575_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
+#define E1000_RXPBS	0x02404  /* Rx Packet Buffer Size - RW */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 #ifndef NO_82580_SUPPORT
 #define E1000_IRPBS	0x02404 /* Same as RXPBS, renamed for newer Si - RW */
 #endif
@@ -185,8 +192,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_EMIADD	0x10     /* Extended Memory Indirect Address */
 #define E1000_EMIDATA	0x11     /* Extended Memory Indirect Data */
 #endif /* NO_82580_SUPPORT */
+#if !defined(NO_I210_SUPPORT) 
+/* Shadow Ram Write Register - RW */
+#define E1000_SRWR		0x12018
+#endif
+#define E1000_EEC_REG		0x12010
+
 #ifndef NO_I210_SUPPORT
-#define E1000_SRWR		0x12018  /* Shadow Ram Write Register - RW */
 #define E1000_I210_FLMNGCTL	0x12038
 #define E1000_I210_FLMNGDATA	0x1203C
 #define E1000_I210_FLMNGCNT	0x12040
@@ -196,10 +208,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_I210_FLSWCNT	0x12050
 
 #define E1000_I210_FLA		0x1201C
+#endif /* NO_I210_SUPPORT */
+
+#define E1000_SHADOWINF		0x12068
+#define E1000_FLFWUPDATE	0x12108
+#if !defined(NO_I210_SUPPORT) 
 
 #define E1000_INVM_DATA_REG(_n)	(0x12120 + 4*(_n))
 #define E1000_INVM_SIZE		64 /* Number of INVM Data Registers */
+#endif /* !NO_I210_SUPPORT || !NO_I225_SUPPORT */
 
+#ifndef NO_I210_SUPPORT
 /* QAV Tx mode control register */
 #define E1000_I210_TQAVCTRL	0x3570
 
@@ -245,7 +264,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* NO_I210_SUPPORT */
 #define E1000_MMDAC			13 /* MMD Access Control */
 #define E1000_MMDAAD			14 /* MMD Access Address/Data */
-
 /* Convenience macros
  *
  * Note: "_n" is the queue number of the register to be written to.
@@ -312,6 +330,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				 (0x054E0 + ((_i - 16) * 8)))
 #define E1000_RAH(_i)		(((_i) <= 15) ? (0x05404 + ((_i) * 8)) : \
 				 (0x054E4 + ((_i - 16) * 8)))
+
 #define E1000_SHRAL(_i)		(0x05438 + ((_i) * 8))
 #define E1000_SHRAH(_i)		(0x0543C + ((_i) * 8))
 #ifndef NO_82575_SUPPORT
@@ -325,8 +344,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NO_82575_SUPPORT
 #define E1000_PBSLAC		0x03100  /* Pkt Buffer Slave Access Control */
 #define E1000_PBSLAD(_n)	(0x03110 + (0x4 * (_n)))  /* Pkt Buffer DWORD */
-#define E1000_TXPBS		0x03404  /* Tx Packet Buffer Size - RW */
 #endif /* NO_82575_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
+#define E1000_TXPBS		0x03404  /* Tx Packet Buffer Size - RW */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 #ifndef NO_82580_SUPPORT
 /* Same as TXPBS, renamed for newer Si - RW */
 #define E1000_ITPBS		0x03404
@@ -350,6 +371,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* NO_82575_SUPPORT */
 #define E1000_TIDV	0x03820  /* Tx Interrupt Delay Value - RW */
 #define E1000_TADV	0x0382C  /* Tx Interrupt Absolute Delay Val - RW */
+/* Statistics Register Descriptions */
 #define E1000_CRCERRS	0x04000  /* CRC Error Count - R/clr */
 #define E1000_ALGNERRC	0x04004  /* Alignment Error Count - R/clr */
 #define E1000_SYMERRS	0x04008  /* Symbol Error Count - R/clr */
@@ -409,6 +431,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_TSCTC	0x040F8  /* TCP Segmentation Context Tx - R/clr */
 #define E1000_TSCTFC	0x040FC  /* TCP Segmentation Context Tx Fail - R/clr */
 #define E1000_IAC	0x04100  /* Interrupt Assertion Count */
+/* Interrupt Cause */
 #define E1000_ICRXPTC	0x04104  /* Interrupt Cause Rx Pkt Timer Expire Count */
 #define E1000_ICRXATC	0x04108  /* Interrupt Cause Rx Abs Timer Expire Count */
 #define E1000_ICTXPTC	0x0410C  /* Interrupt Cause Tx Pkt Timer Expire Count */
@@ -493,14 +516,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* NO_82575_SUPPORT */
 #define E1000_PCS_LCTL	0x04208  /* PCS Link Control - RW */
 #define E1000_PCS_LSTAT	0x0420C  /* PCS Link Status - RO */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_CBTMPC	0x0402C  /* Circuit Breaker Tx Packet Count */
 #define E1000_HTDPMC	0x0403C  /* Host Transmit Discarded Packets */
 #define E1000_CBRDPC	0x04044  /* Circuit Breaker Rx Dropped Count */
 #define E1000_CBRMPC	0x040FC  /* Circuit Breaker Rx Packet Count */
 #define E1000_RPTHC	0x04104  /* Rx Packets To Host */
-#endif /* NO_82575_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_HGPTC	0x04118  /* Host Good Packets Tx Count */
 #define E1000_HTCBDPC	0x04124  /* Host Tx Circuit Breaker Dropped Count */
 #define E1000_HGORCL	0x04128  /* Host Good Octets Received Count Low */
@@ -508,6 +531,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_HGOTCL	0x04130  /* Host Good Octets Transmit Count Low */
 #define E1000_HGOTCH	0x04134  /* Host Good Octets Transmit Count High */
 #define E1000_LENERRS	0x04138  /* Length Errors Count */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT*/
+#ifndef NO_82575_SUPPORT
 #define E1000_SCVPC	0x04228  /* SerDes/SGMII Code Violation Pkt Count */
 #define E1000_HRMPC	0x0A018  /* Header Redirection Missed Packet Count */
 #endif /* NO_82575_SUPPORT */
@@ -518,9 +543,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_PCS_LPABNP	0x04224 /* Link Partner Ability Next Pg - RW */
 #endif /* NO_82575_SUPPORT */
 #define E1000_RXCSUM	0x05000  /* Rx Checksum Control - RW */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RLPML	0x05004  /* Rx Long Packet Max Length */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 #define E1000_RFCTL	0x05008  /* Receive Filter Control*/
 #define E1000_MTA	0x05200  /* Multicast Table Array - RW Array */
 #define E1000_RA	0x05400  /* Receive Address - RW Array */
@@ -538,27 +563,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_WUC	0x05800  /* Wakeup Control - RW */
 #define E1000_WUFC	0x05808  /* Wakeup Filter Control - RW */
 #define E1000_WUS	0x05810  /* Wakeup Status - RO */
+/* Management registers */
 #define E1000_MANC	0x05820  /* Management Control - RW */
 #define E1000_IPAV	0x05838  /* IP Address Valid - RW */
 #define E1000_IP4AT	0x05840  /* IPv4 Address Table - RW Array */
 #define E1000_IP6AT	0x05880  /* IPv6 Address Table - RW Array */
 #define E1000_WUPL	0x05900  /* Wakeup Packet Length - RW */
 #define E1000_WUPM	0x05A00  /* Wakeup Packet Memory - RO A */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
+/* MSI-X Table Register Descriptions */
 #define E1000_PBACL	0x05B68  /* MSIx PBA Clear - Read/Write 1's to clear */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 #define E1000_FFLT	0x05F00  /* Flexible Filter Length Table - RW Array */
 #define E1000_HOST_IF	0x08800  /* Host Interface */
 #ifndef NO_I210_SUPPORT
 #define E1000_HIBBA	0x8F40   /* Host Interface Buffer Base Address */
 #endif /* NO_I210_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 /* Flexible Host Filter Table */
 #define E1000_FHFT(_n)	(0x09000 + ((_n) * 0x100))
 /* Ext Flexible Host Filter Table */
 #define E1000_FHFT_EXT(_n)	(0x09A00 + ((_n) * 0x100))
 
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 
 #define E1000_KMRNCTRLSTA	0x00034 /* MAC-PHY interface - RW */
 #define E1000_MANC2H		0x05860 /* Management Control To Host - RW */
@@ -570,13 +597,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_GIOCTL	0x05B44 /* GIO Analog Control Register */
 #define E1000_SCCTL	0x05B4C /* PCIc PLL Configuration Register */
 #endif /* NO_82575_SUPPORT */
+/* PCIe Register Description */
 #define E1000_GCR	0x05B00 /* PCI-Ex Control */
 #define E1000_GCR2	0x05B64 /* PCI-Ex Control #2 */
 #define E1000_GSCL_1	0x05B10 /* PCI-Ex Statistic Control #1 */
 #define E1000_GSCL_2	0x05B14 /* PCI-Ex Statistic Control #2 */
 #define E1000_GSCL_3	0x05B18 /* PCI-Ex Statistic Control #3 */
 #define E1000_GSCL_4	0x05B1C /* PCI-Ex Statistic Control #4 */
-#define E1000_FACTPS	0x05B30 /* Function Active and Power State to MNG */
+/* Function Active and Power State to MNG */
+#define E1000_FACTPS	0x05B30
 #define E1000_SWSM	0x05B50 /* SW Semaphore */
 #define E1000_FWSM	0x05B54 /* FW Semaphore */
 /* Driver-only SW semaphore (not used by BOOT agents) */
@@ -590,23 +619,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define E1000_FFLT_DBG	0x05F04 /* Debug Register */
 #define E1000_HICR	0x08F00 /* Host Interface Control */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_FWSTS	0x08F0C /* FW Status */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 
 /* RSS registers */
 #define E1000_CPUVEC	0x02C10 /* CPU Vector Register - RW */
 #define E1000_MRQC	0x05818 /* Multiple Receive Control - RW */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_IMIR(_i)	(0x05A80 + ((_i) * 4))  /* Immediate Interrupt */
 #define E1000_IMIREXT(_i)	(0x05AA0 + ((_i) * 4)) /* Immediate INTR Ext*/
 #define E1000_IMIRVP		0x05AC0 /* Immediate INT Rx VLAN Priority -RW */
 #define E1000_MSIXBM(_i)	(0x01600 + ((_i) * 4)) /* MSI-X Alloc Reg -RW */
-#endif /* NO_82575_SUPPORT */
-#define E1000_RETA(_i)	(0x05C00 + ((_i) * 4)) /* Redirection Table - RW */
-#define E1000_RSSRK(_i)	(0x05C80 + ((_i) * 4)) /* RSS Random Key - RW */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
+/* Redirection Table - RW Array */
+#define E1000_RETA(_i)	(0x05C00 + ((_i) * 4))
+/* RSS Random Key - RW Array */
+#define E1000_RSSRK(_i)	(0x05C80 + ((_i) * 4))
 #define E1000_RSSIM	0x05864 /* RSS Interrupt Mask */
 #define E1000_RSSIR	0x05868 /* RSS Interrupt Request */
+#if !defined(NO_82575_SUPPORT) 
+#define E1000_UTA	0x0A000 /* Unicast Table Array - RW */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 #ifndef NO_82575_SUPPORT
 /* VT Registers */
 #define E1000_SWPBS	0x03004 /* Switch Packet Buffer Size - RW */
@@ -619,7 +653,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_DTXSWC	0x03500 /* DMA Tx Switch Control - RW */
 #define E1000_WVBR	0x03554 /* VM Wrong Behavior - RWS */
 #define E1000_RPLOLR	0x05AF0 /* Replication Offload - RW */
-#define E1000_UTA	0x0A000 /* Unicast Table Array - RW */
 #define E1000_IOVTCL	0x05BBC /* IOV Control Register */
 #define E1000_VMRCTL	0X05D80 /* Virtual Mirror Rule Control */
 #define E1000_VMRVLAN	0x05D90 /* Virtual Mirror Rule VLAN */
@@ -644,9 +677,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* NO_82575_SUPPORT */
 #define E1000_TSYNCRXCTL	0x0B620 /* Rx Time Sync Control register - RW */
 #define E1000_TSYNCTXCTL	0x0B614 /* Tx Time Sync Control register - RW */
-#if !defined(NO_82575_SUPPORT) || !defined(NO_I210_SUPPORT) || !defined(NO_I350_SUPPORT)
+#if !defined(NO_82575_SUPPORT) || !defined(NO_I210_SUPPORT) || !defined(NO_I350_SUPPORT) 
 #define E1000_TSYNCRXCFG	0x05F50 /* Time Sync Rx Configuration - RW */
-#endif /* !NO_82575_SUPPORT || !NO_I210_SUPPORT || !NO_I350_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !NO_I210_SUPPORT || !NO_I350_SUPPORT || !NO_I225_SUPPORT */
 #define E1000_RXSTMPL	0x0B624 /* Rx timestamp Low - RO */
 #define E1000_RXSTMPH	0x0B628 /* Rx timestamp High - RO */
 #define E1000_RXSATRL	0x0B62C /* Rx timestamp attribute low - RO */
@@ -665,16 +698,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define	E1000_PLTSTMPL	0x0B640 /* HH Timesync platform stamp low register */
 #define	E1000_PLTSTMPH	0x0B644 /* HH Timesync platform stamp hi register */
 #endif /* NO_ICH8LAN_SUPPORT */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_SYSTIMR	0x0B6F8 /* System time register Residue */
 #define E1000_TSICR	0x0B66C /* Interrupt Cause Register */
 #define E1000_TSIM	0x0B674 /* Interrupt Mask Register */
-#endif /* NO_82580_SUPPORT */
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
 #if !defined(NO_82574_SUPPORT) || !defined(NO_ICH8LAN_SUPPORT)
 #define E1000_RXMTRL	0x0B634 /* Time sync Rx EtherType and Msg Type - RW */
 #define E1000_RXUDP	0x0B638 /* Time Sync Rx UDP Port - RW */
 #endif /* !NO_82574_SUPPORT || !NO_ICH8LAN_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 
 /* Filtering Registers */
 #define E1000_SAQF(_n)	(0x05980 + (4 * (_n))) /* Source Address Queue Fltr */
@@ -685,6 +718,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_SYNQF(_n)	(0x055FC + (4 * (_n))) /* SYN Packet Queue Fltr */
 #define E1000_ETQF(_n)	(0x05CB0 + (4 * (_n))) /* EType Queue Fltr */
 
+#ifdef NO_82575_SUPPORT
+/* ETQF register bit definitions */
+#define E1000_ETQF_FILTER_ENABLE	(1 << 26)
+#define E1000_ETQF_QUEUE_ENABLE		(1 << 31)
+#define E1000_ETQF_QUEUE_SHIFT		16
+#define E1000_ETQF_QUEUE_MASK		0x00070000
+#define E1000_ETQF_ETYPE_MASK		0x0000FFFF
+
+#endif /* NO_82575_SUPPORT */
 #define E1000_RTTDCS	0x3600 /* Reedtown Tx Desc plane control and status */
 #define E1000_RTTPCS	0x3474 /* Reedtown Tx Packet Plane control and status */
 #define E1000_RTRPCS	0x2474 /* Rx packet plane control and status */
@@ -726,9 +768,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RTTBCNIDX	0xB204  /* Tx BCN Congestion Point */
 #define E1000_RTTBCNACH	0x0B214 /* Tx BCN Control High */
 #define E1000_RTTBCNACL	0x0B210 /* Tx BCN Control Low */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 /* DMA Coalescing registers */
 #define E1000_DMACR	0x02508 /* Control Register */
 #define E1000_DMCTXTH	0x03550 /* Transmit Threshold */
@@ -741,8 +783,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* PCIe Parity Status Register */
 #define E1000_PCIEERRSTS	0x05BA8
 
-#endif /* NO_82580_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_PROXYS	0x5F64 /* Proxying Status */
 #define E1000_PROXYFC	0x5F60 /* Proxying Filter Control */
 /* Thermal sensor configuration and status registers */
@@ -766,9 +808,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_O2BGPTC	0x08FE4 /* OS2BMC packets received by BMC */
 #define E1000_O2BSPC	0x0415C /* OS2BMC packets transmitted by host */
 
-#endif /* NO_82575_SUPPORT */
-#ifndef NO_I210_SUPPORT
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_I210_SUPPORT) 
+#if defined(I225_LTR_SUPPORT)
+#define E1000_LTRMINV	0x5BB0 /* LTR Minimum Value */
+#define E1000_LTRMAXV	0x5BB4 /* LTR Maximum Value */
+#endif /* I210_LTR_SUPPORT || I225_LTR_SUPPORT */
 
-#endif /* NO_I210_SUPPORT */
+#endif /* NO_I210_SUPPORT || NO_I225_SUPPORT */
+
 
 #endif

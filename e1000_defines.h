@@ -116,12 +116,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_I2CCMD_SFP_DIAG_ADDR(a)	(0x0100 + (a))
 #define E1000_MAX_SGMII_PHY_REG_ADDR	255
 #define E1000_I2CCMD_PHY_TIMEOUT	200
+#endif /* NO_82575_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_IVAR_VALID	0x80
 #define E1000_GPIE_NSICR	0x00000001
 #define E1000_GPIE_MSIX_MODE	0x00000010
 #define E1000_GPIE_EIAME	0x40000000
 #define E1000_GPIE_PBA		0x80000000
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 
 /* Receive Descriptor bit definitions */
 #define E1000_RXD_STAT_DD	0x01    /* Descriptor Done */
@@ -131,9 +133,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RXD_STAT_UDPCS	0x10    /* UDP xsum calculated */
 #define E1000_RXD_STAT_TCPCS	0x20    /* TCP xsum calculated */
 #define E1000_RXD_STAT_IPCS	0x40    /* IP xsum calculated */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RXD_STAT_PIF	0x80    /* passed in-exact filter */
-#endif /* !NO_82575_SUPPORT */
+#endif /* !NO_82575_SUPPORT || NO_I225_SUPPORT */
 #define E1000_RXD_STAT_IPIDV	0x200   /* IP identification valid */
 #define E1000_RXD_STAT_UDPV	0x400   /* Valid UDP checksum */
 #ifndef NO_82575_SUPPORT
@@ -271,9 +273,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_SWFW_PHY2_SM	0x20
 #define E1000_SWFW_PHY3_SM	0x40
 #endif /* NO_82580_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_SWFW_SW_MNG_SM	0x400
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 
 /* Device Control */
 #define E1000_CTRL_FD		0x00000001  /* Full duplex.0=half; 1=full */
@@ -303,6 +305,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define E1000_CTRL_SWDPIN3	0x00200000 /* SWDPIN 3 value */
 #define E1000_CTRL_SWDPIO0	0x00400000 /* SWDPIN 0 Input or output */
+#if !defined(NO_82580_SUPPORT) 
+#define E1000_CTRL_DEV_RST	0x20000000 /* Device reset */
+#endif /* !NO_82580_SUPPORT || !NO_I225_SUPPORT */
 #define E1000_CTRL_RST		0x04000000 /* Global reset */
 #define E1000_CTRL_RFCE		0x08000000 /* Receive Flow Control enable */
 #define E1000_CTRL_TFCE		0x10000000 /* Transmit flow control enable */
@@ -313,13 +318,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* NO_82575_SUPPORT */
 
 
+#if !defined(NO_82575_SUPPORT) 
+#define E1000_CONNSW_AUTOSENSE_EN	0x1
+#endif /* EXTERNAL_RELEASE and NO_82575_SUPPORT and NO_I225_SUPPORT */
 #if !defined(NO_82575_SUPPORT)
 #define E1000_CONNSW_ENRGSRC		0x4
 #define E1000_CONNSW_PHYSD		0x400
 #define E1000_CONNSW_PHY_PDN		0x800
 #define E1000_CONNSW_SERDESD		0x200
 #define E1000_CONNSW_AUTOSENSE_CONF	0x2
-#define E1000_CONNSW_AUTOSENSE_EN	0x1
 #define E1000_PCS_CFG_PCS_EN		8
 #define E1000_PCS_LCTL_FLV_LINK_UP	1
 #define E1000_PCS_LCTL_FSV_10		0
@@ -375,6 +382,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_STATUS_PCIX_SPEED_100	0x00004000 /* PCI-X bus spd 66-100MHz */
 #define E1000_STATUS_PCIX_SPEED_133	0x00008000 /* PCI-X bus spd 100-133MHz*/
 #endif /* NO_PCI_SUPPORT */
+#define E1000_STATUS_PCIM_STATE		0x40000000 /* PCIm function state */
 
 #define SPEED_10	10
 #define SPEED_100	100
@@ -469,9 +477,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Receive Checksum Control */
 #define E1000_RXCSUM_IPOFL	0x00000100 /* IPv4 checksum offload */
 #define E1000_RXCSUM_TUOFL	0x00000200 /* TCP / UDP checksum offload */
-#if !defined(NO_82575_SUPPORT)
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RXCSUM_CRCOFL	0x00000800 /* CRC32 offload enable */
-#endif /* !EXTERNAL_RELEASE || !NO_82575_SUPPORT */
+#endif /* !EXTERNAL_RELEASE || !NO_82575_SUPPORT || NO_I225_SUPPORT */
 #define E1000_RXCSUM_IPPCSE	0x00001000 /* IP payload checksum enable */
 #define E1000_RXCSUM_PCSD	0x00002000 /* packet checksum disabled */
 
@@ -482,13 +490,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RFCTL_EXTEN		0x00008000
 #define E1000_RFCTL_IPV6_EX_DIS		0x00010000
 #define E1000_RFCTL_NEW_IPV6_EXT_DIS	0x00020000
-#if !defined(NO_82575_SUPPORT)
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RFCTL_LEF			0x00040000
-#endif /* !EXTERNAL_RELEASE || !NO_82575_SUPPORT */
+#endif /* !EXTERNAL_RELEASE || !NO_82575_SUPPORT || NO_I225_SUPPORT */
 
 /* Collision related configuration parameters */
-#define E1000_COLLISION_THRESHOLD	15
 #define E1000_CT_SHIFT			4
+#define E1000_COLLISION_THRESHOLD	15
 #define E1000_COLLISION_DISTANCE	63
 #define E1000_COLD_SHIFT		12
 
@@ -601,15 +609,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_ICR_MNG		0x00040000 /* Manageability event */
 #endif /* !EXTERNAL_RELEASE || !NO_I210_SUPPORT */
 #define E1000_ICR_ECCER		0x00400000 /* Uncorrectable ECC Error */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_ICR_TS		0x00080000 /* Time Sync Interrupt */
 #define E1000_ICR_DRSTA		0x40000000 /* Device Reset Asserted */
-#endif
+#endif /* NO_82580_SUPPORT and NO_I225_SUPPORT */
 /* If this bit asserted, the driver should claim the interrupt */
 #define E1000_ICR_INT_ASSERTED	0x80000000
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_ICR_DOUTSYNC	0x10000000 /* NIC DMA out of sync */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 #ifndef NO_82574_SUPPORT
 #define E1000_ICR_RXQ0		0x00100000 /* Rx Queue 0 Interrupt */
 #define E1000_ICR_RXQ1		0x00200000 /* Rx Queue 1 Interrupt */
@@ -617,9 +625,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_ICR_TXQ1		0x00800000 /* Tx Queue 1 Interrupt */
 #define E1000_ICR_OTHER		0x01000000 /* Other Interrupts */
 #endif /* NO_82574_SUPPORT */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_ICR_FER		0x00400000 /* Fatal Error */
-#endif /* NO_82580_SUPPORT */
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
 
 #ifndef NO_82575_SUPPORT
 #define E1000_ICR_THS		0x00800000 /* ICR.THS: Thermal Sensor Event*/
@@ -635,7 +643,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_PBA_ECC_INT_EN	0x00000004 /* Enable ICR bit 5 on ECC error */
 #endif /* NO_82571_SUPPORT */
 
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 /* Extended Interrupt Cause Read */
 #define E1000_EICR_RX_QUEUE0	0x00000001 /* Rx Queue 0 Interrupt */
 #define E1000_EICR_RX_QUEUE1	0x00000002 /* Rx Queue 1 Interrupt */
@@ -653,7 +661,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_TCPTIMER_COUNT_FINISH	0x00000400 /* Count finish */
 #define E1000_TCPTIMER_LOOP	0x00000800 /* Loop */
 
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 /* This defines the bits that are set in the Interrupt Mask
  * Set/Read Register.  Each bit is documented below:
  *   o RXT0   = Receiver Timer Interrupt (ring 0)
@@ -684,13 +692,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_IMS_RXT0		E1000_ICR_RXT0    /* Rx timer intr */
 #define E1000_IMS_TXD_LOW	E1000_ICR_TXD_LOW
 #define E1000_IMS_ECCER		E1000_ICR_ECCER   /* Uncorrectable ECC Error */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_IMS_TS		E1000_ICR_TS      /* Time Sync Interrupt */
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_IMS_DRSTA		E1000_ICR_DRSTA   /* Device Reset Asserted */
-#endif
-#ifndef NO_82575_SUPPORT
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_IMS_DOUTSYNC	E1000_ICR_DOUTSYNC /* NIC DMA out of sync */
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 #ifndef NO_82574_SUPPORT
 #define E1000_IMS_RXQ0		E1000_ICR_RXQ0 /* Rx Queue 0 Interrupt */
 #define E1000_IMS_RXQ1		E1000_ICR_RXQ1 /* Rx Queue 1 Interrupt */
@@ -698,11 +708,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_IMS_TXQ1		E1000_ICR_TXQ1 /* Tx Queue 1 Interrupt */
 #define E1000_IMS_OTHER		E1000_ICR_OTHER /* Other Interrupts */
 #endif /* NO_82574_SUPPORT */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 #define E1000_IMS_FER		E1000_ICR_FER /* Fatal Error */
-#endif /* NO_82580_SUPPORT */
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
 
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_IMS_THS		E1000_ICR_THS /* ICR.TS: Thermal Sensor Event*/
 #define E1000_IMS_MDDET		E1000_ICR_MDDET /* Malicious Driver Detect */
 /* Extended Interrupt Mask Set */
@@ -717,13 +727,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_EIMS_TCP_TIMER	E1000_EICR_TCP_TIMER /* TCP Timer */
 #define E1000_EIMS_OTHER	E1000_EICR_OTHER   /* Interrupt Cause Active */
 
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 /* Interrupt Cause Set */
 #define E1000_ICS_LSC		E1000_ICR_LSC       /* Link Status Change */
 #define E1000_ICS_RXSEQ		E1000_ICR_RXSEQ     /* Rx sequence error */
 #define E1000_ICS_RXDMT0	E1000_ICR_RXDMT0    /* Rx desc min. threshold */
 
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 /* Extended Interrupt Cause Set */
 #define E1000_EICS_RX_QUEUE0	E1000_EICR_RX_QUEUE0 /* Rx Queue 0 Interrupt */
 #define E1000_EICS_RX_QUEUE1	E1000_EICR_RX_QUEUE1 /* Rx Queue 1 Interrupt */
@@ -737,11 +747,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_EICS_OTHER	E1000_EICR_OTHER   /* Interrupt Cause Active */
 
 #define E1000_EITR_ITR_INT_MASK	0x0000FFFF
+#define E1000_EITR_INTERVAL 0x00007FFC
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 /* E1000_EITR_CNT_IGNR is only for 82576 and newer */
 #define E1000_EITR_CNT_IGNR	0x80000000 /* Don't reset counters on write */
-#define E1000_EITR_INTERVAL 0x00007FFC
 
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 /* Transmit Descriptor Control */
 #define E1000_TXDCTL_PTHRESH	0x0000003F /* TXDCTL Prefetch Threshold */
 #define E1000_TXDCTL_HTHRESH	0x00003F00 /* TXDCTL Host Threshold */
@@ -772,12 +784,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RAH_AV		0x80000000 /* Receive descriptor valid */
 #define E1000_RAL_MAC_ADDR_LEN	4
 #define E1000_RAH_MAC_ADDR_LEN	2
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RAH_QUEUE_MASK_82575	0x000C0000
-#endif
-#ifndef NO_82575_SUPPORT
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_RAH_POOL_1	0x00040000
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT and NO_I225_SUPPORT */
 
 /* Error Codes */
 #define E1000_SUCCESS			0
@@ -797,9 +809,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_ERR_INVALID_ARGUMENT	16
 #define E1000_ERR_NO_SPACE		17
 #define E1000_ERR_NVM_PBA_SECTION	18
-#ifndef NO_I210_SUPPORT
+#if !defined(NO_I210_SUPPORT) 
 #define E1000_ERR_INVM_VALUE_NOT_FOUND	20
-#endif /* NO_I210_SUPPORT */
+#endif /* !NO_I210_SUPPORT || !NO_I225_SUPPORT */
 
 /* Loop limit on how long we wait for auto-negotiation to complete */
 #define FIBER_LINK_UP_LIMIT		50
@@ -862,7 +874,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_RXMTRL_PTP_V2_DELAY_REQ_MESSAGE	0x01000000
 
 #endif /* !NO_82574_SUPPORT || !NO_ICH8LAN_SUPPORT */
-#if !defined(NO_82575_SUPPORT) || !defined(NO_I210_SUPPORT) || !defined(NO_I350_SUPPORT)
+#if !defined(NO_82575_SUPPORT) || !defined(NO_I210_SUPPORT) || !defined(NO_I350_SUPPORT) 
 #define E1000_TSYNCRXCFG_PTP_V1_CTRLT_MASK		0x000000FF
 #define E1000_TSYNCRXCFG_PTP_V1_SYNC_MESSAGE		0x00
 #define E1000_TSYNCRXCFG_PTP_V1_DELAY_REQ_MESSAGE	0x01
@@ -883,11 +895,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_TSYNCRXCFG_PTP_V2_MANAGEMENT_MESSAGE	0x0D00
 
 #define E1000_TIMINCA_16NS_SHIFT	24
-#endif /* !NO_82575_SUPPORT || !NO_I210_SUPPORT || !NO_I350_SUPPORT */
+#endif /* !NO_82575_SUPPORT || !NO_I210_SUPPORT || !NO_I350_SUPPORT  || !NO_I225_SUPPORT */
 #define E1000_TIMINCA_INCPERIOD_SHIFT	24
 #define E1000_TIMINCA_INCVALUE_MASK	0x00FFFFFF
 
-#ifndef NO_82580_SUPPORT
+
+/* ETQF register bit definitions */
+#define E1000_ETQF_1588			(1 << 30)
+#define E1000_FTQF_VF_BP		0x00008000
+#define E1000_FTQF_1588_TIME_STAMP	0x08000000
+#define E1000_FTQF_MASK			0xF0000000
+#define E1000_FTQF_MASK_PROTO_BP	0x10000000
+/* Immediate Interrupt Rx (A.K.A. Low Latency Interrupt) */
+#define E1000_IMIREXT_CTRL_BP	0x00080000  /* Bypass check of ctrl bits */
+#define E1000_IMIREXT_SIZE_BP	0x00001000  /* Packet size bypass */
+
+#if !defined(NO_82580_SUPPORT) 
+#define E1000_RXDADV_STAT_TSIP		0x08000 /* timestamp in packet */
 #define E1000_TSICR_TXTS		0x00000002
 #define E1000_TSIM_TXTS			0x00000002
 /* TUPLE Filtering Configuration */
@@ -924,17 +948,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_M88E1112_MAC_CTRL_1_MODE_SHIFT	7
 #define E1000_M88E1112_PAGE_ADDR		0x16
 #define E1000_M88E1112_STATUS			0x01
-#endif /* NO_82580_SUPPORT */
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
 
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 #define E1000_THSTAT_LOW_EVENT		0x20000000 /* Low thermal threshold */
 #define E1000_THSTAT_MID_EVENT		0x00200000 /* Mid thermal threshold */
 #define E1000_THSTAT_HIGH_EVENT		0x00002000 /* High thermal threshold */
 #define E1000_THSTAT_PWR_DOWN		0x00000001 /* Power Down Event */
 #define E1000_THSTAT_LINK_THROTTLE	0x00000002 /* Link Spd Throttle Event */
 
-#ifndef NO_82580_SUPPORT
-/* I350 EEE defines */
+#if !defined(NO_82580_SUPPORT) 
+/* EEE defines */
+#define E1000_IPCNFG_EEE_2_5G_AN	0x00000010 /* IPCNFG EEE Ena 2.5G AN */
 #define E1000_IPCNFG_EEE_1G_AN		0x00000008 /* IPCNFG EEE Ena 1G AN */
 #define E1000_IPCNFG_EEE_100M_AN	0x00000004 /* IPCNFG EEE Ena 100M AN */
 #define E1000_EEER_TX_LPI_EN		0x00010000 /* EEER Tx LPI Enable */
@@ -961,13 +986,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_M88E1512_CFG_REG_2	0x0011
 #define E1000_M88E1512_CFG_REG_3	0x0007
 #define E1000_M88E1512_MODE		0x0014
+#endif /* NO_82580_SUPPORT */
+#endif /* NO_82575_SUPPORT */
 #ifndef NO_I210_SUPPORT
 #define E1000_EEE_SU_LPI_CLK_STP	0x00800000 /* EEE LPI Clock Stop */
 #define E1000_EEE_LP_ADV_DEV_I210	7          /* EEE LP Adv Device */
 #define E1000_EEE_LP_ADV_ADDR_I210	61         /* EEE LP Adv Register */
 #endif /* NO_I210_SUPPORT */
-#endif /* NO_82580_SUPPORT */
-#endif /* NO_82575_SUPPORT */
 /* PCI Express Control */
 #define E1000_GCR_RXD_NO_SNOOP		0x00000001
 #define E1000_GCR_RXDSCW_NO_SNOOP	0x00000002
@@ -1553,7 +1578,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	(E1000_RTTBCNRC_RF_DEC_MASK << E1000_RTTBCNRC_RF_INT_SHIFT)
 
 #endif /* NO_82575_SUPPORT */
-#ifndef NO_82580_SUPPORT
+#if !defined(NO_82580_SUPPORT) 
 /* DMA Coalescing register fields */
 /* DMA Coalescing Watchdog Timer */
 #define E1000_DMACR_DMACWT_MASK		0x00003FFF
@@ -1585,18 +1610,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_FCRTC_RTH_COAL_SHIFT	4
 /* Lx power decision based on DMA coal */
 #define E1000_PCIEMISC_LX_DECISION	0x00000080
-#endif
+#endif /* NO_82580_SUPPORT || NO_I225_SUPPORT */
 
-#ifndef NO_I210_SUPPORT
+#if !defined(NO_I210_SUPPORT) 
 #define E1000_RXPBS_CFG_TS_EN		0x80000000 /* Timestamp in Rx buffer */
 #define E1000_RXPBS_SIZE_I210_MASK	0x0000003F /* Rx packet buffer size */
 #define E1000_TXPB0S_SIZE_I210_MASK	0x0000003F /* Tx packet buffer 0 size */
 #define I210_RXPBSIZE_DEFAULT		0x000000A2 /* RXPBSIZE default */
 #define I210_TXPBSIZE_DEFAULT		0x04000014 /* TXPBSIZE default */
 
+#if !defined(I225_LTR_SUPPORT)
+#define E1000_LTRC_EEEMS_EN		0x00000020 /* Enable EEE LTR max send */
+/* Minimum time for 1000BASE-T where no data will be transmit following move out
+ * of EEE LPI Tx state
+ */
+#define E1000_TW_SYSTEM_1000_MASK	0x000000FF
+/* Minimum time for 100BASE-T where no data will be transmit following move out
+ * of EEE LPI Tx state
+ */
+#define E1000_TW_SYSTEM_100_MASK	0x0000FF00
+#define E1000_TW_SYSTEM_100_SHIFT	8
+#define E1000_LTRMINV_LTRV_MASK		0x000003FF /* LTR minimum value */
+#define E1000_LTRMAXV_LTRV_MASK		0x000003FF /* LTR maximum value */
+#define E1000_LTRMINV_SCALE_MASK	0x00001C00 /* LTR minimum scale */
+#define E1000_LTRMINV_SCALE_SHIFT	10
+/* Reg val to set scale to 1024 nsec */
+#define E1000_LTRMINV_SCALE_1024	2
+/* Reg val to set scale to 32768 nsec */
+#define E1000_LTRMINV_SCALE_32768	3
+#define E1000_LTRMINV_LSNP_REQ		0x00008000 /* LTR Snoop Requirement */
+#define E1000_LTRMAXV_SCALE_MASK	0x00001C00 /* LTR maximum scale */
+#define E1000_LTRMAXV_SCALE_SHIFT	10
+/* Reg val to set scale to 1024 nsec */
+#define E1000_LTRMAXV_SCALE_1024	2
+/* Reg val to set scale to 32768 nsec */
+#define E1000_LTRMAXV_SCALE_32768	3
+#define E1000_LTRMAXV_LSNP_REQ		0x00008000 /* LTR Snoop Requirement */
+#endif /* I210_LTR_SUPPORT || I225_LTR_SUPPORT */
 
-#endif /* NO_I210_SUPPORT */
-#ifndef NO_82575_SUPPORT
+#endif /* NO_I210_SUPPORT || NO_I225_SUPPORT */
+#if !defined(NO_82575_SUPPORT) 
 /* Proxy Filter Control */
 #define E1000_PROXYFC_D0		0x00000001 /* Enable offload in D0 */
 #define E1000_PROXYFC_EX		0x00000004 /* Directed exact proxy */
@@ -1620,8 +1673,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Lan ID bit field offset in status register */
 #define E1000_STATUS_LAN_ID_OFFSET	2
 #define E1000_VFTA_ENTRIES		128
+#endif /* !NO_82575_SUPPORT || !NO_I225_SUPPORT) */
 
-#endif /* NO_82575_SUPPORT */
 #ifndef UNREFERENCED_XPARAMETER
 #define UNREFERENCED_XPARAMETER
 #define UNREFERENCED_1PARAMETER(_p) (_p)

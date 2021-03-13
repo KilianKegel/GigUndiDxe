@@ -174,12 +174,12 @@ WolGetWakeOnLanStatus(
   )
 {
   WOL_STATUS  Status;
-#ifndef WOL_ICE
   UINT16      Offset;
   UINT16      Value  = 0;
   UINT16      Mask   = 0;
-#endif /* WOL_ICE */
-
+#ifdef WOL_ICE
+  extern WOL_MAC_TYPE const _WOL_ICE[];
+#endif
 #ifndef WOL_HAF
   DEBUGPRINT (WOL, ("--> WolGetWakeOnLanStatus\n"));
 #endif
@@ -187,26 +187,33 @@ WolGetWakeOnLanStatus(
   if (!WolIsWakeOnLanSupported(Handle)) {
     return WOL_FEATURE_NOT_SUPPORTED;
   }
-
-#ifndef WOL_ICE
-  Status = _WolGetOffsetBitmask(Handle, &Offset, &Mask);
-  if (Status != WOL_SUCCESS) {
-    return Status;
+#if defined (WOL_ICE)
+  if (_WolFindMacType(_WolGetMacType(Handle), (WOL_MAC_TYPE *)_WOL_ICE)) {
+    /* For 100G we use ANVM */
+    Status = WolGetWakeOnLanStatus_Ice(Handle, WolStatus);
+    if (Status != WOL_SUCCESS) {
+      return Status;
+    }
   }
+  else
+  {
+#endif /* WOL_ICE */
+    /* For other families we use EEPROM reading */
+      Status = _WolGetOffsetBitmask(Handle, &Offset, &Mask);
+      if (Status != WOL_SUCCESS) {
+        return Status;
+      }
 
-  Status = _WolEepromRead16(Handle, Offset, &Value);
-  if (Status != WOL_SUCCESS) {
-    return Status;
-  }
+      Status = _WolEepromRead16(Handle, Offset, &Value);
+      if (Status != WOL_SUCCESS) {
+        return Status;
+      }
 
-  *WolStatus = (Value & Mask) != 0;
-#else /* WOL_ICE */
-  Status = WolGetWakeOnLanStatus_Ice(Handle, WolStatus);
-  if (Status != WOL_SUCCESS) {
-    return Status;
+      *WolStatus = (Value & Mask) != 0;
+#if defined (WOL_ICE)
   }
 #endif /* WOL_ICE */
-  
+
 //  DEBUGPRINT (WOL, ("WolGetWakeOnLanStatus: %d\n", *WolStatus));
 //  DEBUGPRINT (WOL, ("Press enter to cont....\n"));
 //  WaitForEnter ();
@@ -339,6 +346,9 @@ WolEnableWakeOnLan (
   IN    BOOLEAN                     Enable
   )
 {
+#ifdef WOL_ICE
+  extern WOL_MAC_TYPE const _WOL_ICE[];
+#endif
 #ifndef WOL_HAF
   DEBUGPRINT (WOL, ("--> WolEnableWakeOnLan\n"));
 #endif
@@ -362,20 +372,26 @@ WolEnableWakeOnLan (
     }
 }
 #endif /* WOL_1G */
-
-#ifndef WOL_ICE
-    /* Enable/Disable Apm to enable/disable Wol */
-    Status = WolEnableApm(Handle, Enable);
-    if (Status != WOL_SUCCESS) {
-      return Status;
+#if defined (WOL_ICE)
+    if (_WolFindMacType(_WolGetMacType(Handle), (WOL_MAC_TYPE *)_WOL_ICE)) {
+      /* For 100G we use ANVM */
+      Status = WolEnableWakeOnLan_Ice(Handle, Enable);
+      if (Status != WOL_SUCCESS) {
+        return Status;
+      }
     }
-
-#else /* WOL_ICE */
-    Status = WolEnableWakeOnLan_Ice (Handle, Enable);
-    if (Status != WOL_SUCCESS) {
-      return Status;
+    else
+    {
+#endif /* WOL_ICE */
+      /* For other families we use APM enabling/disabling */
+      Status = WolEnableApm(Handle, Enable);
+      if (Status != WOL_SUCCESS) {
+        return Status;
+      }
+#if defined (WOL_ICE)
     }
 #endif /* WOL_ICE */
+
 #if defined(WOL_1G)
 {
     /* On 1G fiber NICs the laser has to be manually controlled through

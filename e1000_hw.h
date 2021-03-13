@@ -106,6 +106,34 @@ struct e1000_hw;
 #define E1000_DEV_ID_PCH_SPT_I219_V		0x1570 /* Sunrise Point PCH */
 #define E1000_DEV_ID_PCH_SPT_I219_LM2		0x15B7 /* Sunrise Point-H PCH */
 #define E1000_DEV_ID_PCH_SPT_I219_V2		0x15B8 /* Sunrise Point-H PCH */
+#define E1000_DEV_ID_PCH_LBG_I219_LM3		0x15B9 /* LEWISBURG PCH */
+#define E1000_DEV_ID_PCH_SPT_I219_LM4		0x15D7
+#define E1000_DEV_ID_PCH_SPT_I219_V4		0x15D8
+#define E1000_DEV_ID_PCH_SPT_I219_LM5		0x15E3
+#define E1000_DEV_ID_PCH_SPT_I219_V5		0x15D6
+#define E1000_DEV_ID_PCH_CNP_I219_LM6		0x15BD
+#define E1000_DEV_ID_PCH_CNP_I219_V6		0x15BE
+#define E1000_DEV_ID_PCH_CNP_I219_LM7		0x15BB
+#define E1000_DEV_ID_PCH_CNP_I219_V7		0x15BC
+#define E1000_DEV_ID_PCH_ICP_I219_LM8		0x15DF
+#define E1000_DEV_ID_PCH_ICP_I219_V8		0x15E0
+#define E1000_DEV_ID_PCH_ICP_I219_LM9		0x15E1
+#define E1000_DEV_ID_PCH_ICP_I219_V9		0x15E2
+#ifdef COMET_LAKE_HW
+#define E1000_DEV_ID_PCH_CMP_I219_LM10		0x0D4E
+#define E1000_DEV_ID_PCH_CMP_I219_V10		0x0D4F
+#define E1000_DEV_ID_PCH_CMP_I219_LM11		0x0D4C
+#define E1000_DEV_ID_PCH_CMP_I219_V11		0x0D4D
+#define E1000_DEV_ID_PCH_CMP_I219_LM12		0x0D53
+#define E1000_DEV_ID_PCH_CMP_I219_V12		0x0D55
+#endif /* COMET_LAKE_HW */
+#ifdef NAHUM9_HW
+#define E1000_DEV_ID_PCH_TGP_I219_LM13		0x15FB
+#define E1000_DEV_ID_PCH_TGP_I219_V13		0x15FC
+#define E1000_DEV_ID_PCH_TGP_I219_LM14		0x15F9
+#define E1000_DEV_ID_PCH_TGP_I219_V14		0x15FA
+#define E1000_DEV_ID_PCH_TGP_I219_LM15		0x15F4
+#endif /* NAHUM9_HW */
 #endif /* NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT
 #define E1000_DEV_ID_82576			0x10C9
@@ -143,8 +171,11 @@ struct e1000_hw;
 #define E1000_DEV_ID_I210_SGMII			0x1538
 #define E1000_DEV_ID_I210_COPPER_FLASHLESS	0x157B
 #define E1000_DEV_ID_I210_SERDES_FLASHLESS	0x157C
+#define E1000_DEV_ID_I210_SGMII_FLASHLESS	0x15F6
 #define E1000_DEV_ID_I211_COPPER		0x1539
 #endif /* NO_I210_SUPPORT */
+#endif /* NO_82575_SUPPORT */
+#ifndef NO_82575_SUPPORT
 #define E1000_DEV_ID_I354_BACKPLANE_1GBPS	0x1F40
 #define E1000_DEV_ID_I354_SGMII			0x1F41
 #define E1000_DEV_ID_I354_BACKPLANE_2_5GBPS	0x1F45
@@ -198,7 +229,11 @@ enum e1000_mac_type {
 	e1000_pch2lan,
 	e1000_pch_lpt,
 	e1000_pch_spt,
+	e1000_pch_cnp,
+#ifdef NAHUM9_HW
+	e1000_pch_tgp,
 #endif
+#endif /* NO_ICH8LAN_SUPPORT */
 #ifndef NO_82575_SUPPORT
 	e1000_82575,
 	e1000_82576,
@@ -211,6 +246,8 @@ enum e1000_mac_type {
 	e1000_i210,
 	e1000_i211,
 #endif /* NO_I210_SUPPORT */
+#endif /* NO_82575_SUPPORT */
+#ifndef NO_82575_SUPPORT
 #endif /* NO_82575_SUPPORT */
 	e1000_num_macs  /* List is 1-based, so subtract 1 for true count. */
 };
@@ -231,9 +268,9 @@ enum e1000_nvm_type {
 	e1000_nvm_eeprom_microwire,
 #endif
 	e1000_nvm_flash_hw,
-#ifndef NO_I210_SUPPORT
+#if !defined(NO_I210_SUPPORT) 
 	e1000_nvm_invm,
-#endif /* NO_I210_SUPPORT */
+#endif /* NO_I210_SUPPORT || NO_I225_SUPPORT */
 	e1000_nvm_flash_sw
 };
 
@@ -575,13 +612,13 @@ struct e1000_hw_stats {
 	u64 lenerrs;
 	u64 scvpc;
 	u64 hrmpc;
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 	u64 doosync;
 	u64 o2bgptc;
 	u64 o2bspc;
 	u64 b2ospc;
 	u64 b2ogprc;
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO_I225_SUPPORT */
 };
 
 
@@ -665,10 +702,10 @@ struct e1000_mac_operations {
 	int  (*rar_set)(struct e1000_hw *, u8*, u32);
 	s32  (*read_mac_addr)(struct e1000_hw *);
 	s32  (*validate_mdi_setting)(struct e1000_hw *);
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 	s32  (*acquire_swfw_sync)(struct e1000_hw *, u16);
 	void (*release_swfw_sync)(struct e1000_hw *, u16);
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT or NO_I225_SUPPORT */
 };
 
 /* When to use various PHY register access functions:
@@ -747,9 +784,9 @@ struct e1000_mac_info {
 	u16 ifs_ratio;
 	u16 ifs_step_size;
 	u16 mta_reg_count;
-#ifndef NO_82575_SUPPORT
+#if !defined(NO_82575_SUPPORT) 
 	u16 uta_reg_count;
-#endif /* NO_82575_SUPPORT */
+#endif /* NO_82575_SUPPORT || NO-I225_SUPPORT */
 
 	/* Maximum size of the MTA register table in all supported adapters */
 #define MAX_MTA_REG 128
@@ -954,6 +991,9 @@ struct e1000_hw {
 #endif
 #ifndef NO_I210_SUPPORT
 #include "e1000_i210.h"
+#endif
+#if !defined(NO_82575_SUPPORT) 
+#include "e1000_base.h"
 #endif
 
 /* These functions must be implemented by drivers */

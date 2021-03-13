@@ -302,6 +302,7 @@ extern EFI_GUID                    gEfiNiiPointerGuid;
 extern EFI_GUID                    gNiiPointerProtocolGuid;
 extern EFI_SYSTEM_TABLE *          gSystemTable;
 extern EFI_TIME gTime;
+extern BOOLEAN                mExitBootServicesTriggered;
 
 typedef struct {
   UINT16 CpbSize;
@@ -593,12 +594,12 @@ typedef struct DRIVER_DATA_S {
   UINT64                     DebugRxBuffer[DEFAULT_RX_DESCRIPTORS];
   BOOLEAN                    FlashWriteInProgress;
   BOOLEAN                    SurpriseRemoval;
-  BOOLEAN                    ExitBootServicesTriggered;
   UINTN                      VersionFlag; // Indicates UNDI version 3.0 or 3.1
 } GIG_DRIVER_DATA, *PADAPTER_STRUCT;
 
 typedef struct UNDI_PRIVATE_DATA_S {
   UINTN                                     Signature;
+  UINTN                                     IfId;
   EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL NiiProtocol31;
   EFI_NII_POINTER_PROTOCOL                  NIIPointerProtocol;
   EFI_HANDLE                                ControllerHandle;

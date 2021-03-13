@@ -64,12 +64,12 @@ GetMediaStateInformationBlock (
   EFI_ADAPTER_INFO_MEDIA_STATE *Buffer;
   UNDI_PRIVATE_DATA *           UndiPrivateData;
 
-  Buffer = AllocatePool (sizeof (EFI_ADAPTER_INFO_MEDIA_STATE));
-
+  Buffer = AllocateZeroPool (sizeof (EFI_ADAPTER_INFO_MEDIA_STATE));
   if (Buffer == NULL) {
-    DEBUGPRINT (ADAPTERINFO, ("AllocatePool failed\n"));
+    DEBUGPRINT (ADAPTERINFO, ("Failed to allocate Buffer!\n"));
     return EFI_OUT_OF_RESOURCES;
   }
+
   UndiPrivateData = UNDI_PRIVATE_DATA_FROM_AIP (This);
 
   if (IsLinkUp (&UndiPrivateData->NicInfo)) {
@@ -94,12 +94,12 @@ GetIpv6SupportInformationBlock (
 {
   EFI_ADAPTER_INFO_UNDI_IPV6_SUPPORT  *Buffer;
 
-  Buffer = AllocatePool (sizeof(EFI_ADAPTER_INFO_UNDI_IPV6_SUPPORT));
-
+  Buffer = AllocateZeroPool (sizeof (EFI_ADAPTER_INFO_UNDI_IPV6_SUPPORT));
   if (Buffer == NULL) {
-    DEBUGPRINT (ADAPTERINFO, ("AllocatePool failed\n"));
+    DEBUGPRINT (ADAPTERINFO, ("Failed to allocate Buffer!\n"));
     return EFI_OUT_OF_RESOURCES;
   }
+
   Buffer->Ipv6Support = TRUE;
 
   *InformationBlock = Buffer;
@@ -128,10 +128,9 @@ GetMediaTypeInformationBlock (
 {
   EFI_ADAPTER_INFO_MEDIA_TYPE   *Buffer;
 
-  Buffer = AllocatePool (sizeof (EFI_ADAPTER_INFO_MEDIA_TYPE));
-
+  Buffer = AllocateZeroPool (sizeof (EFI_ADAPTER_INFO_MEDIA_TYPE));
   if (Buffer == NULL) {
-    DEBUGPRINT (ADAPTERINFO, ("AllocatePool failed\n"));
+    DEBUGPRINT (ADAPTERINFO, ("Failed to allocate Buffer!\n"));
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -299,11 +298,10 @@ GetSupportedTypes (
     return EFI_INVALID_PARAMETER;
   }
 
-  Buffer = AllocatePool (mInformationCount * sizeof (EFI_GUID));
-
   // It is the responsibility of the caller to free this buffer after using it.
+  Buffer = AllocateZeroPool (mInformationCount * sizeof (EFI_GUID));
   if (Buffer == NULL) {
-    DEBUGPRINT (ADAPTERINFO, ("AllocatePool failed\n"));
+    DEBUGPRINT (ADAPTERINFO, ("Failed to allocate Buffer!\n"));
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -386,20 +384,20 @@ InitAdapterInformationProtocol (
 
   UndiPrivateData->AdapterInformation = gUndiAdapterInfo;
 
-  SetMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR), 0);
+  ZeroMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR));
   CopyMem (&InformationType.Guid, &MediaStateGuid, sizeof (EFI_GUID));
   InformationType.GetInformationBlock = GetMediaStateInformationBlock;
   InformationType.SetInformationBlock = NULL;
   AddSupportedInformationType (&InformationType);
 
-  SetMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR), 0);
+  ZeroMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR));
   CopyMem (&InformationType.Guid, &Ipv6SupportInfoGuid, sizeof (EFI_GUID));
   InformationType.GetInformationBlock = GetIpv6SupportInformationBlock;
   InformationType.SetInformationBlock = NULL;
   AddSupportedInformationType (&InformationType);
 
 
-  SetMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR), 0);
+  ZeroMem (&InformationType, sizeof (EFI_ADAPTER_INFORMATION_TYPE_DESCRIPTOR));
   CopyMem (&InformationType.Guid, &MediaTypeGuid, sizeof (EFI_GUID));
   InformationType.GetInformationBlock = GetMediaTypeInformationBlock;
   InformationType.SetInformationBlock = NULL;
