@@ -842,6 +842,16 @@ HiiSetMenuStrings (
           DEBUGWAIT (CRITICAL);
           return Status;
         }
+      } else if (UndiPrivateData->NicInfo.Hw.mac.type == e1000_i211) {
+        StrCpyS (
+          PBAString,
+          HII_STRING_LEN,
+          L"N/A"
+        );
+      } else {
+        DEBUGPRINT (CRITICAL, ("ReadPbaString error\n"));
+        DEBUGWAIT (CRITICAL);
+        return EFI_DEVICE_ERROR;
       }
       StringId = HiiSetString (
                    UndiPrivateData->HiiHandle,
@@ -1178,6 +1188,7 @@ HiiInit (
   EFI_SCREEN_DESCRIPTOR           Screen;
 
   DEBUGPRINT (HII, ("HiiInit\n"));
+
 
   // Try to open the HII protocols first.  If they are not present in the system
   // get out.

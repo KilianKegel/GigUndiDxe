@@ -200,11 +200,13 @@ formset
     //
     grayoutif TRUE; /* This is a READ ONLY field */
 
-      oneof varid       = UndiNVData.LinkStatus,
-            questionid  = QUESTION_ID_LINK_STATUS,
-            prompt      = STRING_TOKEN(STR_LINK_STATUS_PROMPT),
-            help        = STRING_TOKEN(STR_LINK_STATUS_HELP),
-            flags       = 0,
+      oneof name          = LinkStatus,
+            varid         = UndiNVData.LinkStatus,
+            questionid    = QUESTION_ID_LINK_STATUS,
+            prompt        = STRING_TOKEN(STR_LINK_STATUS_PROMPT),
+            help          = STRING_TOKEN(STR_LINK_STATUS_HELP),
+            flags         = 0,
+            default value = questionref(LinkStatus),
             option text = STRING_TOKEN(STR_LINK_STAT_DISCONNECTED), value = 0, flags = 0;
             option text = STRING_TOKEN(STR_LINK_STAT_CONNECTED),    value = 1, flags = 0;
       endoneof;
@@ -233,13 +235,15 @@ formset
 
     suppressif TRUE;
 
-      numeric varid      = UndiNVData.AltMacAddrSupport,
+      numeric name       = AltMacAddrSupport,
+              varid      = UndiNVData.AltMacAddrSupport,
               questionid = QUESTION_ID_TMP_SUPPORT_ALT_MAC_ADDR,
               prompt     = STRING_TOKEN(STR_INV_EMPTY_STRING),
               help       = STRING_TOKEN(STR_INV_EMPTY_STRING),
               flags      = READ_ONLY,
               minimum    = 0,
               maximum    = 1,
+              default value = questionref(AltMacAddrSupport),
       endnumeric;
 
     endif;
@@ -250,13 +254,15 @@ formset
     suppressif ideqval UndiNVData.AltMacAddrSupport == 0;
 
       grayoutif TRUE; /*  This is a READ ONLY field */
-        string varid      = UndiNVData.AltMacAddr,
-               questionid = QUESTION_ID_ALT_MAC_ADDR,
-               prompt     = STRING_TOKEN(STR_ALT_MAC_ADDR_PROMPT),
-               help       = STRING_TOKEN(STR_ALT_MAC_ADDR_HELP),
-               flags      = 0,
-               minsize    = 17,
-               maxsize    = 17,
+        string name          = AltMacAddr,
+               varid         = UndiNVData.AltMacAddr,
+               questionid    = QUESTION_ID_ALT_MAC_ADDR,
+               prompt        = STRING_TOKEN(STR_ALT_MAC_ADDR_PROMPT),
+               help          = STRING_TOKEN(STR_ALT_MAC_ADDR_HELP),
+               flags         = 0,
+               minsize       = 17,
+               maxsize       = 17,
+               default value = questionref(AltMacAddr),
         endstring;
 
       endif;
@@ -290,23 +296,26 @@ formset
 
     suppressif TRUE;
 
-      numeric varid   = UndiNVData.LinkSpeedSettingsSupported,
-              prompt  = STRING_TOKEN(STR_INV_EMPTY_STRING),
-              help    = STRING_TOKEN(STR_INV_EMPTY_STRING),
-              minimum = 0,
-              maximum = 1,
+      numeric name          = LinkSpeedSettingsSupported,
+              varid         = UndiNVData.LinkSpeedSettingsSupported,
+              prompt        = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help          = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              minimum       = 0,
+              maximum       = 1,
+              default value = questionref(LinkSpeedSettingsSupported),
       endnumeric;
 
     endif;
 
     grayoutif ideqval UndiNVData.LinkSpeedSettingsSupported == 0;
 
-      oneof varid         = UndiNVData.LinkSpeed,
+      oneof name          = LinkSpeed,
+            varid         = UndiNVData.LinkSpeed,
             questionid    = QUESTION_ID_LINK_SPEED,
             prompt        = STRING_TOKEN(STR_LINK_SPEED_PROMPT),
             help          = STRING_TOKEN(STR_LINK_SPEED_HELP),
             flags         = 0,
-            option text   = STRING_TOKEN(STR_AUTONEG_TEXT), value = LINK_SPEED_AUTO_NEG, flags = DEFAULT;
+            option text   = STRING_TOKEN(STR_AUTONEG_TEXT), value = LINK_SPEED_AUTO_NEG,  flags = DEFAULT;
 
             suppressif ideqval UndiNVData.LinkSpeedSettingsSupported == 0;
               option text = STRING_TOKEN(STR_10HALF_TEXT),   value = LINK_SPEED_10HALF,   flags = 0;
@@ -321,23 +330,25 @@ formset
 
     suppressif TRUE;
 
-      numeric name    = WolSettingsSupported,
-              varid   = UndiNVData.WolSettingsSupported,
-              prompt  = STRING_TOKEN(STR_INV_EMPTY_STRING),
-              help    = STRING_TOKEN(STR_INV_EMPTY_STRING),
-              flags   = READ_ONLY,
-              minimum = 0,
-              maximum = 1,
+      numeric name          = WolSettingsSupported,
+              varid         = UndiNVData.WolSettingsSupported,
+              prompt        = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help          = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              flags         = READ_ONLY,
+              minimum       = 0,
+              maximum       = 1,
+              default value = questionref(WolSettingsSupported),
       endnumeric;
 
-      numeric name        = DefaultWolEnable,
-              varid       = UndiNVData.DefaultWolEnable,
-              questionid  = QUESTION_ID_DEFAULT_WOL,
-              prompt      = STRING_TOKEN(STR_INV_EMPTY_STRING),
-              help        = STRING_TOKEN(STR_INV_EMPTY_STRING),
-              flags       = READ_ONLY,
-              minimum     = 0,
-              maximum     = 2,
+      numeric name          = DefaultWolEnable,
+              varid         = UndiNVData.DefaultWolEnable,
+              questionid    = QUESTION_ID_DEFAULT_WOL,
+              prompt        = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help          = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              flags         = READ_ONLY,
+              minimum       = 0,
+              maximum       = 2,
+              default value = questionref(DefaultWolEnable),
       endnumeric;
 
     endif;
