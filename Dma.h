@@ -132,4 +132,3 @@ UndiDmaUnmapMemory (
   );
 
 #endif /* _DMA_H_ */
-

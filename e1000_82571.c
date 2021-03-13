@@ -2079,4 +2079,3 @@ STATIC void e1000_clear_hw_cntrs_82571(struct e1000_hw *hw)
 	E1000_READ_REG(hw, E1000_ICTXQMTC);
 	E1000_READ_REG(hw, E1000_ICRXDMTC);
 }
-

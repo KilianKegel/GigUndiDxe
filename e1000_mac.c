@@ -2293,4 +2293,3 @@ s32 e1000_write_8bit_ctrl_reg_generic(struct e1000_hw *hw, u32 reg,
 	return E1000_SUCCESS;
 }
 #endif /* NO_82575_SUPPORT */
-

@@ -127,7 +127,7 @@ FREE_BUF_ON_ERROR:
   PciIo->FreeBuffer (
            PciIo,
            BytesToPages (DmaMapping->Size),
-           (VOID *) DmaMapping->UnmappedAddress
+           (VOID *) (UINTN) DmaMapping->UnmappedAddress
            );
   DmaMapping->Size = 0;
   DmaMapping->UnmappedAddress = 0;
@@ -173,7 +173,7 @@ UndiDmaFreeCommonBuffer (
   PciIo->FreeBuffer (
            PciIo,
            BytesToPages (DmaMapping->Size),
-           (VOID *) DmaMapping->UnmappedAddress
+           (VOID *) (UINTN) DmaMapping->UnmappedAddress
            );
 
   DmaMapping->UnmappedAddress = 0;
@@ -209,7 +209,7 @@ UndiDmaMapCommonBuffer (
   return PciIo->Map (
                   PciIo,
                   EfiPciIoOperationBusMasterCommonBuffer,
-                  (VOID *) DmaMapping->UnmappedAddress,
+                  (VOID *) (UINTN) DmaMapping->UnmappedAddress,
                   &DmaMapping->Size,
                   &DmaMapping->PhysicalAddress,
                   &DmaMapping->Mapping
@@ -243,7 +243,7 @@ UndiDmaMapMemoryRead (
   return PciIo->Map (
                   PciIo,
                   EfiPciIoOperationBusMasterRead,
-                  (VOID *) DmaMapping->UnmappedAddress,
+                  (VOID *) (UINTN) DmaMapping->UnmappedAddress,
                   &DmaMapping->Size,
                   &DmaMapping->PhysicalAddress,
                   &DmaMapping->Mapping
@@ -282,4 +282,3 @@ UndiDmaUnmapMemory (
   return Status;
 }
 
-

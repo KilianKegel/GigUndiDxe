@@ -133,6 +133,7 @@ BRAND_STRUCT mBrandingTable[] = {
 
     {0x8086, 0x8086, 0x1521, 0x5002, L"Intel(R) Gigabit 2P I350-t Adapter"},
     {0x8086, 0x8086, 0x1521, 0x5001, L"Intel(R) Gigabit 4P I350-t Adapter"},
+    {0x8086, 0x8086, 0x1521, 0x5003, L"Intel(R) Ethernet 1G 4P I350-t OCP"},
 
     {0x8086, 0x8086, 0x1523, 0x1F52, L"Intel(R) Gigabit 4P I350-t Mezz"},
 
@@ -213,4 +214,3 @@ BRAND_STRUCT mBrandingTable[] = {
 };
 
 UINTN mBrandingTableSize = (sizeof (mBrandingTable) / sizeof (mBrandingTable[0]));
-

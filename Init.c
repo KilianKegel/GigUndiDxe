@@ -59,7 +59,7 @@ EFI_DRIVER_BINDING_PROTOCOL gUndiDriverBinding;
    configuration table for UNDI to work at runtime!
 
    @param[in]   Event     Standard Event handler (EVT_SIGNAL_EXIT_BOOT_SERVICES)
-   @param[in]   Context   Unused here 
+   @param[in]   Context   Unused here
 
    @retval   None
 **/
@@ -110,9 +110,9 @@ GigUndiNotifyExitBs (
    contain the original device path the NIC was found on (*BaseDevPtr)
    and an added MAC node.
 
-   @param[in,out]   DevPtr       Pointer which will point to the newly created 
+   @param[in,out]   DevPtr       Pointer which will point to the newly created
                                  device path with the MAC node attached.
-   @param[in]       BaseDevPtr   Pointer to the device path which the 
+   @param[in]       BaseDevPtr   Pointer to the device path which the
                                  UNDI device driver is latching on to.
    @param[in]   GigAdapterInfo   Pointer to the NIC data structure information
                                  which the UNDI driver is layering on..
@@ -177,7 +177,7 @@ GigAppendMac2DevPath (
   Status = gBS->AllocatePool (
                   EfiBootServicesData, // EfiRuntimeServicesData,
                   TotalPathLen,
-                  &DevicePtr
+                  (VOID **) &DevicePtr
                 );
 
   if (Status != EFI_SUCCESS) {
@@ -244,7 +244,7 @@ GigUndiPxeUpdate (
   )
 {
   if (NicPtr == NULL) {
-  
+
     // IFcnt is equal to the number of NICs this UNDI supports - 1
     if (mActiveChildren > 0) {
       mActiveChildren--;
@@ -301,7 +301,7 @@ GigUndiPxeStructInit (
                            PXE_ROMID_IMP_TX_COMPLETE_INT_SUPPORTED |
                            PXE_ROMID_IMP_PACKET_RX_INT_SUPPORTED;
 
-  PxePtr->EntryPoint    = (UINT64) E1000UndiApiEntry;
+  PxePtr->EntryPoint    = (UINT64) (UINTN) E1000UndiApiEntry;
   PxePtr->reserved2[0]  = 0;
   PxePtr->reserved2[1]  = 0;
   PxePtr->reserved2[2]  = 0;
@@ -320,7 +320,7 @@ GigUndiPxeStructInit (
    make sure that there is space for 2 !PXE structures (old and new) and a
    32 bytes padding for alignment adjustment (in case)
 
-   @param[in]   VOID   
+   @param[in]   VOID
 
    @retval   EFI_SUCCESS            !PXE structure initialized
    @retval   EFI_OUT_OF_RESOURCES   Failed to allocate memory for !PXE structure
@@ -604,7 +604,7 @@ IsNotEndOfDevicePathNode (
 /** Checks if remaining device path is NULL or end of device path
 
    @param[in]   RemainingDevicePath   Device Path
-   
+
    @retval   TRUE   RemainingDevicePath is NULL or end of device path
 **/
 BOOLEAN
@@ -842,7 +842,7 @@ InitNiiProtocol (
     return EFI_INVALID_PARAMETER;
   }
 
-  NiiProtocol31->Id             = (UINT64) (mE1000Pxe31);
+  NiiProtocol31->Id             = (UINT64) (UINTN) mE1000Pxe31;
   NiiProtocol31->IfNum          = mE1000Pxe31->IFcnt;
 
   NiiProtocol31->Revision       = EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL_REVISION_31;
@@ -938,7 +938,7 @@ InitUndiCallbackFunctions (
   NicInfo->MapMem      = (VOID *) 0;
   NicInfo->UnMapMem    = (VOID *) 0;
   NicInfo->SyncMem     = (VOID *) 0;
-  NicInfo->UniqueId    = (UINT64) NicInfo;
+  NicInfo->UniqueId    = (UINT64) (UINTN) NicInfo;
   NicInfo->VersionFlag = 0x31;
 }
 
@@ -949,7 +949,7 @@ InitUndiCallbackFunctions (
 
    @retval          EFI_SUCCESS            Procedure returned successfully
    @retval          EFI_INVALID_PARAMETER  Invalid parameter passed
-   @retval          !EFI_SUCCESS           Failed to initialize Driver Stop Protocol 
+   @retval          !EFI_SUCCESS           Failed to initialize Driver Stop Protocol
 **/
 EFI_STATUS
 InitDriverStopProtocol (
@@ -1372,7 +1372,7 @@ OpenChildProtocols (
   {
     return EFI_INVALID_PARAMETER;
   }
-  
+
   // Open For Child Device
   Status = gBS->OpenProtocol (
                   Controller,
@@ -1446,7 +1446,7 @@ CloseControllerProtocols (
 
    @retval   EFI_SUCCESS         This driver is added to controller or controller
                                  and specific child is already initialized
-   @retval   !EFI_SUCCESS        Failed to initialize controller or child 
+   @retval   !EFI_SUCCESS        Failed to initialize controller or child
 **/
 EFI_STATUS
 EFIAPI
@@ -1473,7 +1473,7 @@ GigUndiDriverStart (
     InitializeChild = IsNotEndOfDevicePathNode (RemainingDevicePath);
   }
 
-  if (!InitializeController 
+  if (!InitializeController
     && !InitializeChild)
   {
     return EFI_SUCCESS;
@@ -1528,7 +1528,7 @@ GigUndiDriverStart (
       DEBUGPRINT (CRITICAL, ("InitChild failed with %r\n", Status));
       goto UndiErrorDeleteDevicePath;
     }
-    
+
     Status = InitChildProtocols (
                UndiPrivateData
              );
@@ -1569,7 +1569,7 @@ UndiError:
    @param[in]       This                   Driver Binding protocol instance
    @param[in]       Controller             Controller handle
    @param[in]       ChildHandleBuffer      Buffer with child handles
-   @param[in]       UndiPrivateData        Driver private data structure   
+   @param[in]       UndiPrivateData        Driver private data structure
 
    @retval          EFI_SUCCESS            Procedure returned successfully
    @retval          EFI_INVALID_PARAMETER  Invalid parameter passed
@@ -1667,7 +1667,7 @@ StopChild (
   }
 
   if (UndiPrivateData->NicInfo.UndiEnabled) {
-  
+
     // Call shutdown to clear DRV_LOAD bit and stop Rx and Tx
     E1000Shutdown (&UndiPrivateData->NicInfo);
 
@@ -1687,8 +1687,8 @@ StopChild (
 
    @param[in]       This                   Driver Binding protocol instance
    @param[in]       Controller             Controller handle
-   @param[in]       UndiPrivateData        Driver private data structure 
-   
+   @param[in]       UndiPrivateData        Driver private data structure
+
    @retval          EFI_SUCCESS            Procedure returned successfully
    @retval          EFI_INVALID_PARAMETER  Invalid parameter passed
    @retval          !EFI_SUCCESS           Failed to stop controller
@@ -1780,7 +1780,7 @@ StopController (
   return EFI_SUCCESS;
 }
 
-/** Stops driver on children and controller 
+/** Stops driver on children and controller
 
    Stop this driver on Controller by removing NetworkInterfaceIdentifier protocol and
    closing the DevicePath and PciIo protocols on Controller. Stops controller only when
@@ -1876,4 +1876,3 @@ EFI_DRIVER_BINDING_PROTOCOL gUndiDriverBinding = {
   NULL,                   // ImageHandle
   NULL                    // Driver Binding Handle
 };
-

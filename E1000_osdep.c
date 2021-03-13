@@ -57,31 +57,31 @@ e1000_read_pcie_cap_reg (
   }
 
   e1000_read_pci_cfg (Hw, NextPtrOffset, &NextPtrValue);
-  
+
   // Keep only the first byte of the returned Value
   NextPtrValue &= 0xFF;
-  
+
   // Traverse the capabilities linked regions until the end
   while (NextPtrValue != PCI_CAP_PTR_ENDPOINT) {
     NextPtrOffset = NextPtrValue;
     e1000_read_pci_cfg (Hw, NextPtrOffset, &NextPtrValue);
-    
+
     // Check if we found the requested capabilities region
     if ((NextPtrValue & 0xFF) != PCI_EX_CAP_ID) {
-      
+
       // Jump to the next capabilities region
       NextPtrValue &= 0xFF00;
       NextPtrValue = NextPtrValue >> 8;
       NextPtrValue &= 0xFF;
     } else {
-      
+
       // Read the Value from the request offset
       e1000_read_pci_cfg (Hw, NextPtrOffset + Reg, &NextPtrValue);
       *Value = NextPtrValue;
       return E1000_SUCCESS;
     }
   }
-  
+
   // The requested region was not found in PCI space
   DEBUGPRINT (IO, ("Cap ID 0x10 was not found in PCI space.\n"));
   return E1000_ERR_CONFIG;
@@ -117,30 +117,30 @@ e1000_write_pcie_cap_reg (
   }
 
   e1000_read_pci_cfg (Hw, NextPtrOffset, &NextPtrValue);
-  
+
   // Keep only the first byte of the returned Value
   NextPtrValue &= 0xFF;
-  
+
   // Traverse the capabilities linked regions until the end
   while (NextPtrValue != PCI_CAP_PTR_ENDPOINT) {
     NextPtrOffset = NextPtrValue;
     e1000_read_pci_cfg (Hw, NextPtrOffset, &NextPtrValue);
-    
+
     // Check if we found the requested capabilities region
     if ((NextPtrValue & 0xFF) != PCI_EX_CAP_ID) {
-      
+
       // Jump to the next capabilities region
       NextPtrValue &= 0xFF00;
       NextPtrValue = NextPtrValue >> 8;
       NextPtrValue &= 0xFF;
     } else {
-      
+
       // Write the Value from the request offset
       e1000_write_pci_cfg (Hw, NextPtrOffset + Reg, Value);
       return E1000_SUCCESS;
     }
   }
-  
+
   // The requested region was not found in PCI space
   DEBUGPRINT (IO, ("Cap ID 0x10 was not found in PCI space.\n"));
   return E1000_ERR_CONFIG;
@@ -274,7 +274,7 @@ e1000_write_pci_cfg (
 
    @param[in]   Hw   Pointer to hardware instance.
    @param[in]   usecs   Number of microseconds to delay
-   
+
    @return   Execution of code delayed
 **/
 VOID
@@ -288,7 +288,7 @@ USecDelay (
 
 /** This function calls the MemIo callback to read a dword from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -328,7 +328,7 @@ E1000InDword (
 
 /** This function calls the MemIo callback to write a word from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -374,7 +374,7 @@ E1000OutDword (
 
 /** This function calls the MemIo callback to read a dword from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -415,7 +415,7 @@ E1000FlashRead (
 
 /** This function calls the MemIo callback to read a dword from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -456,7 +456,7 @@ E1000FlashRead16 (
 
 /** This function calls the MemIo callback to write a word from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -501,7 +501,7 @@ E1000FlashWrite (
 
 /** This function calls the MemIo callback to write a word from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -639,4 +639,3 @@ e1000_pci_clear_mwi (
 }
 
 
-

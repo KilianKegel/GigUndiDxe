@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "E1000.h"
 
 
-/** Retrieves the health status of a controller in the platform. 
+/** Retrieves the health status of a controller in the platform.
 
    @param[in]   This               Driver health protocol instance
    @param[in]   ControllerHandle   Controller to retrieve the health status on
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    @retval      !EFI_SUCCESS      Failure to retrieve health status
 **/
 EFI_STATUS
+EFIAPI
 GetHealthStatus (
   IN  EFI_DRIVER_HEALTH_PROTOCOL *     This,
   IN  EFI_HANDLE                       ControllerHandle, OPTIONAL
@@ -119,6 +120,7 @@ GetHealthStatus (
    @retval   EFI_UNSUPPORTED   This function is unsupported
 **/
 EFI_STATUS
+EFIAPI
 Repair (
   IN  EFI_DRIVER_HEALTH_PROTOCOL                *This,
   IN  EFI_HANDLE                                ControllerHandle,
@@ -134,4 +136,3 @@ EFI_DRIVER_HEALTH_PROTOCOL gUndiDriverHealthProtocol = {
   GetHealthStatus,
   Repair
 };
-

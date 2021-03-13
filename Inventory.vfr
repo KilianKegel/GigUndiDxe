@@ -102,13 +102,13 @@ formset
       key    = 0;
 
     //
-    // Blink LED    
-    // 
+    // Blink LED
+    //
     numeric varid      = UndiNVData.BlinkLed,
             questionid = QUESTION_ID_BLINK_LED,
             prompt     = STRING_TOKEN(STR_BLINK_LED_PROMPT),
             help       = STRING_TOKEN(STR_BLINK_LED_HLP),
-            flags      = INTERACTIVE, 
+            flags      = INTERACTIVE,
             minimum    = 0,
             maximum    = 15,
             step       = 0,
@@ -126,7 +126,7 @@ formset
       key    = 0;
 
       //
-      // UEFI Driver name 
+      // UEFI Driver name
       //
       text
         help   = STRING_TOKEN(STR_EFI_DRIVER_VER_HELP),
@@ -137,7 +137,7 @@ formset
 
     //
     // Adapter PBA
-    // 
+    //
     text
       help   = STRING_TOKEN(STR_ADAPTER_PBA_HELP),
       text   = STRING_TOKEN(STR_ADAPTER_PBA_PROMPT),
@@ -147,7 +147,7 @@ formset
 
     //
     // Device Name
-    // 
+    //
     text
         help   = STRING_TOKEN(STR_DEVICE_NAME_HELP),
         text   = STRING_TOKEN(STR_DEVICE_NAME_PROMPT),
@@ -195,7 +195,7 @@ formset
       flags  = 0,
       key    = 0;
 
-    // 
+    //
     // Link status
     //
     grayoutif TRUE; /* This is a READ ONLY field */
@@ -257,12 +257,12 @@ formset
                flags      = 0,
                minsize    = 17,
                maxsize    = 17,
-        endstring; 
+        endstring;
 
       endif;
 
     endif;
-    
+
   endform;
 
 
@@ -329,7 +329,7 @@ formset
               minimum = 0,
               maximum = 1,
       endnumeric;
-      
+
       numeric name        = DefaultWolEnable,
               varid       = UndiNVData.DefaultWolEnable,
               questionid  = QUESTION_ID_DEFAULT_WOL,
@@ -365,9 +365,9 @@ formset
 
 
 
+
   endform;
 
 
 endformset;
 
-

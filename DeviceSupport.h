@@ -31,10 +31,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "E1000.h"
 
-typedef struct BRAND_STRUCT_S BRAND_STRUCT;
+
+/* Types */
+typedef struct BRAND_STRUCT_S {
+  UINT16  VendorId;
+  UINT16  SubvendorId;
+  UINT16  DeviceId;
+  UINT16  SubsystemId;
+  CHAR16 *BrandString;
+} BRAND_STRUCT;
 
 extern BRAND_STRUCT mBrandingTable[];
 extern UINTN        mBrandingTableSize;
+
 
 /* Defines */
 #define INVALID_VENDOR_ID     0xFFFF
@@ -44,14 +53,6 @@ extern UINTN        mBrandingTableSize;
 #define WILD_CARD             0x0000
 
 
-/* Types */
-struct BRAND_STRUCT_S {
-  UINT16  VendorId;
-  UINT16  SubvendorId;
-  UINT16  DeviceId;
-  UINT16  SubsystemId;
-  CHAR16 *BrandString;
-};
 
 /* Function declarations */
 
@@ -69,11 +70,11 @@ GetDeviceBrandingString (
 /** Returns information whether given device ID is supported basing on branding
    table.
 
-   @param[in]   VendorId      Device's vendor ID   
-   @param[in]   DeviceId      Device's device ID   
+   @param[in]   VendorId      Device's vendor ID
+   @param[in]   DeviceId      Device's device ID
 
    @retval   TRUE    Device ID is supported
-   @retval   FALSE   Device ID is not supported 
+   @retval   FALSE   Device ID is not supported
 **/
 BOOLEAN
 IsDeviceIdSupported (
@@ -81,4 +82,3 @@ IsDeviceIdSupported (
   UINT16 DeviceId
   );
 #endif /* DEVICE_SUPPORT_H_ */
-

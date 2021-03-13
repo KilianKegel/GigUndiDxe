@@ -31,11 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Uefi.h>
 #include <Base.h>
-#include <Library\BaseLib.h>
-#include <Library\BaseMemoryLib.h>
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
 
-#pragma warning(disable : 4244)
-#pragma warning(disable : 4206)
 
 #ifndef EFI_SPECIFICATION_VERSION
 #define EFI_SPECIFICATION_VERSION 0x00020000
@@ -45,11 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TIANO_RELEASE_VERSION     0x00080005
 #endif /* TIANO_RELEASE_VERSION */
 
-#ifdef EFI32
-
-// Remove truncation warning in type cast when some 64 bit variables are converted to 32-bit pointers
-#pragma warning(disable : 4305)
-#endif /* EFI32 */
 
 //#define STATIC static
 
@@ -84,7 +77,7 @@ struct e1000_hw;
 
 /** This function calls the MemIo callback to read a dword from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -102,7 +95,7 @@ E1000InDword (
 
 /** This function calls the MemIo callback to write a word from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -122,7 +115,7 @@ E1000OutDword (
 
 /** This function calls the MemIo callback to read a dword from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -140,7 +133,7 @@ E1000FlashRead (
 
 /** This function calls the MemIo callback to read a dword from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -158,7 +151,7 @@ E1000FlashRead16 (
 
 /** This function calls the MemIo callback to write a word from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -178,7 +171,7 @@ E1000FlashWrite (
 
 /** This function calls the MemIo callback to write a word from the device's
    address space
-   
+
    Since UNDI3.0 uses the TmpMemIo function (instead of the callback routine)
    which also takes the UniqueId parameter (as in UNDI3.1 spec) we don't have
    to make undi3.0 a special case
@@ -211,7 +204,7 @@ E1000PciFlush (
 
    @param[in]   Hw   Pointer to hardware instance.
    @param[in]   usecs   Number of microseconds to delay
-   
+
    @return   Execution of code delayed
 **/
 VOID
@@ -240,7 +233,7 @@ E1000WriteRegIo (
    with USecDelay function
 
    @param[in]   x   Time to wait in microseconds
-   
+
    @return   USecDelay called
 **/
 #define usec_delay(x)     USecDelay (hw, x)
@@ -249,7 +242,7 @@ E1000WriteRegIo (
    with USecDelay function
 
    @param[in]   x   Time to wait in milliseconds
-   
+
    @return   USecDelay called
 **/
 #define msec_delay(x)     USecDelay (hw, x * 1000)
@@ -258,7 +251,7 @@ E1000WriteRegIo (
    with USecDelay function
 
    @param[in]   x   Time to wait in microseconds
-   
+
    @return   USecDelay called
 **/
 #define usec_delay_irq(x) USecDelay (hw, x)
@@ -267,7 +260,7 @@ E1000WriteRegIo (
    with USecDelay function
 
    @param[in]   x   Time to wait in milliseconds
-   
+
    @return   USecDelay called
 **/
 #define msec_delay_irq(x) USecDelay (hw, x * 1000)
@@ -277,7 +270,7 @@ E1000WriteRegIo (
    @param[in]    Buffer         Buffer to set its contents
    @param[in]    BufferLength   Length of the buffer
    @param[in]    Value          Value to set buffer contents to
-   
+
    @return   Buffer contents set to Value
 **/
 #define memset(Buffer, Value, BufferLength) SetMem (Buffer, BufferLength, Value)
@@ -299,7 +292,7 @@ typedef BOOLEAN boolean_t;
 /** Macro wrapper for shared code, blank here
 
    @param[in]   F    String to display
-   
+
    @retval  None
 **/
 #define DEBUGFUNC(F)
@@ -308,7 +301,7 @@ typedef BOOLEAN boolean_t;
    with UNREFERENCED_XPARAMETER (resulting in DEBUGOUT being unused)
 
    @param[in]   s    String to display
-   
+
    @retval   None
 **/
 #define DEBUGOUT(s) \
@@ -320,7 +313,7 @@ typedef BOOLEAN boolean_t;
 
    @param[in]   s    String to display
    @param[in]   a    Value to include in string
-   
+
    @retval   None
 **/
 #define DEBUGOUT1(s, a) \
@@ -334,7 +327,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   s    String to display
    @param[in]   a    Value to include in string
    @param[in]   b    Value to include in string
-   
+
    @retval   None
 **/
 #define DEBUGOUT2(s, a, b) \
@@ -349,9 +342,9 @@ typedef BOOLEAN boolean_t;
    @param[in]   a    Value to include in string
    @param[in]   b    Value to include in string
    @param[in]   c    Value to include in string
-   
+
    @retval   None
-**/  
+**/
 #define DEBUGOUT3(s, a, b, c) \
   do { \
     UNREFERENCED_3PARAMETER (a, b, c); \
@@ -368,7 +361,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   e    Value to include in string
    @param[in]   f    Value to include in string
    @param[in]   g    Value to include in string
-   
+
    @retval   None
 **/
 #define DEBUGOUT7(s, a, b, c, d, e, f, g)
@@ -379,7 +372,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   a        Pointer to hardware instance.
    @param[in]   Reg      Which port to write to.
    @param[in]   Value    Data to write to Port.
-   
+
    @return   E1000OutDword called
 **/
 #define E1000_WRITE_REG(a, Reg, Value) \
@@ -389,7 +382,7 @@ typedef BOOLEAN boolean_t;
 
    @param[in]   a        Pointer to hardware instance.
    @param[in]   Reg      Which port to read from.
-   
+
    @return   E1000InDword called
 **/
 #define E1000_READ_REG(a, Reg)  \
@@ -401,7 +394,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   Reg      Which port to write to.
    @param[in]   Offset   Offset from Reg.
    @param[in]   Value    Data to write to Port.
-   
+
    @return   E1000OutDword called
 **/
 #define E1000_WRITE_REG_ARRAY(a, Reg, Offset, Value) \
@@ -413,7 +406,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   Reg      Which port to write to.
    @param[in]   Offset   Offset from Reg.
    @param[in]   Value    Data to write to Port.
-   
+
    @return   E1000OutDword called
 **/
 #define E1000_WRITE_REG_ARRAY_BYTE(a, Reg, Offset, Value)  \
@@ -425,7 +418,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   Reg      Which port to write to.
    @param[in]   Offset   Offset from Reg.
    @param[in]   Value    Data to write to Port.
-   
+
    @return   E1000OutDword called
 **/
 #define E1000_WRITE_REG_ARRAY_DWORD(a, Reg, Offset, Value)  \
@@ -436,7 +429,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   a        Pointer to hardware instance.
    @param[in]   Reg      Which port to read from.
    @param[in]   Offset   Offset from Reg.
-   
+
    @return   E1000InDword called
 **/
 #define E1000_READ_REG_ARRAY(a, Reg, Offset)  \
@@ -447,7 +440,7 @@ typedef BOOLEAN boolean_t;
    @param[in]   a        Pointer to hardware instance.
    @param[in]   Reg      Which port to read from.
    @param[in]   Offset   Offset from Reg.
-   
+
    @return   E1000InDword called
 **/
 #define E1000_READ_REG_ARRAY_BYTE(a, Reg, Offset)  \
@@ -458,68 +451,68 @@ typedef BOOLEAN boolean_t;
    @param[in]   a        Pointer to hardware instance.
    @param[in]   Reg      Which port to read from.
    @param[in]   Offset   Offset from Reg.
-   
+
    @return   E1000InDword called
 **/
 #define E1000_READ_REG_ARRAY_DWORD(a, Reg, Offset)  \
   E1000InDword (a, (UINT32) (Reg + ((Offset) << 2)))
 
 /** E1000_WRITE_FLUSH wrapper macro for shared code
-   
+
    @param[in]   a        Pointer to hardware instance.
-   
+
    @return   E1000PciFlush called
 **/
 #define E1000_WRITE_FLUSH(a) E1000PciFlush (a);
 
 /** E1000_WRITE_REG_IO wrapper macro for shared code
-   
+
    @param[in]   a       Pointer to the shared code hw structure.
    @param[in]   Reg     The register offset to write.
    @param[in]   Value   The value to write to the register.
-   
+
    @return   E1000WriteRegIo called
 **/
 #define E1000_WRITE_REG_IO(a, Reg, Value) \
   E1000WriteRegIo (a, (UINT32) (Reg), Value)
 
 /** E1000_READ_FLASH_REG wrapper macro for shared code
-   
+
    @param[in]   a    Pointer to hardware instance.
    @param[in]   Reg  Which port to read from.
-   
+
    @return   E1000FlashRead called
 **/
 #define E1000_READ_FLASH_REG(a, Reg) \
   E1000FlashRead (a, (UINT32) (Reg))
 
 /** E1000_WRITE_FLASH_REG wrapper macro for shared code
-   
+
    @param[in]   a       Pointer to the shared code hw structure.
    @param[in]   Reg     The register offset to write.
    @param[in]   Data    The value to write to the register.
-   
+
    @return   E1000FlashWrite called
 **/
 #define E1000_WRITE_FLASH_REG(a, Reg, Data) \
   E1000FlashWrite (a, (UINT32) (Reg), Data)
 
 /** E1000_READ_FLASH_REG16 wrapper macro for shared code
-   
+
    @param[in]   a       Pointer to the shared code hw structure.
    @param[in]   Reg     The register offset to read from.
-   
+
    @return   E1000FlashRead16 called
 **/
 #define E1000_READ_FLASH_REG16(a, Reg) \
   E1000FlashRead16 (a, (UINT32) (Reg))
 
 /** E1000_WRITE_FLASH_REG16 wrapper macro for shared code
-   
+
    @param[in]   a       Pointer to the shared code hw structure.
    @param[in]   Reg     The register offset to write.
    @param[in]   Data    The value to write to the register.
-   
+
    @return   E1000FlashWrite16 called
 **/
 #define E1000_WRITE_FLASH_REG16(a, Reg, Data) \
@@ -575,4 +568,3 @@ typedef BOOLEAN boolean_t;
 
 #endif /* E1000_OSDEP_H_ */
 
-

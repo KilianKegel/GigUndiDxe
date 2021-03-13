@@ -26,43 +26,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
-#ifndef START_STOP_H_
-#define START_STOP_H_
 
-#include "E1000.h"
-
-#define EFI_DRIVER_STOP_PROTOCOL_GUID \
-  { 0x34d59603, 0x1428, 0x4429, { 0xa4, 0x14, 0xe6, 0xb3, 0xb5, 0xfd, 0x7d, 0xc1 } }
-
-typedef struct EFI_DRIVER_STOP_PROTOCOL_S  EFI_DRIVER_STOP_PROTOCOL;
-
-/** Issues a call to stop the driver so diagnostic application can access the hardware.
-
-   @param[in]   This       Pointer to the EFI_DRIVER_STOP_PROTOCOL instance.
-
-   @retval   EFI_SUCCESS   Driver is stopped successfully
-**/
-typedef
-EFI_STATUS
-(EFIAPI *EFI_DRIVER_STOP_PROTOCOL_STOP_DRIVER) (
-  IN EFI_DRIVER_STOP_PROTOCOL *This
-  );
-
-/** Issues a call to start the driver after diagnostic application has completed.
-
-   @param[in]   This       Pointer to the EFI_DRIVER_STOP_PROTOCOL instance.
-
-   @retval   EFI_SUCCESS   If driver has restarted successfully
-**/
-typedef
-EFI_STATUS
-(EFIAPI *EFI_DRIVER_STOP_PROTOCOL_START_DRIVER) (
-  IN EFI_DRIVER_STOP_PROTOCOL *This
-  );
-
-struct EFI_DRIVER_STOP_PROTOCOL_S {
-  EFI_DRIVER_STOP_PROTOCOL_STOP_DRIVER StopDriver;
-  EFI_DRIVER_STOP_PROTOCOL_START_DRIVER StartDriver;
-};
-
-#endif /* START_STOP_H_ */
+/** @file DebugTools.c Debug macros and utilities. */
+#include <DebugTools.h>

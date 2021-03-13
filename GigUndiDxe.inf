@@ -27,104 +27,120 @@
 # 
 # ***************************************************************************/
 
-[defines]
-INF_VERSION          = 0x00010005
-BASE_NAME            = GigUndiDxe
-FILE_GUID            = BB801A52-C90F-4EDE-91B2-82520888CBC3
+[Defines]
+  INF_VERSION          = 0x00010005
+  BASE_NAME            = GigUndiDxe
+  FILE_GUID            = BB801A52-C90F-4EDE-91B2-82520888CBC3
 
-# UEFI_DRIVER is compliant with EFI1.10 or UEFI 2.0 specification
+  # UEFI_DRIVER is compliant with EFI1.10 or UEFI 2.0 specification
+  MODULE_TYPE          = UEFI_DRIVER
 
-MODULE_TYPE          = UEFI_DRIVER
-
-VERSION_STRING       = 1.0
-ENTRY_POINT          = InitializeGigUNDIDriver
-UNLOAD_IMAGE         = GigUndiUnload
+  VERSION_STRING       = 1.0
+  ENTRY_POINT          = InitializeGigUNDIDriver
+  UNLOAD_IMAGE         = GigUndiUnload
 
 [BuildOptions.common]
+  *_*_*_CC_FLAGS = -D UNDI_1G
 
-*_*_*_CC_FLAGS = /FAcs /D MDEPKG_NDEBUG
+  # Enable to use PciIo protocols for PCI reads/writes. (Experimental!)
+  #*_*_*_CC_FLAGS = -D CONFIG_ACCESS_TO_CSRS
+
+  # Generates extra debug info when building with Microsoft compilers.
+  MSFT:*_*_*_CC_FLAGS = /FAcs
+
+  # Disable debug macros for RELEASE builds.
+  RELEASE_*_*_CC_FLAGS = -D MDEPKG_NDEBUG
+
+  # Disable shared code warnings on MSVC.
+  # - 4206: translation unit empty (occasionally happens in shared code)
+  # - 4244: conversion from ... to ..., possible loss of data
+  MSFT:*_*_*_CC_FLAGS = /wd4206 /wd4244
 
 [BuildOptions.X64]
-
-*_*_*_CC_FLAGS = /D EFIX64 
-
-[BuildOptions.IPF]
-
-*_*_*_CC_FLAGS = /D EFI64
+  *_*_*_CC_FLAGS = -D EFIX64
 
 [BuildOptions.IA32]
+  *_*_*_CC_FLAGS = -D EFI32
 
-*_*_*_CC_FLAGS = /D EFI32
+  # Disable warning 4305: truncation from ... to ... (data loss when casting to a smaller type)
+  MSFT:*_*_*_CC_FLAGS = /wd4305
 
-[sources.common]
-InventoryStrings.uni
-Inventory.vfr
-Brand.c
-ComponentName.c
-ComponentName.h
-DeviceSupport.h
-DeviceSupport.c
-Decode.c
-Decode.h
-Dma.c
-Dma.h
-DriverConfiguration.c
-DriverConfiguration.h
-DriverDiagnostics.c
-DriverDiagnostics.h
-E1000.h
-E1000.c
-e1000_80003es2lan.h
-e1000_80003es2lan.c
-e1000_82571.h
-e1000_82571.c
-e1000_82575.h
-e1000_82575.c
-e1000_api.h
-e1000_api.c
-e1000_defines.h
-e1000_hw.h
-e1000_ich8lan.h
-e1000_ich8lan.c
-e1000_mac.h
-e1000_mac.c
-e1000_manage.h
-e1000_manage.c
-e1000_nvm.h
-e1000_nvm.c
-E1000_osdep.h
-E1000_osdep.c
-e1000_phy.h
-e1000_phy.c
-e1000_regs.h
-e1000_i210.h
-e1000_i210.c
-EepromConfig.c
-EepromConfig.h
-DriverHealth.c
-HiiInternalLib.c
-HiiInternalLib.h
-Init.c
-Init.h
-NVDataStruc.h
-StartStop.h
-StartStop.c
-Hii.c
-Hii.h
-AdapterInformation.c
-AdapterInformation.h
-Version.h
+[BuildOptions.ARM]
+  *_*_*_CC_FLAGS = -D ARCH_ARM
 
-wol\wol.h
-wol\wol.c
-wol\wolimpl.h
-wol\wolimpl.c
-wol\wolfamily.c
-wol\wolinfo.c
-wol\wol_1G.c
+[BuildOptions.AARCH64]
+  *_*_*_CC_FLAGS = -D ARCH_AARCH64
 
-[sources.X64]
-  
+[Sources.common]
+  AdapterInformation.c
+  AdapterInformation.h
+  Brand.c
+  ComponentName.c
+  ComponentName.h
+  DebugTools.c
+  DebugTools.h
+  Decode.c
+  Decode.h
+  DeviceSupport.c
+  DeviceSupport.h
+  Dma.c
+  Dma.h
+  DriverConfiguration.c
+  DriverConfiguration.h
+  DriverDiagnostics.c
+  DriverDiagnostics.h
+  DriverHealth.c
+  E1000.c
+  E1000.h
+  e1000_osdep.c
+  e1000_osdep.h
+  EepromConfig.c
+  EepromConfig.c
+  Hii.c
+  Hii.h
+  HiiInternalLib.c
+  HiiInternalLib.h
+  Init.c
+  Init.h
+  Inventory.vfr
+  InventoryStrings.uni
+  NVDataStruc.h
+  StartStop.c
+  StartStop.h
+  Version.h
+
+  e1000_80003es2lan.c
+  e1000_80003es2lan.h
+  e1000_82571.c
+  e1000_82571.h
+  e1000_82575.c
+  e1000_82575.h
+  e1000_api.c
+  e1000_api.h
+  e1000_defines.h
+  e1000_hw.h
+  e1000_i210.c
+  e1000_i210.h
+  e1000_ich8lan.c
+  e1000_ich8lan.h
+  e1000_mac.c
+  e1000_mac.h
+  e1000_manage.c
+  e1000_manage.h
+  e1000_nvm.c
+  e1000_nvm.h
+  e1000_phy.c
+  e1000_phy.h
+  e1000_regs.h
+
+  wol/wol.c
+  wol/wol.h
+  wol/wolfamily.c
+  wol/wolimpl.c
+  wol/wolimpl.h
+  wol/wolinfo.c
+  wol/wol_1G.c
+
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
@@ -140,10 +156,6 @@ wol\wol_1G.c
   UefiLib
   HiiLib
 
-[LibraryClasses.X64]
-  
-[LibraryClasses.IPF]
-
 [Protocols.common]
   gEfiNetworkInterfaceIdentifierProtocolGuid_31
   gEfiPciIoProtocolGuid
@@ -154,13 +166,11 @@ wol\wol_1G.c
   gEfiHiiConfigAccessProtocolGuid               ## PRODUCES
   gEfiFormBrowser2ProtocolGuid                  ## CONSUMES
   gEfiHiiDatabaseProtocolGuid                   ## CONSUMES
-  gEfiHiiPackageListProtocolGuid    			## CONSUMES  
+  gEfiHiiPackageListProtocolGuid                ## CONSUMES
   gEfiDriverSupportedEfiVersionProtocolGuid
-  gEfiDriverHealthProtocolGuid    
-  
+  gEfiDriverHealthProtocolGuid
 
 [Guids]
-  gEfiIfrTianoGuid                              ## CONSUMES ## Guid
-  gEfiEventExitBootServicesGuid        			## PRODUCES ## Event
-  gEfiEventVirtualAddressChangeGuid    			## PRODUCES ## Event
-
+  gEfiIfrTianoGuid                  ## CONSUMES ## Guid
+  gEfiEventExitBootServicesGuid     ## PRODUCES ## Event
+  gEfiEventVirtualAddressChangeGuid ## PRODUCES ## Event

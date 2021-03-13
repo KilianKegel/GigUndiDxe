@@ -1280,4 +1280,3 @@ void e1000_shutdown_fiber_serdes_link(struct e1000_hw *hw)
 }
 
 #endif /* NO_82575_SUPPORT */
-

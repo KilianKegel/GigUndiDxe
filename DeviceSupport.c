@@ -32,10 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Seeks for current device's entry in branding table
 
-   @param[in]   VendorId      Device's vendor ID   
-   @param[in]   DeviceId      Device's device ID   
-   @param[in]   SubvendorId   Device's subvendor ID   
-   @param[in]   SubdeviceId   Device's subdevice ID   
+   @param[in]   VendorId      Device's vendor ID
+   @param[in]   DeviceId      Device's device ID
+   @param[in]   SubvendorId   Device's subvendor ID
+   @param[in]   SubdeviceId   Device's subdevice ID
    @param[in]   ExactMatch    Indicator whether full 4-part device ID match is expected.
                               If FALSE, function returns best matching device's info.
 
@@ -164,11 +164,11 @@ GetDeviceBrandingString (
 /** Returns information whether given device ID is supported basing on branding
    table.
 
-   @param[in]   VendorId      Device's vendor ID   
-   @param[in]   DeviceId      Device's device ID   
+   @param[in]   VendorId      Device's vendor ID
+   @param[in]   DeviceId      Device's device ID
 
    @retval   TRUE    Device ID is supported
-   @retval   FALSE   Device ID is not supported 
+   @retval   FALSE   Device ID is not supported
 **/
 BOOLEAN
 IsDeviceIdSupported (
@@ -189,4 +189,3 @@ IsDeviceIdSupported (
   }
   return FALSE;
 }
-

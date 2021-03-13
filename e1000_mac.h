@@ -97,4 +97,3 @@ void e1000_update_adaptive_generic(struct e1000_hw *hw);
 void e1000_write_vfta_generic(struct e1000_hw *hw, u32 offset, u32 value);
 
 #endif
-

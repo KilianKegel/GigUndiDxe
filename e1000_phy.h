@@ -349,4 +349,3 @@ struct sfp_e1000_flags {
 
 #endif /* NO_82575_SUPPORT */
 #endif
-

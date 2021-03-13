@@ -97,4 +97,3 @@ enum E1000_INVM_STRUCTURE_TYPE {
 #define E1000_INVM_PLL_WO_VAL		0x0010
 
 #endif
-

@@ -83,7 +83,7 @@ SkipConfigHeader (
   if (*StringPtr == 0) {
     return NULL;
   }
-  
+
   // Skip '&'
   StringPtr++;
 
@@ -92,7 +92,7 @@ SkipConfigHeader (
 
 /** Get the value of <Number> in <BlockConfig> format, i.e. the value of OFFSET
   or WIDTH or VALUE.
-  
+
   <BlockConfig> ::= 'OFFSET='<Number>&'WIDTH='<Number>&'VALUE'=<Number>
   This is a internal function.
 
@@ -123,10 +123,10 @@ GetValueOfNumber (
   UINTN      Index;
   CHAR16     TemStr[2];
 
-  ASSERT (StringPtr != NULL 
-    && Number != NULL 
+  ASSERT (StringPtr != NULL
+    && Number != NULL
     && Len != NULL);
-  
+
   ASSERT (*StringPtr != L'\0');
 
   Buf = NULL;
@@ -197,7 +197,6 @@ GetNextRequestElement (
   )
 {
   EFI_STRING StringPtr;
-  EFI_STRING TmpPtr;
   EFI_STATUS Status;
   UINTN      Length;
   UINT8 *    TmpBuffer;
@@ -225,9 +224,6 @@ GetNextRequestElement (
   {
     return NULL;
   }
-
-  // Back up the header of one <BlockName>
-  TmpPtr = StringPtr;
 
   StringPtr += StrLen (L"OFFSET=");
 
@@ -283,9 +279,9 @@ GetNextRequestElement (
 /** Determines if a Unicode character is a hexadecimal digit.
    The test is case insensitive.
 
-   @param[in]   Digit  Pointer to byte that receives the value of the hex character.   
+   @param[in]   Digit  Pointer to byte that receives the value of the hex character.
    @param[in]   Char   Unicode character to test.
-   
+
    @retval   TRUE     If the character is a hexadecimal digit.
    @retval   FALSE    If the character is not a hexadecimal digit.
 **/
@@ -295,7 +291,7 @@ IsHexDigit (
   IN  CHAR16 Char
   )
 {
-  if ((Char >= L'0') 
+  if ((Char >= L'0')
     && (Char <= L'9'))
   {
     *Digit = (UINT8) (Char - L'0');
@@ -321,7 +317,7 @@ IsHexDigit (
 
 
 /** Converts Unicode string to binary buffer. The conversion may be partial.
-   
+
    The first character in the string that is not hex digit stops the conversion.
    At a minimum, any blob of data could be represented as a hex string.
 
@@ -330,7 +326,7 @@ IsHexDigit (
                           If routine return with EFI_SUCCESS, containing length of converted data.
                           If routine return with EFI_BUFFER_TOO_SMALL, containg length of buffer desired.
    @param[in]       Str               String to be converted from.
-   @param[out]      ConvertedStrLen   Length of the Hex String consumed. 
+   @param[out]      ConvertedStrLen   Length of the Hex String consumed.
 
    @retval   EFI_SUCCESS            Routine Success.
    @retval   EFI_BUFFER_TOO_SMALL   The buffer is too small to hold converted data.
@@ -358,7 +354,7 @@ HexStringToBuf (
     *Len = 0;
     return EFI_SUCCESS;
   }
-  
+
   // Two Unicode characters make up 1 buffer byte. Round up.
   BufferLength = (HexCnt + 1) / 2;
 
@@ -399,7 +395,7 @@ HexStringToBuf (
 
    @param[in,out]   InString   The string to search in.
    @param[in]       Offset     Offset value of searched BlockName.
-   @param[out]      OutString  OFFSET= string that was found 
+   @param[out]      OutString  OFFSET= string that was found
 
    @retval   TRUE         BlockName was found.
    @retval   FALSE        BlockName not found.
@@ -419,7 +415,7 @@ SetProgressString (
 
   while ((InString = StrStr (InString, L"&OFFSET=")) != NULL) {
     TmpString = InString;
-    
+
     // Jump over '&OFFSET='
     InString = InString + 8;
 
@@ -442,19 +438,18 @@ SetProgressString (
   return FALSE;
 }
 
-/** Wrapper for UDK function AsciiStrToUnicodeStr(), checks whether Destination
-    points to a buffer of length greater or equal to Source string length.
+/** Wrapper for the UDK AsciiStrToUnicodeStrS() function with an additional
+    runtime check for destination address alignment.
 
-   @param[in]   Source           A pointer to a Null-terminated ASCII string.
-   @param[out]  Destination      A pointer to a Null-terminated Unicode string.
-   @param[in]   DestMax          The maximum number of Destination Unicode char,
-                                 including terminating null char.
+   @param[in]   Source        A pointer to a Null-terminated ASCII string.
+   @param[out]  Destination   A pointer to a Null-terminated Unicode string.
+   @param[in]   DestMax       The maximum number of Destination Unicode char,
+                              including the terminating null char.
 
    @retval   EFI_SUCCESS           String converted succesfully.
-   @retval   EFI_INVALID_PARAMETER If Destination is NULL
-                                   If Source is NULL
-   @retval   EFI_BUFFER_TOO_SMALL  If DestMax is NOT greater than StrLen(Source).
-   @retval   EFI_ACCESS_DENIED     If Source and Destination overlap.
+   @retval   EFI_INVALID_PARAMETER Source or Destination is NULL, or DestMax is 0.
+   @retval   EFI_BUFFER_TOO_SMALL  DestMax is NOT greater than StrLen(Source).
+   @retval   EFI_ACCESS_DENIED     Source and Destination overlap.
 **/
 EFI_STATUS
 AsciiStrToUnicodeStrWrapper (
@@ -463,26 +458,10 @@ AsciiStrToUnicodeStrWrapper (
   IN  UINTN        DestMax
   )
 {
-  UINTN SourceLen;
-
   if (((UINTN) Destination & BIT0) != 0) {
     return EFI_INVALID_PARAMETER;
   }
-  if (Destination == NULL || Source == NULL) {
-    return EFI_INVALID_PARAMETER;
-  }
-  SourceLen = AsciiStrnLenS (Source, DestMax);
 
-  // Source and Destination should not overlap
-  if ((((UINTN)Source >= (UINTN)Destination) && ((UINTN)Source < (UINTN)Destination + DestMax)) ||
-    (((UINTN)Destination >= (UINTN)Source) && ((UINTN)Destination < (UINTN)Source + SourceLen))) {
-    return EFI_ACCESS_DENIED;
-  }
-  if (DestMax > SourceLen) {
-    AsciiStrToUnicodeStr (Source, Destination);
-    return EFI_SUCCESS;
-  } else {
-    return EFI_BUFFER_TOO_SMALL;
-  }
+  return AsciiStrToUnicodeStrS (Source, Destination, DestMax);
 }
-
+

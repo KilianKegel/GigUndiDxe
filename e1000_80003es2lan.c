@@ -1248,7 +1248,6 @@ STATIC s32 e1000_setup_copper_link_80003es2lan(struct e1000_hw *hw)
 /**
  *  e1000_cfg_on_link_up_80003es2lan - es2 link configuration after link-up
  *  @hw: pointer to the HW structure
- *  @duplex: current duplex setting
  *
  *  Configure the KMRN interface by applying last minute quirks for
  *  10/100 operation.
@@ -1532,4 +1531,3 @@ STATIC void e1000_clear_hw_cntrs_80003es2lan(struct e1000_hw *hw)
 	E1000_READ_REG(hw, E1000_ICTXQMTC);
 	E1000_READ_REG(hw, E1000_ICRXDMTC);
 }
-

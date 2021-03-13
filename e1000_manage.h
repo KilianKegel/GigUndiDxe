@@ -100,4 +100,3 @@ enum e1000_mng_mode {
 #define E1000_IAMT_SIGNATURE		0x544D4149
 
 #endif
-

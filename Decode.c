@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
 #include "E1000.h"
-#include <Uefi\UEfiPxe.h>
+#include <Uefi/UefiPxe.h>
 
 /** This routine determines the operational state of the UNDI.  It updates the state flags in the
    Command Descriptor Block based on information derived from the GigAdapter instance data.
@@ -49,7 +49,7 @@ E1000UndiGetState (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to change the operational state of the 1-Gigabit UNDI
    from stopped to started.
 
@@ -78,7 +78,7 @@ E1000UndiStart (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to change the operational state of the UNDI from started to stopped.
 
    It will not do this if the adapter's state is PXE_STATFLAGS_GET_STATE_INITIALIZED, otherwise
@@ -98,7 +98,7 @@ E1000UndiStop (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to retrieve the initialization information that is
    needed by drivers and applications to initialize the UNDI.
 
@@ -109,7 +109,7 @@ E1000UndiStop (
    In addition, the CdbPtr->StatFlags ORs in that this NIC supports cable detection.  (APRIORI knowledge)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
@@ -119,7 +119,7 @@ E1000UndiGetInitInfo (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to retrieve the configuration information about the NIC being controlled by
   this driver.
 
@@ -139,7 +139,7 @@ E1000UndiGetConfigInfo (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine resets the network adapter and initializes the 1-Gigabit UNDI using the parameters
    supplied in the CPB.
 
@@ -164,7 +164,7 @@ E1000UndiInitialize (
   IN  PXE_CDB *    CdbPtr,
   GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine resets the network adapter and initializes the 1-Gigabit UNDI using the
    parameters supplied in the CPB.
 
@@ -182,7 +182,7 @@ E1000UndiReset (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine resets the network adapter and leaves it in a safe state for another
    driver to initialize.
 
@@ -204,7 +204,7 @@ E1000UndiShutdown (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine can be used to read and/or change the current external interrupt enable
    settings.
 
@@ -224,7 +224,7 @@ E1000UndiInterrupt (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to read and change receive filters and, if supported, read
    and change multicast MAC address filter list.
 
@@ -239,7 +239,7 @@ E1000UndiRecFilter (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to get the current station and broadcast MAC addresses,
    and to change the current station MAC address.
 
@@ -254,7 +254,7 @@ E1000UndiStnAddr (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to read and clear the NIC traffic statistics.  This command is supported
    only if the !PXE structure's Implementation flags say so.
 
@@ -281,7 +281,7 @@ E1000UndiStatistics (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to translate a multicast IP address to a multicast MAC address.
 
    This results in a MAC address composed of 25 bits of fixed data with the upper 23 bits of the IP
@@ -298,7 +298,7 @@ E1000UndiIp2Mac (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to read and write non-volatile storage on the NIC (if supported).  The NVRAM
    could be EEPROM, FLASH, or battery backed RAM.
 
@@ -315,7 +315,7 @@ E1000UndiNvData (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine returns the current interrupt status and/or the transmitted buffer addresses.
 
    If the current interrupt status is returned, pending interrupts will be acknowledged by this
@@ -336,7 +336,7 @@ E1000UndiStatus (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to fill media header(s) in transmit packet(s).
 
    Copies the MAC address into the media header whether it is dealing
@@ -353,7 +353,7 @@ E1000UndiFillHeader (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** This routine is used to place a packet into the transmit queue.
 
    The data buffers given to this command are to be considered locked and the application or
@@ -381,7 +381,7 @@ E1000UndiTransmit (
   IN PXE_CDB *        CdbPtr,
   IN GIG_DRIVER_DATA *GigAdapter
   );
-  
+
 /** When the network adapter has received a frame, this command is used to copy the frame
    into the driver/application storage location.
 
@@ -601,7 +601,7 @@ E1000UndiStart (
     return;
   }
 
-  if (CdbPtr->CPBsize != sizeof (PXE_CPB_START_30) 
+  if (CdbPtr->CPBsize != sizeof (PXE_CPB_START_30)
     && CdbPtr->CPBsize != sizeof (PXE_CPB_START_31))
   {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
@@ -681,7 +681,7 @@ E1000UndiStop (
    In addition, the CdbPtr->StatFlags ORs in that this NIC supports cable detection.  (APRIORI knowledge)
 
    @param[in]   CdbPtr        Pointer to the command descriptor block.
-   @param[in]   GigAdapter   Pointer to the NIC data structure information which the 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information which the
                               UNDI driver is layering on..
 
    @retval      None
@@ -701,7 +701,7 @@ E1000UndiGetInitInfo (
 
   DbPtr->MemoryRequired = 0;
   DbPtr->FrameDataLen   = PXE_MAX_TXRX_UNIT_ETHER;
-  
+
   // First check for FIBER, Links are 1000,0,0,0
   if (GigAdapter->Hw.phy.media_type == e1000_media_type_copper ) {
     DbPtr->LinkSpeeds[0]  = 10;
@@ -1086,7 +1086,7 @@ E1000UndiRecFilter (
 
   switch (OpFlags & PXE_OPFLAGS_RECEIVE_FILTER_OPMASK) {
   case PXE_OPFLAGS_RECEIVE_FILTER_READ:
-  
+
     // not expecting a cpb, not expecting any filter bits
     if ((NewFilter != 0)
       || (CdbPtr->CPBsize != 0))
@@ -1099,16 +1099,16 @@ E1000UndiRecFilter (
     break;
 
   case PXE_OPFLAGS_RECEIVE_FILTER_ENABLE:
-    
+
     // there should be atleast one other filter bit set.
     if (NewFilter == 0) {
-      
+
       // nothing to enable
       goto BadCdb;
     }
 
     if (CdbPtr->CPBsize != 0) {
-      
+
       // this must be a multicast address list!
       // don't accept the list unless selective_mcast is set
       // don't accept confusing mcast settings with this
@@ -1143,7 +1143,7 @@ E1000UndiRecFilter (
     break;
 
   case PXE_OPFLAGS_RECEIVE_FILTER_DISABLE:
-    
+
     // mcast list not expected, i.e. no cpb here!
     if (CdbPtr->CPBsize != PXE_CPBSIZE_NOT_USED) {
       goto BadCdb;  // db with all_multi??
@@ -1167,12 +1167,12 @@ E1000UndiRecFilter (
 
 JustRead:
   DEBUGPRINT (DECODE, ("Read current filter\n"));
-  
+
   // give the current mcast list
   if ((CdbPtr->DBsize != 0)
     && (GigAdapter->McastList.Length != 0))
   {
-    
+
     // copy the mc list to db
     UINT16 i;
     UINT16 CopyLen;
@@ -1232,7 +1232,7 @@ E1000UndiStnAddr (
   DEBUGPRINT (DECODE, ("E1000UndiStnAddr\n"));
 
   if (CdbPtr->OpFlags == PXE_OPFLAGS_STATION_ADDRESS_RESET) {
-    
+
     // configure the permanent address.
     // change the GigAdapter->CurrentNodeAddress field.
     if (CompareMem (
@@ -1328,7 +1328,7 @@ E1000UndiStatistics (
   }
 
   if ((CdbPtr->OpFlags & PXE_OPFLAGS_STATISTICS_RESET) != 0) {
-    
+
     // Reset the statistics
     CdbPtr->StatCode = (UINT16) E1000Statistics (GigAdapter, 0, 0);
   } else {
@@ -1527,7 +1527,7 @@ E1000UndiStatus (
   // Fill in the completed transmit buffer addresses so they can be freed by
   // the calling application or driver
   if ((CdbPtr->OpFlags & PXE_OPFLAGS_GET_TRANSMITTED_BUFFERS) != 0) {
-    
+
     // Calculate the number of entries available in the DB to save the addresses
     // of completed transmit buffers.
     NumEntries = (UINT16) ((CdbPtr->DBsize - sizeof (UINT64)) / sizeof (UINT64));
@@ -1610,7 +1610,7 @@ E1000UndiFillHeader (
     if ((Cpbf->FragCnt == 0)
       || (Cpbf->FragDesc[0].FragLen < PXE_MAC_HEADER_LEN_ETHER))
     {
-      
+
       // No buffers given.
       CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
       CdbPtr->StatCode = PXE_STATCODE_INVALID_CDB;
@@ -1753,6 +1753,7 @@ E1000UndiReceive (
    @retval   None
 **/
 VOID
+EFIAPI
 E1000UndiApiEntry (
   IN  UINT64 Cdb
   )
@@ -1815,7 +1816,7 @@ E1000UndiApiEntry (
   // Check if opflags are as expected.
   TabPtr = &mE1000ApiTable[CdbPtr->OpCode];
 
-  if (TabPtr->CpbSize != (UINT16) (DONT_CHECK) 
+  if (TabPtr->CpbSize != (UINT16) (DONT_CHECK)
     && TabPtr->CpbSize != CdbPtr->CPBsize)
   {
     goto BadCdb;
@@ -1837,7 +1838,7 @@ E1000UndiApiEntry (
 
   // Check if UNDI_State is valid for this call.
   if (TabPtr->State != (UINT16) (-1)) {
-    
+
     // Should atleast be started.
     if (GigAdapter->State == PXE_STATFLAGS_GET_STATE_STOPPED) {
       CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
@@ -1866,4 +1867,3 @@ BadCdb:
   CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
   CdbPtr->StatCode  = PXE_STATCODE_INVALID_CDB;
 }
-

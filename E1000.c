@@ -58,7 +58,7 @@ IsAltMacAddrSupported (
   // Check to see if the backup MAC address location pointer is set
   e1000_read_nvm (&UndiPrivateData->NicInfo.Hw, NVM_ALT_MAC_ADDR_PTR, 1, &BackupMacPointer);
 
-  if (BackupMacPointer == 0xFFFF 
+  if (BackupMacPointer == 0xFFFF
     || BackupMacPointer == 0x0000)
   {
     //  Alternate Mac Address not supported if 0x37 pointer is not initialized to a value
@@ -128,7 +128,7 @@ E1000MapMem (
                     VirtualAddress,
                     Size,
                     TO_DEVICE,
-                    (UINT64) MappedAddress
+                    (UINT64) (UINTN) MappedAddress
                   );
 
     if (*MappedAddress == 0) {
@@ -170,8 +170,8 @@ E1000UnMapMem (
 }
 
 /** This is the drivers copy function so it does not need to rely on the BootServices
-   copy which goes away at runtime. 
-   
+   copy which goes away at runtime.
+
    This copy function allows 64-bit or 32-bit copies
    depending on platform architecture.  On Itanium we must check that both addresses
    are naturally aligned before attempting a 64-bit copy.
@@ -198,17 +198,6 @@ E1000MemCopy (
 
   IntsToCopy = Count / sizeof (UINTN);
   BytesToCopy = Count % sizeof (UINTN);
-#ifdef EFI64
-
-  // Itanium cannot handle memory accesses that are not naturally aligned.  Determine
-  // if 64-bit copy is even possible with these start addresses.
-  if (((((UINTN) Source) & 0x0007) != 0)
-    || (( ((UINTN) Dest) & 0x0007) != 0))
-  {
-    IntsToCopy = 0;
-    BytesToCopy = Count;
-  }
-#endif /* EFI64 */
 
   SourcePtr = (UINTN *) Source;
   DestPtr = (UINTN *) Dest;
@@ -264,7 +253,7 @@ E1000DownShift (
 }
 
 /** Copies the stats from our local storage to the protocol storage.
-   
+
    It means it will read our read and clear numbers, so some adding is required before
    we copy it over to the protocol.
 
@@ -422,11 +411,11 @@ E1000Transmit (
   if (TxBufMapping->PhysicalAddress != 0) {
     DEBUGPRINT (CRITICAL, ("TX buffers have all been used! cur_tx=%d\n", GigAdapter->CurTxInd));
     for (i = 0; i < DEFAULT_TX_DESCRIPTORS; i++) {
-      DEBUGPRINT (CRITICAL, ("%x ", GigAdapter->TxBufferUnmappedAddr[i]));
+      DEBUGPRINT (CRITICAL, ("%x ", GigAdapter->TxBufferMappings[i]));
     }
     DEBUGWAIT (CRITICAL);
 
-    // According to UEFI spec we should return PXE_STATCODE_BUFFER_FULL, 
+    // According to UEFI spec we should return PXE_STATCODE_BUFFER_FULL,
     // but SNP is not implemented to recognize this callback.
     return PXE_STATCODE_QUEUE_FULL;
   }
@@ -488,6 +477,12 @@ E1000Transmit (
                TxBufMapping
                );
 
+    if (EFI_ERROR (Status)) {
+      DEBUGPRINT (CRITICAL, ("Failed to map Tx buffer: %r\n", Status));
+      DEBUGWAIT (CRITICAL);
+      return PXE_STATCODE_DEVICE_FAILURE;
+    }
+
     TransmitDescriptor->buffer_addr = TxBufMapping->PhysicalAddress;
     DEBUGPRINT (E1000, ("Packet buffer at %x\n", TransmitDescriptor->buffer_addr));
 
@@ -499,7 +494,7 @@ E1000Transmit (
     TransmitDescriptor->lower.data = (E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
     TransmitDescriptor->upper.fields.status = 0;
     TransmitDescriptor->lower.data |= E1000_TXD_CMD_EOP;
-    TransmitDescriptor->lower.flags.length  = (UINT16) ((UINT16) TxBuffer->DataLen + 
+    TransmitDescriptor->lower.flags.length  = (UINT16) ((UINT16) TxBuffer->DataLen +
                                                                  TxBuffer->MediaheaderLen);
 
     DEBUGPRINT (E1000, ("BuffAddr=%x, ", TransmitDescriptor->buffer_addr));
@@ -559,15 +554,15 @@ E1000Transmit (
 }
 
 /** Copies the frame from our internal storage ring (As pointed to by GigAdapter->rx_ring)
-   to the command Block passed in as part of the cpb parameter.  
-   
+   to the command Block passed in as part of the cpb parameter.
+
    The flow:
    Ack the interrupt, setup the pointers, find where the last Block copied is, check to make
    sure we have actually received something, and if we have then we do a lot of work.
    The packet is checked for errors, size is adjusted to remove the CRC, adjust the amount
    to copy if the buffer is smaller than the packet, copy the packet to the EFI buffer,
    and then figure out if the packet was targetted at us, broadcast, multicast
-   or if we are all promiscuous.  We then put some of the more interesting information 
+   or if we are all promiscuous.  We then put some of the more interesting information
    (protocol, src and dest from the packet) into the db that is passed to us.
    Finally we clean up the frame, set the return value to _SUCCESS, and inc the cur_rx_ind, watching
    for wrapping.  Then with all the loose ends nicely wrapped up, fade to black and return.
@@ -594,20 +589,18 @@ E1000Receive (
   E1000_RECEIVE_DESCRIPTOR *ReceiveDescriptor;
   ETHER_HEADER *            EtherHeader;
   PXE_STATCODE              StatCode;
-  UINT16                    i;
   UINT16                    TempLen;
-  UINT8 *                   PacketPtr;
-#if (DBG_LVL & CRITICAL)
 #if (DBG_LVL & RX)
-  UINT32 Rdh;
-  UINT32 Rdt;
+  UINT8 *                   PacketPtr;
+  UINT16                    i;
 #endif /* (DBG_LVL & RX) */
-#endif /* (DBG_LVL & CRITICAL) */
-
+#if (DBG_LVL & CRITICAL) && (DBG_LVL & RX)
+  UINT32                    Rdh;
+  UINT32                    Rdt;
+#endif /* (DBG_LVL & CRITICAL) && (DBG_LVL & RX) */
 
   PacketType  = PXE_FRAME_TYPE_NONE;
   StatCode    = PXE_STATCODE_NO_DATA;
-  i           = 0;
 
   // acknowledge the interrupts
   E1000_READ_REG (&GigAdapter->Hw, E1000_ICR);
@@ -642,8 +635,7 @@ E1000Receive (
   // Get a pointer to the buffer that should have a rx in it, IF one is really there.
   ReceiveDescriptor = E1000_RX_DESC (&GigAdapter->RxRing, GigAdapter->CurRxInd);
 
-#if (DBG_LVL & CRITICAL)
-#if (DBG_LVL & RX)
+#if (DBG_LVL & CRITICAL) && (DBG_LVL & RX)
   if (ReceiveDescriptor->buffer_addr != GigAdapter->DebugRxBuffer[GigAdapter->CurRxInd]) {
     DEBUGPRINT (
       CRITICAL, ("GetStatus ERROR: Rx buff mismatch on desc %d: expected %X, actual %X\n",
@@ -658,11 +650,10 @@ E1000Receive (
   if (Rdt == Rdh) {
     DEBUGPRINT (CRITICAL, ("Receive ERROR: RX Buffers Full!\n"));
   }
-#endif /* (DBG_LVL & RX) */
-#endif /* (DBG_LVL & CRITICAL) */
+#endif /* (DBG_LVL & CRITICAL) && (DBG_LVL & RX) */
 
   if ((ReceiveDescriptor->status & (E1000_RXD_STAT_EOP | E1000_RXD_STAT_DD)) != 0) {
-    
+
     // Just to make sure we don't try to copy a zero length, only copy a positive sized packet.
     if ((ReceiveDescriptor->length != 0) && (ReceiveDescriptor->errors == 0)) {
 
@@ -674,21 +665,21 @@ E1000Receive (
 
       // Copy the packet from our list to the EFI buffer.
       E1000MemCopy (
-        (INT8 *) (UINTN) CpbReceive->BufferAddr,
-        (INT8 *) (UINTN) ReceiveDescriptor->buffer_addr,
+        (UINT8 *) (UINTN) CpbReceive->BufferAddr,
+        (UINT8 *) (UINTN) ReceiveDescriptor->buffer_addr,
         TempLen
       );
 
+#if (DBG_LVL & RX)
       PacketPtr = (UINT8 *) (UINTN) CpbReceive->BufferAddr;
 
-#if (DBG_LVL & RX)
       DEBUGPRINT (RX, ("Packet Data \n"));
       for (i = 0; i < TempLen; i++) {
         DEBUGPRINT (RX, ("%x ", PacketPtr[i]));
       }
       DEBUGPRINT (RX, ("\n"));
 #endif /* (DBG_LVL & RX) */
-      
+
       // Fill the DB with needed information
       DbReceive->FrameLen       = ReceiveDescriptor->length;  // includes header
       DbReceive->MediaHeaderLen = PXE_MAC_HEADER_LEN_ETHER;
@@ -704,7 +695,7 @@ E1000Receive (
         PacketType = PXE_FRAME_TYPE_BROADCAST;
         DEBUGPRINT (E1000, ("broadcast packet.\n"));
       } else {
-        
+
         // That leaves multicast or we must be in promiscuous mode.
         // Check for the Mcast bit in the address. otherwise its a promiscuous receive.
         if ((EtherHeader->DestAddr[0] & 1) == 1) {
@@ -729,7 +720,7 @@ E1000Receive (
     } else {
       DEBUGPRINT (CRITICAL, ("ERROR: Received zero sized packet or receive error!\n"));
     }
-    
+
     // Clean up the packet
     ReceiveDescriptor->status = 0;
     ReceiveDescriptor->length = 0;
@@ -787,7 +778,7 @@ E1000SetInterruptState (
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_IMS, SetIntMask);
 
   return PXE_STATCODE_SUCCESS;
-};
+}
 
 /** Stop the hardware and put it all (including the PHY) into a known good state.
 
@@ -826,7 +817,7 @@ E1000Shutdown (
   GigAdapter->RxFilter = 0;
 
   return PXE_STATCODE_SUCCESS;
-};
+}
 
 /** Resets the hardware and put it all (including the PHY) into a known good state.
 
@@ -851,12 +842,12 @@ E1000Reset (
   GigAdapter->Hw.phy.reset_disable = TRUE;
 
   if ((TempReg & E1000_STATUS_LU) != 0) {
-    if (((TempReg & E1000_STATUS_FD) == 0) 
+    if (((TempReg & E1000_STATUS_FD) == 0)
       && ((TempReg & E1000_STATUS_SPEED_MASK) == E1000_STATUS_SPEED_1000))
     {
       DEBUGPRINT (E1000, ("BAD LINK - 1Gig/Half - Enabling PHY reset\n"));
       GigAdapter->Hw.phy.reset_disable = FALSE;
-      
+
       // Since link is in a bad state we also need to make sure that we do a full reset down below
       GigAdapter->HwInitialized = FALSE;
     }
@@ -941,7 +932,7 @@ E1000SetSpeedDuplex (
   DEBUGPRINT (E1000, ("E1000SetSpeedDuplex\n"));
 
   // Copy forced speed and duplex settings to shared code structure
-  if ((GigAdapter->LinkSpeed == 10) 
+  if ((GigAdapter->LinkSpeed == 10)
     && (GigAdapter->DuplexMode == PXE_FORCE_HALF_DUPLEX))
   {
     DEBUGPRINT (E1000, ("Force 10-Half\n"));
@@ -1079,13 +1070,8 @@ E1000TxRxConfigure (
 
   ZeroMem (GigAdapter->TxBufferMappings, sizeof (GigAdapter->TxBufferMappings));
 
-  RxBuffer = (LOCAL_RX_BUFFER *) GigAdapter->RxBufferMapping.PhysicalAddress;
+  RxBuffer = (LOCAL_RX_BUFFER *) (UINTN) GigAdapter->RxBufferMapping.PhysicalAddress;
 
-  DEBUGPRINT (
-    E1000, ("Tx Ring %x Added %x\n",
-    GigAdapter->TxRing,
-    ((UINT8 *) GigAdapter->TxRing + (sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS)))
-  );
   DEBUGPRINT (
     E1000, ("Local Rx Buffer %X size %X\n",
     RxBuffer,
@@ -1100,14 +1086,14 @@ E1000TxRxConfigure (
     RxDesc->status = E1000_RXD_STAT_IXSM;
     DEBUGPRINT (E1000, ("Rx Local Buffer %X\n", (RxDesc->buffer_addr)));
   }
-  
+
   // Setup the RDBA, RDLEN
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAL (0), (UINT32) (UINTN) (GigAdapter->RxRing.PhysicalAddress));
 
   // Set the MemPtr to the high dword of the rx_ring so we can store it in RDBAH0.
   // Right shifts do not seem to work with the EFI compiler so we do it like this for now.
   MemAddr = (UINT64) (UINTN) GigAdapter->RxRing.PhysicalAddress;
-  MemPtr  = &((UINT32) MemAddr);
+  MemPtr  = (UINT32 *) &MemAddr;
   MemPtr++;
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_RDBAH (0), *MemPtr);
 
@@ -1120,7 +1106,7 @@ E1000TxRxConfigure (
   DEBUGPRINT (E1000, ("Rdbal0 %X\n", (UINT32) E1000_READ_REG (&GigAdapter->Hw, E1000_RDBAL (0))));
   DEBUGPRINT (E1000, ("RdBah0 %X\n", (UINT32) E1000_READ_REG (&GigAdapter->Hw, E1000_RDBAH (0))));
   DEBUGPRINT (E1000, ("Rx Ring %X\n", GigAdapter->RxRing.PhysicalAddress));
-  
+
   // Set the transmit tail equal to the head pointer (we do not want hardware to try to
   // transmit packets yet).
   GigAdapter->CurTxInd = (UINT16) E1000_READ_REG (&GigAdapter->Hw, E1000_TDH (0));
@@ -1185,7 +1171,7 @@ E1000TxRxConfigure (
 
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAL (0), (UINT32) (UINTN) (GigAdapter->TxRing.PhysicalAddress));
   MemAddr = (UINT64) (UINTN) GigAdapter->TxRing.PhysicalAddress;
-  MemPtr  = &((UINT32) MemAddr);
+  MemPtr  = (UINT32 *) &MemAddr;
   MemPtr++;
   E1000_WRITE_REG (&GigAdapter->Hw, E1000_TDBAH (0), *MemPtr);
   DEBUGPRINT (E1000, ("TdBah0 %X\n", *MemPtr));
@@ -1399,7 +1385,7 @@ E1000FirstTimeInit (
   for (BarIndex = 0; BarIndex <= 5; BarIndex++) {
     DEBUGPRINT (E1000, ("BAR = %X\n", *TempBar));
     if ((*TempBar & PCI_BAR_MEM_MASK) == PCI_BAR_MEM_64BIT) {
-      
+
       // This is a 64-bit memory bar, skip this and the
       // next bar as well.
       TempBar++;
@@ -1407,7 +1393,7 @@ E1000FirstTimeInit (
 
     // Find the IO BAR and save it's number into IoBar
     if ((*TempBar & PCI_BAR_IO_MASK) == PCI_BAR_IO_MODE) {
-      
+
       // Here is the IO Bar - save it to the Gigabit adapter struct.
       GigAdapter->IoBarIndex = BarIndex;
       break;
@@ -1445,10 +1431,9 @@ E1000FirstTimeInit (
   GigAdapter->Hw.back                   = GigAdapter;
   GigAdapter->Hw.vendor_id              = PciConfigHeader->VendorId;
   GigAdapter->Hw.device_id              = PciConfigHeader->DeviceId;
-  GigAdapter->Hw.revision_id            = (UINT8) PciConfigHeader->RevId;
   GigAdapter->Hw.subsystem_vendor_id    = PciConfigHeader->SubVendorId;
   GigAdapter->Hw.subsystem_device_id    = PciConfigHeader->SubSystemId;
-  GigAdapter->Hw.revision_id            = (UINT8) PciConfigHeader->RevId;
+  GigAdapter->Hw.revision_id            = PciConfigHeader->RevId;
 
   GigAdapter->Hw.mac.autoneg            = TRUE;
   GigAdapter->Hw.fc.current_mode        = e1000_fc_full;
@@ -1459,10 +1444,10 @@ E1000FirstTimeInit (
   GigAdapter->Hw.phy.autoneg_advertised = E1000_ALL_SPEED_DUPLEX;
   GigAdapter->Hw.phy.autoneg_mask       = AUTONEG_ADVERTISE_SPEED_DEFAULT;
 
+  GigAdapter->PciClass       = PciConfigHeader->ClassIdMain;
+  GigAdapter->PciSubClass    = PciConfigHeader->ClassIdSubclass;
+  GigAdapter->PciClassProgIf = PciConfigHeader->ClassIdProgIf;
 
-  GigAdapter->PciClass    = (UINT8) ((PciConfigHeader->ClassId & PCI_CLASS_MASK) >> 8);
-  GigAdapter->PciSubClass = (UINT8) (PciConfigHeader->ClassId) & PCI_SUBCLASS_MASK;
-  
   // We need to set the IO bar to zero for the shared code because the EFI PCI protocol
   // gets the BAR for us.
   GigAdapter->Hw.io_base               = 0;
@@ -1536,12 +1521,12 @@ E1000FirstTimeInit (
 
 #ifndef NO_82571_SUPPORT
 
-  // On 82571 based adapters if either port is reset then the 
-  // MAC address will be loaded into the EEPROM If the user overrides the default MAC 
+  // On 82571 based adapters if either port is reset then the
+  // MAC address will be loaded into the EEPROM If the user overrides the default MAC
   // address using the StnAddr command then the 82571 will reset the MAC address
   // the next time either port is reset.  This check resets the MAC
   // address to the default value specified by the user.
-  if (GigAdapter->Hw.mac.type == e1000_82571 
+  if (GigAdapter->Hw.mac.type == e1000_82571
     && GigAdapter->MacAddrOverride)
   {
     DEBUGPRINT (E1000, ("RESETING STATION ADDRESS\n"));
@@ -1569,26 +1554,22 @@ E1000Inititialize (
   GIG_DRIVER_DATA *GigAdapter
   )
 {
-  UINT32 *     TempBar;
-  PXE_STATCODE PxeStatcode;
+  PXE_STATCODE PxeStatcode = PXE_STATCODE_SUCCESS;
 
   DEBUGPRINT (E1000, ("E1000Inititialize\n"));
 
-  PxeStatcode = PXE_STATCODE_SUCCESS;
-  TempBar = NULL;
-
   ZeroMem (
-    (VOID *) GigAdapter->RxRing.UnmappedAddress,
+    (VOID *) (UINTN) GigAdapter->RxRing.UnmappedAddress,
     RX_RING_SIZE
     );
 
   ZeroMem (
-    (VOID *) GigAdapter->TxRing.UnmappedAddress,
+    (VOID *) (UINTN) GigAdapter->TxRing.UnmappedAddress,
     TX_RING_SIZE
     );
 
   ZeroMem (
-    (VOID *) GigAdapter->RxBufferMapping.UnmappedAddress,
+    (VOID *) (UINTN) GigAdapter->RxBufferMapping.UnmappedAddress,
     RX_BUFFERS_SIZE
     );
 
@@ -1682,7 +1663,7 @@ RxDisable (
 
 /** Changes filter settings
 
-   @param[in]   GigAdapter  Pointer to the NIC data structure information which the 
+   @param[in]   GigAdapter  Pointer to the NIC data structure information which the
                             UNDI driver is layering on..
    @param[in]   NewFilter   A PXE_OPFLAGS bit field indicating what filters to use.
    @param[in]   Cpb         The command parameter Block address.  64 bits since this is Itanium(tm)
@@ -1723,18 +1704,18 @@ E1000SetFilter (
     UpdateRCTL = E1000_READ_REG (&GigAdapter->Hw, E1000_RCTL);
 
     if (NewFilter & PXE_OPFLAGS_RECEIVE_FILTER_PROMISCUOUS) {
-      
+
       // add the UPE bit to the variable to be written to the RCTL
       UpdateRCTL |= E1000_RCTL_UPE;
     }
 
 
     if (NewFilter & PXE_OPFLAGS_RECEIVE_FILTER_ALL_MULTICAST) {
-      
+
       // add the MPE bit to the variable to be written to the RCTL
       UpdateRCTL |= E1000_RCTL_MPE;
     }
-    
+
     // Put the card into the proper mode...
     // Rx unit needs to be disabled and re-enabled
     // while changing filters.
@@ -1783,7 +1764,7 @@ E1000SetFilter (
       }
 
       E1000BlockIt (GigAdapter, TRUE);
-      
+
       //Rx unit needs to be disabled while changing filters.
       if (GigAdapter->ReceiveStarted) {
         RxDisable (GigAdapter);
@@ -1810,12 +1791,12 @@ E1000SetFilter (
   }
 
   if (NewFilter != 0) {
-  
+
     // Enable unicast and start the RU
     GigAdapter->RxFilter |= (NewFilter | PXE_OPFLAGS_RECEIVE_FILTER_UNICAST);
     E1000ReceiveStart (GigAdapter);
   } else {
-  
+
     // may be disabling everything!
     GigAdapter->RxFilter = NewFilter;
     E1000ReceiveStop (GigAdapter);
@@ -1826,7 +1807,7 @@ E1000SetFilter (
 
 /** Stops the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @return   Receive unit stopped
@@ -1913,7 +1894,7 @@ E1000ReceiveStop (
 
 /** Starts the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @return   Receive unit started
@@ -2025,7 +2006,7 @@ E1000TransmitDisable (
 
 /** This routine blocks until auto-negotiation completes or times out (after 4.5 seconds).
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @retval   TRUE   Auto-negotiation completed successfully,
@@ -2047,7 +2028,7 @@ E1000WaitForAutoNeg (
   DEBUGPRINT (E1000, ("E1000WaitForAutoNeg\n"));
 
   if (!GigAdapter->CableDetect) {
-    
+
     // Caller specified not to detect cable, so we return true.
     DEBUGPRINT (E1000, ("Cable detection disabled.\n"));
     return TRUE;
@@ -2087,7 +2068,7 @@ E1000WaitForAutoNeg (
     }
 
   } else if (GigAdapter->Hw.phy.type == e1000_phy_m88) {
-    
+
     // We are on a Marvel PHY that supports 2-pair downshift
     // Check the real time link status bit to see if there is actually a cable connected
     // If so then we will attempt to downshift, if not then we will report failure
@@ -2112,7 +2093,7 @@ E1000WaitForAutoNeg (
 
 /** Free TX buffers that have been transmitted by the hardware.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
    @param[in]   NumEntries   Number of entries in the array which can be freed.
    @param[out]  TxBuffer     Array to pass back free TX buffer
@@ -2228,7 +2209,7 @@ E1000ClearRegBits (
 
 /** Checks if link is up
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
 
    @retval   TRUE   Link is up
@@ -2335,7 +2316,7 @@ BlinkLeds (
           DelayInMicroseconds (GigAdapter, 200 * 1000);
           Miliseconds -= 200;
         } else {
-        
+
           // Break here when the Seconds is an odd number.
           // Break on 'while (Miliseconds > 0)' when the Seconds is an even number.
           break;
@@ -2376,7 +2357,7 @@ ReadPbaString (
   }
 }
 
-/** Detects surprise removal device status in PCI controller register 
+/** Detects surprise removal device status in PCI controller register
 
    @param[in]   Adapter   Pointer to the device instance
 
@@ -2417,7 +2398,7 @@ IsSurpriseRemoval (
    @param[in]   Adapter        Pointer to the NIC data structure information
                                which the UNDI driver is layering on..
    @param[in]   MicroSeconds   Time to delay in Microseconds.
-   
+
    @return   Execution of code delayed
 **/
 VOID
@@ -2432,27 +2413,3 @@ DelayInMicroseconds (
     gBS->Stall (MicroSeconds);
   }
 }
-
-/** This is only for debugging, it will pause and wait for the user to press <ENTER>
-  
-   Results AFTER this call are unpredicable. You can only be assured the code up to
-   this call is working.
-
-   @param[in]       VOID
-
-   @return       Execution of code is resumed
-**/
-VOID
-WaitForEnter (
-  VOID
-  )
-{
-  EFI_INPUT_KEY Key;
-
-  DEBUGPRINT(0xFFFF, ("\nPress <Enter> to continue...\n"));
-
-  do {
-    gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
-  } while (Key.UnicodeChar != 0xD);
-}
-

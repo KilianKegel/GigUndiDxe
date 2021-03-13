@@ -82,4 +82,3 @@ typedef struct {
 #pragma pack()
 
 #endif /* DRIVER_DIAGNOSTICS_H_ */
-

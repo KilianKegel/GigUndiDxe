@@ -247,30 +247,30 @@ _SetIntegratedM88PhyLoopback (
   switch (Speed) {
   case SPEED_1000:
     DEBUGPRINT (DIAG, ("Setting M88E1000 PHY into loopback at 1000 Mbps\n"));
-    
+
     // Set up the MII control reg to the desired loopback speed.
     if (Hw->phy.type == e1000_phy_igp) {
-      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4140);  // force 1000, set loopback 
+      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4140);  // force 1000, set loopback
     } else if (Hw->phy.type == e1000_phy_m88) {
-      e1000_write_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, 0x0808);  // Auto-MDI/MDIX Off 
-      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x9140);  // reset to update Auto-MDI/MDIX 
-      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8140);  // autoneg off 
-      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4140);  // force 1000, set loopback 
+      e1000_write_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, 0x0808);  // Auto-MDI/MDIX Off
+      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x9140);  // reset to update Auto-MDI/MDIX
+      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8140);  // autoneg off
+      e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4140);  // force 1000, set loopback
     } else if (Hw->phy.type == e1000_phy_gg82563) {
-      e1000_write_phy_reg (Hw, GG82563_PHY_KMRN_MODE_CTRL, 0x1CE);  // Force Link Up 
-      e1000_write_phy_reg (Hw, GG82563_REG (0, 0), 0x4140);  // bit 14 = IEEE loopback, force 1000, full duplex 
+      e1000_write_phy_reg (Hw, GG82563_PHY_KMRN_MODE_CTRL, 0x1CE);  // Force Link Up
+      e1000_write_phy_reg (Hw, GG82563_REG (0, 0), 0x4140);  // bit 14 = IEEE loopback, force 1000, full duplex
     }
-    
+
     // Now set up the MAC to the same speed/duplex as the PHY.
     CtrlReg = E1000_READ_REG (Hw, E1000_CTRL);
-    CtrlReg &= ~E1000_CTRL_SPD_SEL;       // Clear the Speed selection bits 
-    CtrlReg |= (E1000_CTRL_FRCSPD   |     // Set the Force Speed Bit 
-                E1000_CTRL_FRCDPX   |     // Set the Force Duplex Bit 
-                E1000_CTRL_SPD_1000 |     // Force Speed to 1000 
-                E1000_CTRL_FD);           // Force Duplex to FULL 
+    CtrlReg &= ~E1000_CTRL_SPD_SEL;       // Clear the Speed selection bits
+    CtrlReg |= (E1000_CTRL_FRCSPD   |     // Set the Force Speed Bit
+                E1000_CTRL_FRCDPX   |     // Set the Force Duplex Bit
+                E1000_CTRL_SPD_1000 |     // Force Speed to 1000
+                E1000_CTRL_FD);           // Force Duplex to FULL
 
     // For some SerDes we'll need to commit the writes now so that the
-    // status register is updated on link. 
+    // status register is updated on link.
     if (Hw->phy.media_type == e1000_media_type_internal_serdes) {
       E1000_WRITE_REG (Hw, E1000_CTRL, CtrlReg);
       MSEC_DELAY (100);
@@ -278,18 +278,18 @@ _SetIntegratedM88PhyLoopback (
     }
 
     if (Hw->phy.media_type == e1000_media_type_copper) {
-      
-      // For Marvel Phy, inverts Loss-Of-Signal 
+
+      // For Marvel Phy, inverts Loss-Of-Signal
       if (Hw->phy.type == e1000_phy_m88) {
-        CtrlReg |= (E1000_CTRL_ILOS);         // Invert Loss-Of-Signal 
+        CtrlReg |= (E1000_CTRL_ILOS);         // Invert Loss-Of-Signal
       }
     } else {
-      
-      // Set the ILOS bits on the fiber nic if half duplex link is detected. 
+
+      // Set the ILOS bits on the fiber nic if half duplex link is detected.
       StatusReg = E1000_READ_REG (Hw, E1000_STATUS);
       if ((StatusReg & E1000_STATUS_FD) == 0) {
         DEBUGPRINT (DIAG, ("Link seems unstable in PHY Loopback setup\n"));
-        CtrlReg |= (E1000_CTRL_ILOS | E1000_CTRL_SLU);          // Invert Loss-Of-Signal 
+        CtrlReg |= (E1000_CTRL_ILOS | E1000_CTRL_SLU);          // Invert Loss-Of-Signal
       }
     }
 
@@ -299,25 +299,25 @@ _SetIntegratedM88PhyLoopback (
 
   case SPEED_100:
     DEBUGPRINT (DIAG, ("Setting M88E1000 PHY into loopback at 100 Mbps\n"));
-    
+
     // Set up the MII control reg to the desired loopback speed.
-    e1000_write_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, 0x0808);    // Auto-MDI/MDIX Off 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x9140);    // reset to update Auto-MDI/MDIX 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8140);    // autoneg off 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8100);    // reset to update autoneg 
-    e1000_write_phy_reg (Hw, M88E1000_EXT_PHY_SPEC_CTRL, 0x0c14);    // MAC interface speed to 100Mbps 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0xe100);    // reset to update MAC interface speed 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x6100);    // force 100, set loopback 
+    e1000_write_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, 0x0808);    // Auto-MDI/MDIX Off
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x9140);    // reset to update Auto-MDI/MDIX
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8140);    // autoneg off
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8100);    // reset to update autoneg
+    e1000_write_phy_reg (Hw, M88E1000_EXT_PHY_SPEC_CTRL, 0x0c14);    // MAC interface speed to 100Mbps
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0xe100);    // reset to update MAC interface speed
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x6100);    // force 100, set loopback
 
     // Now set up the MAC to the same speed/duplex as the PHY.
     CtrlReg = E1000_READ_REG (Hw, E1000_CTRL);
-    CtrlReg &= ~E1000_CTRL_SPD_SEL;       // Clear the Speed selection bits 
-    CtrlReg |= (E1000_CTRL_ILOS   |      // Invert Loss-Of-Signal 
-                E1000_CTRL_SLU     |     // Set the Force Link Bit 
-                E1000_CTRL_FRCSPD  |     // Set the Force Speed Bit 
-                E1000_CTRL_FRCDPX  |     // Set the Force Duplex Bit 
-                E1000_CTRL_SPD_100 |     // Force Speed to 100 
-                E1000_CTRL_FD);          // Force Duplex to FULL 
+    CtrlReg &= ~E1000_CTRL_SPD_SEL;       // Clear the Speed selection bits
+    CtrlReg |= (E1000_CTRL_ILOS   |      // Invert Loss-Of-Signal
+                E1000_CTRL_SLU     |     // Set the Force Link Bit
+                E1000_CTRL_FRCSPD  |     // Set the Force Speed Bit
+                E1000_CTRL_FRCDPX  |     // Set the Force Duplex Bit
+                E1000_CTRL_SPD_100 |     // Force Speed to 100
+                E1000_CTRL_FD);          // Force Duplex to FULL
 
     E1000_WRITE_REG (Hw, E1000_CTRL, CtrlReg);
     LoopbackModeSet = TRUE;
@@ -325,24 +325,24 @@ _SetIntegratedM88PhyLoopback (
 
   case SPEED_10:
     DEBUGPRINT (DIAG, ("Setting M88E1000 PHY into loopback at 10 Mbps\n"));
-  
+
     // Set up the MII control reg to the desired loopback speed.
-    e1000_write_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, 0x0808);    // Auto-MDI/MDIX Off 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x9140);    // reset to update Auto-MDI/MDIX 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8140);    // autoneg off 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8100);    // reset to update autoneg 
-    e1000_write_phy_reg (Hw, M88E1000_EXT_PHY_SPEC_CTRL, 0x0c04);    // MAC interface speed to 10Mbps 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8100);    // reset to update MAC interface speed 
-    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4100);    // force 10, set loopback 
+    e1000_write_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, 0x0808);    // Auto-MDI/MDIX Off
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x9140);    // reset to update Auto-MDI/MDIX
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8140);    // autoneg off
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8100);    // reset to update autoneg
+    e1000_write_phy_reg (Hw, M88E1000_EXT_PHY_SPEC_CTRL, 0x0c04);    // MAC interface speed to 10Mbps
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x8100);    // reset to update MAC interface speed
+    e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4100);    // force 10, set loopback
 
     // Now set up the MAC to the same speed/duplex as the PHY.
     CtrlReg = E1000_READ_REG (Hw, E1000_CTRL);
-    CtrlReg &= ~E1000_CTRL_SPD_SEL;       // Clear the Speed selection bits 
-    CtrlReg |= (E1000_CTRL_SLU    |       // Set the Force Link Bit 
-                E1000_CTRL_FRCSPD |        // Set the Force Speed Bit 
-                E1000_CTRL_FRCDPX |        // Set the Force Duplex Bit 
-                E1000_CTRL_SPD_10 |        // Force Speed to 10 
-                E1000_CTRL_FD);            // Force Duplex to FULL 
+    CtrlReg &= ~E1000_CTRL_SPD_SEL;       // Clear the Speed selection bits
+    CtrlReg |= (E1000_CTRL_SLU    |       // Set the Force Link Bit
+                E1000_CTRL_FRCSPD |        // Set the Force Speed Bit
+                E1000_CTRL_FRCDPX |        // Set the Force Duplex Bit
+                E1000_CTRL_SPD_10 |        // Force Speed to 10
+                E1000_CTRL_FD);            // Force Duplex to FULL
 
     E1000_WRITE_REG (Hw, E1000_CTRL, CtrlReg);
     LoopbackModeSet = TRUE;
@@ -372,7 +372,7 @@ _SetIntegratedM88PhyLoopback (
     e1000_read_phy_reg (Hw, M88E1000_PHY_SPEC_CTRL, &PhyReg);
     e1000_read_phy_reg (Hw, M88E1000_EXT_PHY_SPEC_CTRL, &PhyReg);
   }
-  
+
   // The following delay is necessary for the PHY loopback mode to take on ESB2 based LOMs
   MSEC_DELAY (100);
 
@@ -399,7 +399,7 @@ _SetI82571SerdesLoopback (
   BOOLEAN LinkUp          = FALSE;
 
   DEBUGPRINT (DIAG, ("Setting PHY loopback on I82571 fiber/serdes.\n"));
-  
+
   // I82571 transceiver loopback
   CtrlReg = E1000_READ_REG (Hw, E1000_CTRL);
   CtrlReg |= E1000_CTRL_SLU;
@@ -416,7 +416,7 @@ _SetI82571SerdesLoopback (
 
   // Set ILOS if link is not up
   if (!LinkUp) {
-    
+
     // Set bit 7 (Invert Loss) and set link up in bit 6.
     CtrlReg = E1000_READ_REG (Hw, E1000_CTRL);
     CtrlReg |= (E1000_CTRL_ILOS);
@@ -565,7 +565,7 @@ _SetI82580SerdesLoopback (
    Valid values are 1000, 100, and 10 Mbps
 
    @param[in]   Hw      Ptr to this card's adapter data structure
-   @param[in]   Speed   Desired loopback speed 
+   @param[in]   Speed   Desired loopback speed
 
    @retval   TRUE   PHY loopback set successfully
    @retval   FALSE  Failed to set PHY loopback
@@ -582,7 +582,7 @@ _SetBoazmanPhyLoopback (
 #ifndef NO_82571_SUPPORT
 #ifndef NO_82574_SUPPORT
   UINT32 Reg             = 0;
-  
+
   // 82574 requires ILOS set
   if (Hw->mac.type == e1000_82574
     || Hw->mac.type == e1000_82583)
@@ -596,19 +596,19 @@ _SetBoazmanPhyLoopback (
 
   if (Speed == SPEED_1000) {
     DEBUGPRINT (DIAG, ( "Setting Boazman PHY into loopback at 1000 Mbps\n"));
-    
+
     // set 21_2.2:0 to the relevant speed (1G ?3b110, 100Mb ?3b101, 10Mb ? 3b100)
     _ReadPhyRegister16Ex (Hw, 2, 21, &PhyValue);
     PhyValue = (PhyValue & (~(7))) | 6;
   } else if (Speed == SPEED_100) {
     DEBUGPRINT (DIAG, ( "Setting Boazman PHY into loopback at 100 Mbps\n"));
-    
+
     // set 21_2.2:0 to the relevant speed (1G ?3b110, 100Mb ?3b101, 10Mb ? 3b100)
     _ReadPhyRegister16Ex (Hw, 2, 21, &PhyValue);
     PhyValue = (PhyValue & (~(7))) | 5;
   } else {
     DEBUGPRINT (DIAG, ( "Setting Boazman PHY into loopback at 10 Mbps\n"));
-    
+
     // set 21_2.2:0 to the relevant speed (1G ?3b110, 100Mb ?3b101, 10Mb ? 3b100)
     _ReadPhyRegister16Ex (Hw, 2, 21, &PhyValue);
     PhyValue = (PhyValue & (~(7))) | 4;
@@ -623,7 +623,7 @@ _SetBoazmanPhyLoopback (
 
 #ifndef NO_82571_SUPPORT
 #ifndef NO_82574_SUPPORT
-  
+
   // ICH9 and ICH10 version requires all these undocumented writes
   if (Hw->mac.type != e1000_82574
     || Hw->mac.type != e1000_82583)
@@ -711,7 +711,7 @@ _SetNinevehPhyLoopback (
           break;
         }
       } else {
-      
+
         // Don't bother reading the status register data for 10mbit. We force this up in
         // _SetIgpPhyLoopback
         DEBUGPRINT (DIAG, ("Nineveh 10mbit loopback link detected after %d iterations\n", i));
@@ -768,7 +768,7 @@ _SetIgpPhyLoopback (
                 E1000_CTRL_FD);           // Force Duplex to FULL
 
     if (Hw->phy.media_type != e1000_media_type_copper) {
-    
+
       // Set the ILOS bits on the fiber nic if half duplex link is detected.
       StatusReg = E1000_READ_REG (Hw, E1000_STATUS);
       if ((StatusReg & E1000_STATUS_FD) == 0) {
@@ -796,9 +796,9 @@ _SetIgpPhyLoopback (
                 E1000_CTRL_FD);           // Force Duplex to FULL
 
     if (Hw->phy.media_type != e1000_media_type_copper) {
-    
+
       // Set the ILOS bits on the fiber nic if half duplex link is
-      // detected.                                                
+      // detected.
       StatusReg = E1000_READ_REG (Hw, E1000_STATUS);
       if ((StatusReg & E1000_STATUS_FD) == 0) {
         CtrlReg |= (E1000_CTRL_ILOS | E1000_CTRL_SLU);  // Invert Loss-Of-Signal
@@ -811,10 +811,10 @@ _SetIgpPhyLoopback (
 
   case SPEED_10:
     DEBUGPRINT (DIAG, ("Setting IGP01E1000 PHY into loopback at 10 Mbps\n"));
-    
+
     // Set up the MII control reg to the desired loopback speed.
     e1000_write_phy_reg (Hw, PHY_CONTROL, 0x4100);    // force 10, set loopback
-    
+
     // For 10mbps loopback we need to assert the "Force link pass" bit in
     // the Port Configuration register
     e1000_read_phy_reg (Hw, IGP01E1000_PHY_PORT_CONFIG, &PhyReg);
@@ -830,9 +830,9 @@ _SetIgpPhyLoopback (
                 E1000_CTRL_FD);           // Force Duplex to FULL
 
     if (Hw->phy.media_type != e1000_media_type_copper) {
-    
+
       // Set the ILOS bits on the fiber nic if half duplex link is
-      // detected.                                                
+      // detected.
       StatusReg = E1000_READ_REG (Hw, E1000_STATUS);
       if ((StatusReg & E1000_STATUS_FD) == 0) {
         CtrlReg |= (E1000_CTRL_ILOS | E1000_CTRL_SLU);  // Invert Loss-Of-Signal
@@ -939,10 +939,10 @@ _SetI354MacLoopback (
   }
 
   CtrlReg |= (E1000_CTRL_SLU      |   // Set Link up status
-              E1000_CTRL_FRCSPD   |   // Set the Force Speed Bit 
+              E1000_CTRL_FRCSPD   |   // Set the Force Speed Bit
               E1000_CTRL_FRCDPX   |   // Set the Force Duplex Bit
-              E1000_CTRL_SPD_1000 |   // Force Speed to 1000     
-              E1000_CTRL_FD);         // Force Duplex to FULL    
+              E1000_CTRL_SPD_1000 |   // Force Speed to 1000
+              E1000_CTRL_FD);         // Force Duplex to FULL
 
   E1000_WRITE_REG (Hw, E1000_CTRL, CtrlReg);
 
@@ -1024,7 +1024,7 @@ E1000SetPhyLoopback (
 #ifndef NO_82571_SUPPORT
   case e1000_82571:
   case e1000_82572:
-    
+
     // I82571 sets a special loopback mode through the SERDES register. This is only for Fiber
     // adapters and is used because MAC and PHY loopback are broken on these adapters
     if (Hw->phy.media_type != e1000_media_type_copper) {
@@ -1121,18 +1121,13 @@ GigUndiRunPhyLoopback (
   PXE_DB_RECEIVE   DbReceive;
   EFI_STATUS       Status;
   UINT64           FreeTxBuffer[DEFAULT_TX_DESCRIPTORS];
-  UINT32           j;
-  UINT32           i;
-  struct e1000_hw *Hw;
-
-  Status  = EFI_SUCCESS;
-  j       = 0;
-  Hw = &GigAdapterInfo->Hw;
+  UINT32           i = 0;
+  UINT32           j = 0;
 
   while (j < PHY_LOOPBACK_ITERATIONS) {
     Status = E1000Transmit (
                GigAdapterInfo,
-               (UINT64) &PxeCpbTransmit,
+               (UINT64) (UINTN) &PxeCpbTransmit,
                PXE_OPFLAGS_TRANSMIT_WHOLE
              );
     _DisplayBuffersAndDescriptors (GigAdapterInfo);
@@ -1147,7 +1142,7 @@ GigUndiRunPhyLoopback (
     Status = gBS->AllocatePool (
                     EfiBootServicesData,
                     RX_BUFFER_SIZE,
-                    (VOID * *) &CpbReceive.BufferAddr
+                    (VOID **) &CpbReceive.BufferAddr
                   );
 
     if (EFI_ERROR (Status)) {
@@ -1161,8 +1156,8 @@ GigUndiRunPhyLoopback (
     for (i = 0; i <= 100000; i++) {
       Status = E1000Receive (
                  GigAdapterInfo,
-                 (UINT64) &CpbReceive,
-                 (UINT64) &DbReceive
+                 (UINT64) (UINTN) &CpbReceive,
+                 (UINT64) (UINTN) &DbReceive
                );
       gBS->Stall (10);
 
@@ -1268,7 +1263,7 @@ GigUndiPhyLoopback (
   {
     gBS->Stall (1000000);
   }
-  
+
   // Build our packet, and send it out the door.
   DEBUGPRINT (DIAG, ("Building Packet\n"));
   _BuildPacket (&UndiPrivateData->NicInfo);
@@ -1327,7 +1322,7 @@ Error:
   if (UndiPrivateData->NicInfo.State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
     E1000Inititialize (&UndiPrivateData->NicInfo);
     DEBUGPRINT (DIAG, ("E1000Inititialize complete\n"));
-    
+
     //  Restart the receive unit if it was running on entry
     if (ReceiveStarted) {
       DEBUGPRINT (DIAG, ("RESTARTING RU\n"));
@@ -1394,6 +1389,7 @@ Error:
                                     ChildHandle did not pass the diagnostic.
 **/
 EFI_STATUS
+EFIAPI
 GigUndiDriverDiagnosticsRunDiagnostics (
   IN EFI_DRIVER_DIAGNOSTICS_PROTOCOL *           This,
   IN EFI_HANDLE                                  ControllerHandle,
@@ -1416,7 +1412,7 @@ GigUndiDriverDiagnosticsRunDiagnostics (
   // Validate input parameters
 
   // Check against invalid NULL parameters
-  if (NULL == Language 
+  if (NULL == Language
     || NULL == ErrorType
     || NULL == BufferSize
     || NULL == Buffer
@@ -1548,4 +1544,3 @@ EFI_DRIVER_DIAGNOSTICS2_PROTOCOL gGigUndiDriverDiagnostics2 = {
   (EFI_DRIVER_DIAGNOSTICS2_RUN_DIAGNOSTICS) GigUndiDriverDiagnosticsRunDiagnostics,
   "en-US"
 };
-

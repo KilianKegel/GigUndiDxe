@@ -91,7 +91,7 @@ EepromGetLanSpeedStatus (
 
    @param[in]   UndiPrivateData    Driver private data structure
    @param[in]   LanSpeed           Desired LAN speed
-   
+
    @retval   EFI_SUCCESS    LAN speed set successfully
 **/
 EFI_STATUS
@@ -101,10 +101,10 @@ EepromSetLanSpeed (
   );
 
 /** Sets WOL (enable/disable) setting
-   
+
    @param[in]   UndiPrivateData    Driver private data structure
    @param[in]   Enable             Enable/Disable boolean.
-   
+
    @return WOL enabled/disabled according to Enable value.
 **/
 VOID
@@ -113,7 +113,7 @@ EepromSetWol (
   IN UINT8           Enable
   );
 
-/** Sets the override MAC address back to FF-FF-FF-FF-FF-FF to disable 
+/** Sets the override MAC address back to FF-FF-FF-FF-FF-FF to disable
    (or in 82580-like case) restores the factory default MAC address.
 
    @param[in]   UndiPrivateData   Driver private data structure
@@ -149,7 +149,7 @@ EepromMacAddressSet (
    @param[out]   DefaultMacAddress   Factory default MAC address of the adapter
    @param[out]   AssignedMacAddress  CLP Assigned MAC address of the adapter,
                                      or the factory MAC address if an alternate MAC
-                                     address has not been assigned.  
+                                     address has not been assigned.
 
    @retval   EFI_SUCCESS   MAC addresses successfully read.
 **/
@@ -204,4 +204,3 @@ EepromUpdateChecksum (
   );
 
 #endif /* EEPROM_CONFIG_H_ */
-

@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "wol.h"
 
 
-
 // This is the auto-generated header file that includes definitions of string IDs for HII
 #include "GigUndiDxeStrDefs.h"
 
@@ -68,8 +67,6 @@ CHAR16 mVariableName[]    = L"UndiNVData";
 STATIC BOOLEAN mBlinkLedsCalled = FALSE;
 
 UINT32 gGuidInstance = 0;
-
-
 
 
 
@@ -120,7 +117,7 @@ ExtractConfig (
   UINTN              Size;
   UINTN              BufferSize;
 
-  if (Progress == NULL 
+  if (Progress == NULL
     || Results == NULL)
   {
     return EFI_INVALID_PARAMETER;
@@ -132,11 +129,16 @@ ExtractConfig (
   AllocatedRequest = FALSE;
   Size             = 0;
 
-  DEBUGPRINT (HII, ("Request %s\n", Request));
+  if (Request != NULL) {
+    // UINTN RequestStringLength = StrSize(Request); // Format string: %u
+    DEBUGPRINT (HII, ("=== ExtractConfig: Incoming Request  ===\n"));
+    DEBUGPRINT (HII, ("%s\n", Request));
+    DEBUGPRINT (HII, ("=== End Request ===\n"));
+  }
 
 
   *Progress = Request;
-  if ((Request != NULL) 
+  if ((Request != NULL)
     && !HiiIsConfigHdrMatch (Request, &mHiiDataGuid, mVariableName))
   {
     DEBUGPRINT (HII, ("HiiIsConfigHdrMatch failed\n"));
@@ -152,7 +154,7 @@ ExtractConfig (
   if ((Request == NULL)
     || (StrStr (Request, L"OFFSET") == NULL))
   {
-    
+
     // Request has no request element, construct full request string.
     // Allocate and fill a buffer large enough to hold the <ConfigHdr> template
     // followed by "&OFFSET=0&WIDTH=WWWWWWWWWWWWWWWW" followed by a Null-terminator.
@@ -187,7 +189,7 @@ ExtractConfig (
     } else {
       TmpString = GetNextRequestElement (TmpString, &ElementOffset, &ElementWidth);
       if (TmpString == NULL) {
-        
+
         // No more elements in the Request string
         // If Request string is empty (contains only header) then
         // we exit the loop with error status
@@ -223,7 +225,7 @@ ExtractConfig (
     if (ElementOffset == UNDI_CONFIG_OFFSET (AltMacAddr)) {
       if (UndiPrivateData->AltMacAddrSupported) {
         UINT8 MacAddr[6];
-        
+
         // Copy Alternate MAC Address
         EepromMacAddressGet (UndiPrivateData, (UINT16 *) &MacAddr[0], (UINT16 *) &AltMac[0]);
 
@@ -236,7 +238,7 @@ ExtractConfig (
         {
           SetMem (AltMac, sizeof (AltMac), 0);
         }
-        
+
         // Convert it to a MAC string
         UnicodeSPrint (
           UndiPrivateData->Configuration.AltMacAddr,
@@ -263,7 +265,7 @@ ExtractConfig (
       continue;
     }
     if (ElementOffset == UNDI_CONFIG_OFFSET (BlinkLed)) {
-    
+
       // Set LED blinking time to default value of 0 (don't blink)
       UndiPrivateData->Configuration.BlinkLed = 0;
       LastElementWidth = UNDI_CONFIG_WIDTH (BlinkLed);
@@ -289,7 +291,7 @@ ExtractConfig (
       LastElementWidth = UNDI_CONFIG_WIDTH (WolSettingsSupported);
       continue;
     }
-    
+
     // If we got there that means the element's offset is not on the list.
     // Assume the width is one and search again
     LastElementWidth = 1;
@@ -297,13 +299,13 @@ ExtractConfig (
   }
 
   if (EFI_ERROR (Status)) {
-  
+
     // Error ocurred while reading NVM settings.
     DEBUGPRINT (CRITICAL, ("Error ocurred while reading NVM settings %r\n", Status));
     DEBUGWAIT (CRITICAL);
     goto ExitExtractError;
   }
-  
+
   // Parameters have been correctly read from NVM. Create Result strings using
   // helper function from BIOS and exit.
   Status = UndiPrivateData->HiiConfigRouting->BlockToConfig (
@@ -369,9 +371,13 @@ RouteConfig (
     return EFI_INVALID_PARAMETER;
   }
 
-  DEBUGPRINT (HII, ("Configuration %s\n", Configuration));
+  // UINTN ConfigurationStringLength = StrSize(Configuration); // Format string: %u
+  DEBUGPRINT (HII, ("=== RouteConfig: Incoming Configuration ===\n"));
+  DEBUGPRINT (HII, ("%s\n", Configuration));
+  DEBUGPRINT (HII, ("=== End Configuration ===\n"));
 
   if (!HiiIsConfigHdrMatch (Configuration, &mHiiDataGuid, mVariableName)) {
+    DEBUGPRINT (HII, ("RouteConfig: Configuration didn't match ConfigHdr...\n"));
     *Progress = Configuration;
     return EFI_NOT_FOUND;
   }
@@ -409,7 +415,7 @@ RouteConfig (
   );
 
   if (UndiPrivateData->Configuration.BlinkLed > 15) {
-  
+
     //  Report invalid parametrer value
     SetProgressString (
       Configuration,
@@ -420,6 +426,8 @@ RouteConfig (
   } else if (UndiPrivateData->Configuration.BlinkLed > 0) {
     BlinkLeds (&UndiPrivateData->NicInfo, UndiPrivateData->Configuration.BlinkLed);
   }
+
+
 
 
 
@@ -454,12 +462,12 @@ HiiOpenProtocol (
   UndiPrivateData->HiiConfigRouting = NULL;
 
   DEBUGPRINT (HII, ("Locate HII Protocol\n"));
-  
+
   // Locate Hii Database protocol
   Status = gBS->LocateProtocol (
                   &gEfiHiiDatabaseProtocolGuid,
                   NULL,
-                  &UndiPrivateData->HiiDatabase
+                  (VOID **) &UndiPrivateData->HiiDatabase
                 );
   if (EFI_ERROR (Status)) {
     DEBUGPRINT (CRITICAL, ("Error finding HII protocol: %r\n", Status));
@@ -472,7 +480,7 @@ HiiOpenProtocol (
   Status = gBS->LocateProtocol (
                   &gEfiHiiStringProtocolGuid,
                   NULL,
-                  &UndiPrivateData->HiiString
+                  (VOID **) &UndiPrivateData->HiiString
                 );
   if (EFI_ERROR (Status)) {
     DEBUGPRINT (CRITICAL, ("Error finding HII String protocol: %r\n", Status));
@@ -485,7 +493,7 @@ HiiOpenProtocol (
   Status = gBS->LocateProtocol (
                   &gEfiFormBrowser2ProtocolGuid,
                   NULL,
-                  &UndiPrivateData->FormBrowser2
+                  (VOID **) &UndiPrivateData->FormBrowser2
                 );
   if (EFI_ERROR (Status)) {
     DEBUGPRINT (CRITICAL, ("Error finding HII form browser protocol: %r\n", Status));
@@ -498,7 +506,7 @@ HiiOpenProtocol (
   Status = gBS->LocateProtocol (
                   &gEfiHiiConfigRoutingProtocolGuid,
                   NULL,
-                  &UndiPrivateData->HiiConfigRouting
+                  (VOID **) &UndiPrivateData->HiiConfigRouting
                 );
   if (EFI_ERROR (Status)) {
     DEBUGPRINT (CRITICAL, ("Error finding HII ConfigRouting protocol: %r\n", Status));
@@ -512,7 +520,7 @@ HiiOpenProtocol (
 /** Sets MAC ID string according to MAC type
 
    @param[in]   UndiPrivateData   Driver private data structure
-   @param[out]  String            Pointer to string buffer for resulting MAC ID 
+   @param[out]  String            Pointer to string buffer for resulting MAC ID
 
    @return   Matching MAC ID string written to String buffer, or "unknown"
 **/
@@ -817,11 +825,11 @@ HiiSetMenuStrings (
 
       Status = ReadPbaString (
                  &UndiPrivateData->NicInfo,
-                 PBAString8,
+                 (UINT8 *)PBAString8,
                  MAX_PBA_STR_LENGTH
                );
       if (Status == EFI_SUCCESS) {
-      
+
         // Convert CHAR8 to CHAR16 for use with SPrint
         PBAString8[MAX_PBA_STR_LENGTH - 1] = 0;
         Status = AsciiStrToUnicodeStrWrapper (
@@ -847,7 +855,7 @@ HiiSetMenuStrings (
         return EFI_DEVICE_ERROR;
       }
     }
-  } 
+  }
 
 
   return Status;
@@ -1035,7 +1043,7 @@ HiiBlinkLedsCallback (
           mBlinkLedsCalled = FALSE;
         }
       }
-      
+
       // After blinking the LED, always clear the Blink LEDs question back to 0.
       Value->u16 = 0;
       HiiDrvConfig.BlinkLed = 0;
@@ -1084,7 +1092,7 @@ DriverCallback (
 
   DEBUGPRINT (HII, ("Action=%d, QuestionId=%d, Type=%d\n", Action, QuestionId, Type));
 
-  if ((Value == NULL) 
+  if ((Value == NULL)
     || (ActionRequest == NULL))
   {
     return EFI_INVALID_PARAMETER;
@@ -1109,11 +1117,47 @@ DriverCallback (
   case EFI_BROWSER_ACTION_FORM_CLOSE:
     Status = EFI_SUCCESS;
     break;
+  case EFI_BROWSER_ACTION_DEFAULT_STANDARD:
+  case EFI_BROWSER_ACTION_DEFAULT_MANUFACTURING:
+  case EFI_BROWSER_ACTION_DEFAULT_SAFE:
+  case EFI_BROWSER_ACTION_DEFAULT_PLATFORM:
+  case EFI_BROWSER_ACTION_DEFAULT_HARDWARE:
+  case EFI_BROWSER_ACTION_DEFAULT_FIRMWARE:
+    DEBUGPRINT (HII, ("DriverCallback: Attempting to set defaults, unsupported.\n"));
+
+    switch (Type) {
+      case EFI_IFR_TYPE_NUM_SIZE_8:
+        DEBUGPRINT (HII, ("Proposed default (UINT8): %01x\n", *((UINT8 *) Value)));
+        break;
+      case EFI_IFR_TYPE_NUM_SIZE_16:
+        DEBUGPRINT (HII, ("Proposed default (UINT16): %02x\n", *((UINT16 *) Value)));
+        break;
+      case EFI_IFR_TYPE_NUM_SIZE_32:
+        DEBUGPRINT (HII, ("Proposed default (UINT32): %04x\n", *((UINT32 *) Value)));
+        break;
+      case EFI_IFR_TYPE_NUM_SIZE_64:
+        DEBUGPRINT (HII, ("Proposed default (UINT64): %08x\n", *((UINT64 *) Value)));
+        break;
+      case EFI_IFR_TYPE_BOOLEAN:
+        DEBUGPRINT (HII, ("Proposed default (BOOLEAN): %01x\n", *((BOOLEAN *) Value)));
+        break;
+      case EFI_IFR_TYPE_STRING:
+        DEBUGPRINT (HII, ("Proposed default (STRING_ID): %02x\n", *((EFI_STRING_ID *) Value)));
+        break;
+      default:
+        DEBUGPRINT (HII, ("Proposed default type: %01x (can't display...)\n", Type));
+        break;
+    }
+
+    Status = EFI_UNSUPPORTED;
+    break;
   default:
     Status = EFI_UNSUPPORTED;
     break;
   }
 
+  DEBUGPRINT (HII, ("DriverCallback finished with status: %d\n", Status));
+  DEBUGWAIT (HII);
   return Status;
 }
 
@@ -1238,4 +1282,3 @@ EFI_HII_CONFIG_ACCESS_PROTOCOL gUndiHiiConfigAccess = {
   RouteConfig,
   DriverCallback
 };
-

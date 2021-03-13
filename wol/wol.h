@@ -26,43 +26,73 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
-#ifndef START_STOP_H_
-#define START_STOP_H_
+#ifndef __WOL_H
+#define __WOL_H
 
-#include "E1000.h"
+#include <wolimpl.h>
 
-#define EFI_DRIVER_STOP_PROTOCOL_GUID \
-  { 0x34d59603, 0x1428, 0x4429, { 0xa4, 0x14, 0xe6, 0xb3, 0xb5, 0xfd, 0x7d, 0xc1 } }
+#define WOL_DISABLE   0x00
+#define WOL_ENABLE    0x01
+#define WOL_NA        0x02
+#define WOL_STATUS_EX UINT8
 
-typedef struct EFI_DRIVER_STOP_PROTOCOL_S  EFI_DRIVER_STOP_PROTOCOL;
+#if defined(WOL_1G)
+#define I350_LAN_PORT1_BASE_ADDR  0x80
+#define I350_LAN_PORT2_BASE_ADDR  0xC0
+#define I350_LAN_PORT3_BASE_ADDR  0x100
+#endif
 
-/** Issues a call to stop the driver so diagnostic application can access the hardware.
+BOOLEAN
+WolIsWakeOnLanSupported(
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle
+);
 
-   @param[in]   This       Pointer to the EFI_DRIVER_STOP_PROTOCOL instance.
+WOL_STATUS
+WolGetWakeOnLanStatus(
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle,
+  OUT   BOOLEAN                    *WolStatus
+);
 
-   @retval   EFI_SUCCESS   Driver is stopped successfully
-**/
-typedef
-EFI_STATUS
-(EFIAPI *EFI_DRIVER_STOP_PROTOCOL_STOP_DRIVER) (
-  IN EFI_DRIVER_STOP_PROTOCOL *This
-  );
+WOL_STATUS_EX
+WolGetWakeOnLanStatusEx(
+  IN WOL_ADAPTER_HANDLE_TYPE Handle
+);
 
-/** Issues a call to start the driver after diagnostic application has completed.
+WOL_STATUS
+WolEnableWakeOnLan(
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle,
+  IN    BOOLEAN                     Enable
+);
 
-   @param[in]   This       Pointer to the EFI_DRIVER_STOP_PROTOCOL instance.
+WOL_STATUS_EX
+WolEnableWakeOnLanEx(
+  IN WOL_ADAPTER_HANDLE_TYPE Handle,
+  IN BOOLEAN Enable
+);
 
-   @retval   EFI_SUCCESS   If driver has restarted successfully
-**/
-typedef
-EFI_STATUS
-(EFIAPI *EFI_DRIVER_STOP_PROTOCOL_START_DRIVER) (
-  IN EFI_DRIVER_STOP_PROTOCOL *This
-  );
+WOL_STATUS
+WolEnableApm(
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle,
+  IN    BOOLEAN                     Enable
+);
 
-struct EFI_DRIVER_STOP_PROTOCOL_S {
-  EFI_DRIVER_STOP_PROTOCOL_STOP_DRIVER StopDriver;
-  EFI_DRIVER_STOP_PROTOCOL_START_DRIVER StartDriver;
-};
+WOL_STATUS
+WolEnableApmPme(
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle,
+  IN    BOOLEAN                     Enable
+);
 
-#endif /* START_STOP_H_ */
+WOL_STATUS
+WolGetWakeOnLanStatus_Ice (
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle,
+  OUT   BOOLEAN                    *WolStatus
+);
+
+WOL_STATUS
+WolEnableWakeOnLan_Ice (
+  IN    WOL_ADAPTER_HANDLE_TYPE     Handle,
+  IN    BOOLEAN                     Enable
+);
+
+#endif /* __WOL_H */
+

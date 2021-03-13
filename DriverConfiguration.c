@@ -28,8 +28,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 #include "E1000.h"
 #include "DriverConfiguration.h"
-  
-/* Protocol structure tentative definition */  
+
+/* Protocol structure tentative definition */
 EFI_DRIVER_CONFIGURATION_PROTOCOL gGigUndiDriverConfiguration;
 
 CHAR16 *mConfigMenu[] = {
@@ -110,7 +110,7 @@ GigUndiDriverConfigurationDisplayMenu (
     CustomConfigWord = SIG;
     SetupWord = DISPLAY_SETUP_MESSAGE;
   } else {
-    
+
     // The signature bits are set so get the speed duplex settings
     // Mask of the speed and duplex setting bits so that we can determine
     // what the settings are
@@ -186,7 +186,7 @@ GigUndiDriverConfigurationDisplayMenu (
       //  Check to see if user made a change to the speed/duplex settings
       switch (Selection) {
       case MENU_AUTONEG:
-      
+
         // Speed mask has already been cleared
         SetupWord &= ~FSP_MASK;
         SetupWord |= (FSP_AUTONEG);
@@ -227,7 +227,7 @@ GigUndiDriverConfigurationDisplayMenu (
       gBS->Stall (1000000);
 
       if (Selection == MENU_SAVE) {
-      
+
         // Only write the EEPROM if the speed/duplex value has changed
         if (SetupWord != Word0) {
           gST->ConOut->OutputString (gST->ConOut, L"\n\n\rSaving settings...");
@@ -238,7 +238,7 @@ GigUndiDriverConfigurationDisplayMenu (
           if (e1000_write_nvm (Hw, SetupOffset, 1, &SetupWord) != E1000_SUCCESS) {
             gST->ConOut->OutputString (gST->ConOut, L"EEPROM write error\n\r");
           } else {
-            
+
             // Success
             e1000_update_nvm_checksum (Hw);
             Word0 = SetupWord;
@@ -261,7 +261,7 @@ GigUndiDriverConfigurationDisplayMenu (
             while (gST->ConIn->ReadKeyStroke (gST->ConIn, &Key) != EFI_SUCCESS) {
               ;
             }
-            if (Key.UnicodeChar == 'y' 
+            if (Key.UnicodeChar == 'y'
               || Key.UnicodeChar == 'Y'
               || Key.UnicodeChar == 'n'
               || Key.UnicodeChar == 'N')
@@ -270,7 +270,7 @@ GigUndiDriverConfigurationDisplayMenu (
             }
           } while (1);
         }
-        
+
         // Always exit unless the users selects N
         if ((Key.UnicodeChar != 'n')
           && (Key.UnicodeChar != 'N'))
@@ -310,6 +310,7 @@ GigUndiDriverConfigurationDisplayMenu (
    @retval   EFI_SUCCESS       Configuration was successful
 **/
 EFI_STATUS
+EFIAPI
 GigUndiDriverConfigurationSetOptions (
   IN EFI_DRIVER_CONFIGURATION_PROTOCOL *          This,
   IN EFI_HANDLE                                   ControllerHandle,
@@ -393,11 +394,11 @@ GigUndiDriverConfigurationSetOptions (
   // Also reenable the receive unit if it was enabled before we started the PHY loopback test.
   e1000_reset_hw (&UndiPrivateData->NicInfo.Hw);
   UndiPrivateData->NicInfo.HwInitialized = FALSE;
-  
+
   if (UndiPrivateData->NicInfo.State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
     E1000Inititialize (&UndiPrivateData->NicInfo);
     DEBUGPRINT (DIAG, ("E1000Inititialize complete\n"));
-    
+
     //  Restart the receive unit if it was running on entry
     if (ReceiveStarted) {
       DEBUGPRINT (DIAG, ("RESTARTING RU\n"));
@@ -413,11 +414,12 @@ GigUndiDriverConfigurationSetOptions (
 
    @param[in]   This                Driver configuration protocol current instance
    @param[in]   ControllerHandle    Controller handle
-   @param[in]   ChildHandle         
+   @param[in]   ChildHandle
 
    @retval   EFI_SUCCESS   Always returned
 **/
 EFI_STATUS
+EFIAPI
 GigUndiDriverConfigurationOptionsValid (
   IN EFI_DRIVER_CONFIGURATION_PROTOCOL *   This,
   IN EFI_HANDLE                            ControllerHandle,
@@ -442,6 +444,7 @@ GigUndiDriverConfigurationOptionsValid (
    @retval   EFI_SUCCESS       Configuration was successful
 **/
 EFI_STATUS
+EFIAPI
 GigUndiDriverConfigurationForceDefaults (
   IN EFI_DRIVER_CONFIGURATION_PROTOCOL *                   This,
   IN EFI_HANDLE                                            ControllerHandle,
@@ -551,7 +554,7 @@ GigUndiDriverConfigurationForceDefaults (
   // so do not change anything.  If the signature bits are set then set the adapter
   // back to autonegotiate
   if ((CustomConfigWord & SIG_MASK) == SIG) {
-    
+
     // Only write the setup word if the adapter is not already set to autonegotiate
     if ((SetupWord & FSP_MASK) != FSP_AUTONEG) {
       SetupWord = (UINT16) ((SetupWord & ~FSP_MASK) | FSP_AUTONEG);
@@ -571,4 +574,3 @@ EFI_DRIVER_CONFIGURATION_PROTOCOL gGigUndiDriverConfiguration = {
   GigUndiDriverConfigurationForceDefaults,
   "eng"
 };
-

@@ -92,4 +92,3 @@ void e1000_release_nvm_generic(struct e1000_hw *hw);
 #define E1000_STM_OPCODE	0xDB00
 
 #endif
-

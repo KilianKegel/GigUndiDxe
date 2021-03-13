@@ -30,12 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INIT_H_
 
 #define EFI_NII_POINTER_PROTOCOL_GUID \
-  { \
-    0xE3161450, 0xAD0F, 0x11D9, \
-    { \
-      0x96, 0x69, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 \
-    } \
-  }
+  { 0xE3161450, 0xAD0F, 0x11D9, { 0x96, 0x69, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
 
 /* This is a macro to convert the preprocessor defined version number into a hex value
  that can be registered with EFI. */
@@ -43,6 +38,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         (BUILDNUMBER / 10 << 12) + (BUILDNUMBER % 10 << 8))
 
 #define MAC_ADDRESS_SIZE_IN_BYTES 6
-  
+
 #endif /* INIT_H_ */
-

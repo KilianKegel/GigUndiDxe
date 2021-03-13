@@ -35,19 +35,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct UNDI_PRIVATE_DATA_S UNDI_PRIVATE_DATA;
 
 
-typedef 
-EFI_STATUS 
+typedef
+EFI_STATUS
 (* GET_INFORMATION_BLOCK) (
-  EFI_ADAPTER_INFORMATION_PROTOCOL *This, 
-  VOID                             **InformationBlock, 
+  EFI_ADAPTER_INFORMATION_PROTOCOL *This,
+  VOID                             **InformationBlock,
   UINTN                            *InformationBlockSize
   );
 
 typedef
-EFI_STATUS 
+EFI_STATUS
 (* SET_INFORMATION_BLOCK) (
-  EFI_ADAPTER_INFORMATION_PROTOCOL *This, 
-  VOID                             *InformationBlock, 
+  EFI_ADAPTER_INFORMATION_PROTOCOL *This,
+  VOID                             *InformationBlock,
   UINTN                            InformationBlockSize
   );
 
@@ -78,7 +78,7 @@ AddSupportedInformationType (
 /** Initializes and installs Adapter Info Protocol on adapter
 
    @param[in]   UndiPrivateData   Driver private data structure
-   
+
    @retval    EFI_SUCCESS   Protocol installed successfully
    @retval    !EFI_SUCCESS  Failed to install and initialize protocol
 **/
@@ -101,4 +101,3 @@ UninstallAdapterInformationProtocol (
 
 #endif /* ADAPTER_INFORMATION_H_ */
 
-

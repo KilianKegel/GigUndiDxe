@@ -582,4 +582,3 @@ s32 e1000_load_firmware(struct e1000_hw *hw, u8 *buffer, u32 length)
 
 #endif /* NO_I210_SUPPORT */
 
-

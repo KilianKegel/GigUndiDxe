@@ -1678,6 +1678,7 @@ STATIC s32 e1000_setup_copper_link_82575(struct e1000_hw *hw)
 	switch (hw->phy.type) {
 #ifndef NO_I210_SUPPORT
 	case e1000_phy_i210:
+	/* fall through */
 #endif
 	case e1000_phy_m88:
 		switch (hw->phy.id) {
@@ -3342,4 +3343,3 @@ void e1000_write_vfta_i350(struct e1000_hw *hw, u32 offset, u32 value)
 }
 
 #endif /* NO_82580_SUPPORT */
-

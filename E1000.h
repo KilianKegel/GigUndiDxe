@@ -66,6 +66,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <IndustryStandard/Pci.h>
 
+// Debug macros are located here.
+#include "DebugTools.h"
+
 
 #include "e1000_api.h"
 #include "NVDataStruc.h"
@@ -79,33 +82,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-
-// Debug levels for driver DEBUG_PRINT statements
-#define NONE        0
-#define INIT        (1 << 0)
-#define DECODE      (1 << 1)
-#define E1000       (1 << 2)
-#define SHARED      (1 << 3)
-#define DIAG        (1 << 4)
-#define CFG         (1 << 5)
-#define IO          (1 << 6)
-#define VLAN        (1 << 7)
-#define CRITICAL    (1 << 8)
-#define CLP         (1 << 9)
-#define TX          (1 << 10)
-#define RX          (1 << 11)
-#define HW          (1 << 12)
-#define HII         (1 << 13)
-#define IMAGE       (1 << 14)
-#define WAIT        (1 << 15)
-#define FLASH       (1 << 16)
-#define HEALTH      (1 << 20)
-#define ADAPTERINFO (1 << 21)
-#define DMA         (1 << 22)
-
-#ifndef DBG_LVL
-#define DBG_LVL     (NONE)
-#endif /* DBG_LVL */
 
 #define MAX_NIC_INTERFACES  256
 #define MAX_NUMBER_OF_PORTS 4
@@ -233,7 +209,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    @return   Descriptor retrieved
 **/
 #define E1000_RX_DESC(R, i)          \
-          (&(((struct e1000_rx_desc *) ((R)->UnmappedAddress))[i]))
+          (&(((struct e1000_rx_desc *) (UINTN) ((R)->UnmappedAddress))[i]))
 
 /** Retrieves TX descriptor from TX ring structure
 
@@ -243,7 +219,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    @return   Descriptor retrieved
 **/
 #define E1000_TX_DESC(R, i)          \
-          (&(((struct e1000_tx_desc *) ((R)->UnmappedAddress))[i]))
+          (&(((struct e1000_tx_desc *) (UINTN) ((R)->UnmappedAddress))[i]))
 
 /** Retrieves UNDI_PRIVATE_DATA structure using NII Protocol 3.1 instance
 
@@ -303,13 +279,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    @retval  TRUE     if MAC addresses match
    @retval  FALSE    MAC addresses don't match
 **/
-#ifdef EFI64
-#define E1000_COMPARE_MAC(a, b) \
-  ( (a[0] == b[0]) && (a[1] == b[1]) && (a[2] == b[2]) && (a[3] == b[3]) && (a[4] == b[4]) && (a[5] == b[5]))
-#else /* NOT EFI64 */
 #define E1000_COMPARE_MAC(a, b) \
   ( *((UINT32 *) a) == *((UINT32 *) b) ) && ( *((UINT16 *) (a + 4)) == *((UINT16 *) (b + 4)) )
-#endif /* EFI64 */
 
 /** Macro to copy MAC address b to a.
    a and b must be UINT8 pointers to the first byte of MAC address.
@@ -319,13 +290,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    @return   MAC b copied to a
 **/
-#ifdef EFI64
-#define E1000_COPY_MAC(a, b) \
-  a[0] = b[0];a[1] = b[1];a[2] = b[2];a[3] = b[3];a[4] = b[4];a[5] = b[5];
-#else /* NOT EFI64 */
 #define E1000_COPY_MAC(a, b) \
   *((UINT32 *) a) = *((UINT32 *) b);*((UINT16 *) (a + 4)) = *((UINT16 *) (b + 4))
-#endif /* EFI64 */
 
 /* External variables declarations */
 extern PXE_SW_UNDI *               mE1000Pxe31;
@@ -378,32 +344,32 @@ typedef struct {
 /* UNDI callback functions typedefs */
 typedef
 VOID
-(* PTR) (
+(EFIAPI * PTR) (
   VOID
   );
 
 typedef
 VOID
-(* BS_PTR_30) (
+(EFIAPI * BS_PTR_30) (
   UINTN   MicroSeconds
   );
 
 typedef
 VOID
-(* VIRT_PHYS_30) (
+(EFIAPI * VIRT_PHYS_30) (
   UINT64   VirtualAddr,
   UINT64   PhysicalPtr
   );
 
 typedef
 VOID
-(* BLOCK_30) (
+(EFIAPI * BLOCK_30) (
   UINT32   Enable
   );
 
 typedef
 VOID
-(* MEM_IO_30) (
+(EFIAPI * MEM_IO_30) (
   UINT8   ReadWrite,
   UINT8   Len,
   UINT64  Port,
@@ -412,14 +378,14 @@ VOID
 
 typedef
 VOID
-(* BS_PTR) (
+(EFIAPI * BS_PTR) (
   UINT64  UnqId,
   UINTN   MicroSeconds
   );
 
 typedef
 VOID
-(* VIRT_PHYS) (
+(EFIAPI * VIRT_PHYS) (
   UINT64  UnqId,
   UINT64  VirtualAddr,
   UINT64  PhysicalPtr
@@ -427,14 +393,14 @@ VOID
 
 typedef
 VOID
-(* BLOCK) (
+(EFIAPI * BLOCK) (
   UINT64  UnqId,
   UINT32  Enable
   );
 
 typedef
 VOID
-(* MEM_IO) (
+(EFIAPI * MEM_IO) (
   UINT64  UnqId,
   UINT8   ReadWrite,
   UINT8   Len,
@@ -444,7 +410,7 @@ VOID
 
 typedef
 VOID
-(* MAP_MEM) (
+(EFIAPI * MAP_MEM) (
   UINT64  UnqId,
   UINT64  VirtualAddr,
   UINT32  Size,
@@ -454,7 +420,7 @@ VOID
 
 typedef
 VOID
-(* UNMAP_MEM) (
+(EFIAPI * UNMAP_MEM) (
   UINT64  UnqId,
   UINT64  VirtualAddr,
   UINT32  Size,
@@ -464,7 +430,7 @@ VOID
 
 typedef
 VOID
-(* SYNC_MEM) (
+(EFIAPI * SYNC_MEM) (
   UINT64  UnqId,
   UINT64  VirtualAddr,
   UINT32  Size,
@@ -485,8 +451,10 @@ typedef struct {
   UINT16 DeviceId;
   UINT16 Command;
   UINT16 Status;
-  UINT16 RevId;
-  UINT16 ClassId;
+  UINT8  RevId;
+  UINT8  ClassIdProgIf;
+  UINT8  ClassIdSubclass;
+  UINT8  ClassIdMain;
   UINT8  CacheLineSize;
   UINT8  LatencyTimer;
   UINT8  HeaderType;
@@ -548,7 +516,7 @@ typedef struct {
  for Flash manipulation. */
 typedef struct {
   FLASH_CLOCK_REGISTER FlashClockRegister;
-  FLASH_DATA_REGISTER  FlashDataRegister;  
+  FLASH_DATA_REGISTER  FlashDataRegister;
 } SERIAL_FLASH_OFFSETS;
 
 
@@ -570,6 +538,7 @@ typedef struct DRIVER_DATA_S {
 
   UINT8                 PciClass;
   UINT8                 PciSubClass;
+  UINT8                 PciClassProgIf;
 
   UINTN                 LanFunction;
 
@@ -587,7 +556,7 @@ typedef struct DRIVER_DATA_S {
   UINT8                 CableDetect; // 1 to detect and 0 not to detect the cable
   UINT8                 LoopBack;
 
-  UINT8                 UndiEnabled; // When 0 only HII and FMP are avaliable, 
+  UINT8                 UndiEnabled; // When 0 only HII and FMP are avaliable,
                                      // NII is not installed on ControllerHandle
                                      // (e.g. in case iSCSI driver loaded on port)
 
@@ -734,7 +703,7 @@ E1000Inititialize (
   );
 
 #define PCI_CLASS_MASK          0xFF00
-#define PCI_SUBCLASS_MASK       0x00FF  
+#define PCI_SUBCLASS_MASK       0x00FF
 
 /** This function is called as early as possible during driver start to ensure the
    hardware has enough time to autonegotiate when the real SNP device initialize call is made.
@@ -749,7 +718,7 @@ E1000Inititialize (
    @retval   EFI_UNSUPPORTED    Could not read MAC address
    @retval   EFI_ACCESS_DENIED  iSCSI Boot detected on port
    @retval   EFI_DEVICE_ERROR   Failed to reset hardware
-**/  
+**/
 EFI_STATUS
 E1000FirstTimeInit (
   GIG_DRIVER_DATA *GigAdapterInfo
@@ -759,7 +728,7 @@ E1000FirstTimeInit (
 
 /** Starts the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @return   Receive unit started
@@ -773,7 +742,7 @@ E1000ReceiveStart (
 
 /** Stops the receive unit.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @return   Receive unit stopped
@@ -818,15 +787,15 @@ E1000Transmit (
   );
 
 /** Copies the frame from our internal storage ring (As pointed to by GigAdapter->rx_ring)
-   to the command Block passed in as part of the cpb parameter.  
-   
+   to the command Block passed in as part of the cpb parameter.
+
    The flow:
    Ack the interrupt, setup the pointers, find where the last Block copied is, check to make
    sure we have actually received something, and if we have then we do a lot of work.
    The packet is checked for errors, size is adjusted to remove the CRC, adjust the amount
    to copy if the buffer is smaller than the packet, copy the packet to the EFI buffer,
    and then figure out if the packet was targetted at us, broadcast, multicast
-   or if we are all promiscuous.  We then put some of the more interesting information 
+   or if we are all promiscuous.  We then put some of the more interesting information
    (protocol, src and dest from the packet) into the db that is passed to us.
    Finally we clean up the frame, set the return value to _SUCCESS, and inc the cur_rx_ind, watching
    for wrapping.  Then with all the loose ends nicely wrapped up, fade to black and return.
@@ -874,7 +843,7 @@ E1000Shutdown (
 
 /** Free TX buffers that have been transmitted by the hardware.
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
    @param[in]   NumEntries   Number of entries in the array which can be freed.
    @param[out]  TxBuffer     Array to pass back free TX buffer
@@ -889,8 +858,8 @@ E1000FreeTxBuffers (
   );
 
 /** This is the drivers copy function so it does not need to rely on the BootServices
-   copy which goes away at runtime. 
-   
+   copy which goes away at runtime.
+
    This copy function allows 64-bit or 32-bit copies
    depending on platform architecture.  On Itanium we must check that both addresses
    are naturally aligned before attempting a 64-bit copy.
@@ -940,7 +909,7 @@ E1000ClearRegBits (
 
 /** Checks if link is up
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on.
 
    @retval   TRUE   Link is up
@@ -992,7 +961,7 @@ ReadPbaString (
   IN     UINT32           PbaNumberSize
   );
 
-/** Detects surprise removal device status in PCI controller register 
+/** Detects surprise removal device status in PCI controller register
 
    @param[in]   Adapter   Pointer to the device instance
 
@@ -1037,19 +1006,19 @@ E1000SetFilter (
 
    @param[in]   SwReg   Structure field mapped to HW register
    @param[in]   HwReg   HW register to read from
-   
+
    @return   Stats reset or updated
 **/
 #define UPDATE_OR_RESET_STAT(SwReg, HwReg) \
   do { \
     St->SwReg = DbAddr ? St->SwReg + E1000_READ_REG (Hw, HwReg) : 0; \
-  } while (0)  
+  } while (0)
 
 /** Updates Supported PXE_DB_STATISTICS structure field which indicates
    which statistics data are collected
 
    @param[in]   S   PXE_STATISTICS type
-   
+
    @return   Supported field updated
 **/
 #define SET_SUPPORT(S) \
@@ -1063,7 +1032,7 @@ E1000SetFilter (
 
    @param[in]   S   PXE_STATISTICS type
    @param[in]   B   Field from E1000 HW statistics structure
-   
+
    @return   EFI statistics updated
 **/
 #define UPDATE_EFI_STAT(S, B) \
@@ -1073,7 +1042,7 @@ E1000SetFilter (
   } while (0)
 
 /** Copies the stats from our local storage to the protocol storage.
-   
+
    It means it will read our read and clear numbers, so some adding is required before
    we copy it over to the protocol.
 
@@ -1104,7 +1073,7 @@ E1000SetInterruptState (
 
 /** This routine blocks until auto-negotiation completes or times out (after 4.5 seconds).
 
-   @param[in]   GigAdapter   Pointer to the NIC data structure information 
+   @param[in]   GigAdapter   Pointer to the NIC data structure information
                              which the UNDI driver is layering on..
 
    @retval   TRUE   Auto-negotiation completed successfully,
@@ -1120,7 +1089,7 @@ E1000WaitForAutoNeg (
    @param[in]   Adapter        Pointer to the NIC data structure information
                                which the UNDI driver is layering on..
    @param[in]   MicroSeconds   Time to delay in Microseconds.
-   
+
    @return   Execution of code delayed
 **/
 VOID
@@ -1128,77 +1097,6 @@ DelayInMicroseconds (
   IN GIG_DRIVER_DATA *Adapter,
   IN UINTN            MicroSeconds
   );
-
-/** This is only for debugging, it will pause and wait for the user to press <ENTER>
-  
-   Results AFTER this call are unpredicable. You can only be assured the code up to
-   this call is working.
-
-   @param[in]       VOID
-
-   @return       Execution of code is resumed
-**/
-VOID
-WaitForEnter (
-  VOID
-  );  
-  
-// This is the Macro Section
-#if DBG_LVL
-/** When specific debug level is currently set this macro
-   prints debug message.
-
-   @param[in]   Lvl   Debug level
-   @param[in]   Msg   Debug message
-
-   @param[in]   Msg printed or not according to Lvl
-**/
-#define DEBUGPRINT(Lvl, Msg) \
-  if ((DBG_LVL & Lvl) != 0) { AsciiPrint Msg;}
-
-/** When specific debug level is currently set this macro
-   stops execution and waits until user presses ENTER.
-
-   @param[in]   Lvl   Debug level
-
-   @return   Execution of code resumed after ENTER is pressed
-**/
-#define DEBUGWAIT(Lvl) \
-  if ((DBG_LVL & Lvl) != 0) { \
-    WaitForEnter (); \
-  }
-  
-/** When specific debug level is currently set this macro
-   DEBUGPRINTS current timestamp
-
-   @param[in]   Lvl   Debug level
-
-   @return   Timestamp printed or not according to Lvl
-**/
-#define DEBUGPRINTTIME(Lvl) \
-  if ((DBG_LVL & Lvl) != 0) { gSystemTable->RuntimeServices->GetTime (&gTime, NULL);}; \
-  DEBUGPRINT (Lvl, ("Timestamp - %dH:%dM:%dS:%dNS\n", \
-      gTime.Hour, gTime.Minute, gTime.Second, gTime.Nanosecond));
-#else /* NOT DBG_LVL */
-
-// Comment out the debug stuff
-/** When DBG_LVL is not defined leave occurences of DEBUGPRINT blank
-
-   @param[in]   Lvl   Debug level
-   @param[in]   Msg   Debug message
-
-   @return   None
-**/
-#define DEBUGPRINT(Lvl, Msg)
-
-/** When DBG_LVL is not defined leave occurences of DEBUGWAIT blank
-
-   @param[in]   Lvl   Debug level
-
-   @return   None
-**/
-#define DEBUGWAIT(Lvl)
-#endif /* DBG_LVL */
 
 // Time translations.
 /** Delays code execution for specified time in milliseconds
@@ -1210,6 +1108,3 @@ WaitForEnter (
 #define DELAY_IN_MILLISECONDS(x)  DelayInMicroseconds (GigAdapter, x * 1000)
 
 #endif /* E1000_H_ */
-
-
-

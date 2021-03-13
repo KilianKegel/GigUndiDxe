@@ -969,4 +969,3 @@ void e1000_write_pci_cfg(struct e1000_hw *hw, u32 reg, u16 *value);
 #endif
 
 #endif
-

@@ -61,7 +61,7 @@ EepromGetLanSpeedStatus (
   }
 
   if (hw->mac.type == e1000_i211) {
-  
+
     // I211 is OTP device. On init default configuration read from ROM.
     // HII or UNDI init command can changes the configuration only for current
     // power cycle, but it cannot be preserved for reboot. In case user enters/exits
@@ -120,7 +120,7 @@ EepromGetLanSpeedStatus (
   if ((CustomConfigWord & SIG_MASK) != SIG) {
     Active = LINK_SPEED_AUTO_NEG;
   } else {
-  
+
     // The signature bits are set so get the speed duplex settings
     // Mask of the speed and duplex setting bits so that we can determine
     // what the settings are
@@ -159,7 +159,7 @@ EepromGetLanSpeedStatus (
 
    @param[in]   UndiPrivateData    Driver private data structure
    @param[in]   LanSpeed           Desired LAN speed
-   
+
    @retval   EFI_SUCCESS    LAN speed set successfully
 **/
 EFI_STATUS
@@ -220,7 +220,7 @@ EepromSetLanSpeed (
 
   switch (LanSpeed) {
   case LINK_SPEED_AUTO_NEG:
-  
+
     // Speed mask has already been cleared
     SetupWord &= ~FSP_MASK;
     SetupWord |= (FSP_AUTONEG);
@@ -265,7 +265,7 @@ EepromSetLanSpeed (
         e1000_update_nvm_checksum (hw);
       }
     }
-    
+
     // After speed/duplex setting completes we need to perform a full reset of the adapter.
     // If the adapter was initialized on entry then force a full reset of the adapter.
     // Also re-enable the receive unit if it was enabled before we started the PHY loopback test.
@@ -277,7 +277,7 @@ EepromSetLanSpeed (
       if (UndiPrivateData->NicInfo.State == PXE_STATFLAGS_GET_STATE_INITIALIZED) {
         E1000Inititialize (&UndiPrivateData->NicInfo);
         DEBUGPRINT (HII, ("E1000Inititialize complete\n"));
-        
+
         //  Restart the receive unit if it was running on entry
         if (ReceiveStarted) {
           DEBUGPRINT (HII, ("RESTARTING RU\n"));
@@ -291,10 +291,10 @@ EepromSetLanSpeed (
 }
 
 /** Sets WOL (enable/disable) setting
-   
+
    @param[in]   UndiPrivateData    Driver private data structure
    @param[in]   Enable             Enable/Disable boolean.
-   
+
    @return WOL enabled/disabled according to Enable value.
 **/
 VOID
@@ -312,8 +312,8 @@ EepromSetWol (
    @param[in]    LanFunction          Required to calculate LAN function offset
                                       where factory MAC address is located
    @param[out]   DefaultMacAddress    Factory default MAC address of the adapter
-   @param[out]   AssignedMacAddress   CLP Assigned MAC address of the adapter, 
-                                      or the factory MAC address if an alternate 
+   @param[out]   AssignedMacAddress   CLP Assigned MAC address of the adapter,
+                                      or the factory MAC address if an alternate
                                       MAC address has not been assigned.
 
    @retval   EFI_SUCCESS   MAC addresses successfully read.
@@ -350,7 +350,7 @@ _EepromMacAddressGet82580 (
     DEBUGPRINT (CLP, ("Alt MAC Address feature not enabled.\n"));
     e1000_read_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &DefaultMacAddress[0]);
   } else {
-  
+
     // Adjust the MAC address offset if this is the second port (function 1)
     BackupMacOffset = BackupMacOffset + (UINT16) (3 * GigAdapter->Function);
     DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", BackupMacOffset));
@@ -358,7 +358,7 @@ _EepromMacAddressGet82580 (
     // Check if MAC address is backed up
     e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 1, &BackupMacAddress[0]);
     if (BackupMacAddress[0] == 0xFFFF) {
-    
+
       // In this case the factory MAC address is not in the backup location, so the factory
       // default MAC address is the same as the address we read in from the EEPROM CORE 0/1
       // locations.
@@ -366,7 +366,7 @@ _EepromMacAddressGet82580 (
       DefaultMacAddress[1] = AssignedMacAddress[1];
       DefaultMacAddress[2] = AssignedMacAddress[2];
     } else {
-    
+
       // Read in the factory default Mac address.
       e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 3, &DefaultMacAddress[0]);
     }
@@ -416,7 +416,7 @@ _EepromMacAddressSet82580 (
   // Check if MAC address is backed up
   e1000_read_nvm (&GigAdapter->Hw, BackupMacOffset, 1, &BackupMacAddress[0]);
   if (BackupMacAddress[0] == 0xFFFF) {
-  
+
     // Read in the factory MAC address
     e1000_read_nvm (&GigAdapter->Hw, FactoryMacOffset, 3, &BackupMacAddress[0]);
 
@@ -529,7 +529,7 @@ _EepromMacAddressGetGeneric (
     DefaultMacAddress[1] = AssignedMacAddress[1];
     DefaultMacAddress[2] = AssignedMacAddress[2];
   } else {
-  
+
     // Adjust the MAC address offset if this is the second port (function 1)
     AlternateMacOffset = AlternateMacOffset + (UINT16) (3 * GigAdapter->LanFunction);
     DEBUGPRINT (CLP, ("MAC addresses at offset %X\n", AlternateMacOffset));
@@ -537,14 +537,14 @@ _EepromMacAddressGetGeneric (
     // Check if MAC address is set up
     e1000_read_nvm (&GigAdapter->Hw, AlternateMacOffset, 1, &AlternateMacAddress[0]);
     if (AlternateMacAddress[0] == 0xFFFF) {
-    
+
       // In this case the alternate MAC address is not set, so the alternate
       // MAC address is the same as the factory MAC address.
       DefaultMacAddress[0] = AssignedMacAddress[0];
       DefaultMacAddress[1] = AssignedMacAddress[1];
       DefaultMacAddress[2] = AssignedMacAddress[2];
     } else {
-    
+
       // Read in the alternate MAC address.
       e1000_read_nvm (&GigAdapter->Hw, AlternateMacOffset, 3, &DefaultMacAddress[0]);
     }
@@ -560,7 +560,7 @@ _EepromMacAddressGetGeneric (
    @param[out]   DefaultMacAddress   Factory default MAC address of the adapter
    @param[out]   AssignedMacAddress  CLP Assigned MAC address of the adapter,
                                      or the factory MAC address if an alternate MAC
-                                     address has not been assigned.  
+                                     address has not been assigned.
 
    @retval   EFI_SUCCESS   MAC addresses successfully read.
 **/
@@ -600,7 +600,7 @@ _EepromMacAddressGet (
    @param[out]   DefaultMacAddress   Factory default MAC address of the adapter
    @param[out]   AssignedMacAddress  CLP Assigned MAC address of the adapter,
                                      or the factory MAC address if an alternate MAC
-                                     address has not been assigned.  
+                                     address has not been assigned.
 
    @retval   EFI_SUCCESS   MAC addresses successfully read.
 **/
@@ -638,12 +638,12 @@ _EepromMacAddressSetGeneric (
   UINT16 OldMacAddress[3];
 #if (DBG_LVL)
   UINT8 *MacAddr = (UINT8 *) MacAddress;
-#endif /* (DBG_LVL) */
 
   DEBUGPRINT (
     CLP, ("MAC=%X-%X-%X-%X-%X-%X\n", MacAddr[0], MacAddr[1], MacAddr[2],
     MacAddr[3], MacAddr[4], MacAddr[5])
   );
+#endif /* (DBG_LVL) */
 
   // Determine the location of the card.
   GigAdapter->PciIo->GetLocation (
@@ -766,7 +766,7 @@ _EepromMacAddressDefaultGeneric (
 }
 
 
-/** Sets the override MAC address back to FF-FF-FF-FF-FF-FF to disable 
+/** Sets the override MAC address back to FF-FF-FF-FF-FF-FF to disable
    (or in 82580-like case) restores the factory default MAC address.
 
    @param[in]   UndiPrivateData   Driver private data structure
@@ -861,4 +861,3 @@ EepromUpdateChecksum (
   return EFI_SUCCESS;
 }
 
-

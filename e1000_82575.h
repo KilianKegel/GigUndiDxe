@@ -433,4 +433,3 @@ s32 e1000_initialize_M88E1512_phy(struct e1000_hw *hw);
 s32 e1000_initialize_M88E1543_phy(struct e1000_hw *hw);
 #endif /* NO_82580_SUPPORT */
 #endif /* _E1000_82575_H_ */
-

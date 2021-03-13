@@ -33,14 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #define E1000_HII_FORM_GUID \
-  { \
-    0x77f2ea2f, 0x4312, 0x4569, 0x85, 0xc4, 0x58, 0x3a, 0xcd, 0x8d, 0xb7, 0xe2 \
-  }
+  { 0x77f2ea2f, 0x4312, 0x4569, { 0x85, 0xc4, 0x58, 0x3a, 0xcd, 0x8d, 0xb7, 0xe2 } }
 
 #define E1000_HII_DATA_GUID \
-  { \
-    0xa31abb16, 0xc627, 0x475b, 0x98, 0x8e, 0x7e, 0xe0, 0x77, 0x67, 0x40, 0xf3 \
-  }
+  { 0xa31abb16, 0xc627, 0x475b, { 0x98, 0x8e, 0x7e, 0xe0, 0x77, 0x67, 0x40, 0xf3 } }
 
 
 // #define VAR_EQ_TEST_NAME  0x100
@@ -58,11 +54,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LINK_SPEED_100FULL                    0x04
 #define LINK_SPEED_1000HALF                   0x05
 #define LINK_SPEED_1000FULL                   0x06
-#define LINK_SPEED_10000HALF                  0x07
-#define LINK_SPEED_10000FULL                  0x08
-#define LINK_SPEED_20000                      0x09
-#define LINK_SPEED_25000                      0x0A
-#define LINK_SPEED_40000                      0x0B
+#define LINK_SPEED_2500                       0x07
+#define LINK_SPEED_5000                       0x08
+#define LINK_SPEED_10000HALF                  0x09
+#define LINK_SPEED_10000FULL                  0x0A
+#define LINK_SPEED_20000                      0x0B
+#define LINK_SPEED_25000                      0x0C
+#define LINK_SPEED_40000                      0x0D
+#define LINK_SPEED_50000                      0x0E
+#define LINK_SPEED_100000                     0x0F
 #define LINK_SPEED_NO_CONFIGURE_AUTO          0x10
 #define LINK_SPEED_UNKNOWN                    0x20
 
@@ -71,6 +71,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WOL_NA                                0x02
 #define WOL_SETTINGS_NOT_SUPPORTED            0
 #define WOL_SETTINGS_SUPPORTED                1
+
+#define LLDP_DISABLE                          0x00
+#define LLDP_ENABLE                           0x01
 
 #define OROM_DISABLE                          0x00
 #define OROM_ENABLE                           0x01
@@ -83,6 +86,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma pack(1)
 typedef struct {
+  UINT8  LLDPSettingsSupported;
+  UINT8  DefaultLLDPAgent;
+  UINT8  LLDPAgent;
   UINT8  LinkSpeedSettingsSupported;
   UINT8  LinkSpeed;
   UINT8  WolSettingsSupported;
@@ -90,8 +96,9 @@ typedef struct {
   UINT8  DefaultWolEnable;
   UINT8  AltMacAddrSupport;
   UINT8  LinkStatus;
-  UINT8  Padding1;
   UINT16 AltMacAddr[18];
+
+
   UINT16 BlinkLed;
 
 } UNDI_DRIVER_CONFIGURATION;
@@ -112,7 +119,7 @@ typedef struct {
 
    @return   Width of given field is returned
 **/
-#define UNDI_CONFIG_WIDTH(Field) sizeof (UndiPrivateData->Configuration. ## Field ## )
+#define UNDI_CONFIG_WIDTH(Field) sizeof (UndiPrivateData->Configuration.Field)
 
 // General parameters
 #define     QUESTION_ID_EFI_DRIVER_VER                          0x1100
@@ -135,5 +142,6 @@ typedef struct {
 
 #define       QUESTION_ID_TMP_SUPPORT_ALT_MAC_ADDR              0x1407
 #define       QUESTION_ID_TMP_SUPPORT_LINK_SPD_STATUS           0x1408
+#define       QUESTION_ID_LLDP_AGENT                            0x160A
+#define       QUESTION_ID_LLDP_AGENT_DEAULT                     0x160B
 #endif /* NV_DATA_STRUC_H_ */
-

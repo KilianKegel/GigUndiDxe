@@ -38,6 +38,7 @@ EFI_GUID gEfiStartStopProtocolGuid = EFI_DRIVER_STOP_PROTOCOL_GUID;
    @retval   EFI_SUCCESS   Driver is stopped successfully
 **/
 EFI_STATUS
+EFIAPI
 StopDriver (
   IN EFI_DRIVER_STOP_PROTOCOL *This
   )
@@ -62,6 +63,7 @@ StopDriver (
    @retval   EFI_SUCCESS   If driver has restarted successfully
 **/
 EFI_STATUS
+EFIAPI
 StartDriver (
   IN EFI_DRIVER_STOP_PROTOCOL *This
   )
@@ -85,7 +87,7 @@ StartDriver (
   {
     E1000Inititialize (&GigPrivate->NicInfo);
     DEBUGPRINT (DIAG, ("E1000Inititialize complete\n"));
-    
+
     //  Restart the receive unit if it was running on entry
     if (ReceiveStarted) {
       DEBUGPRINT (DIAG, ("RESTARTING RU\n"));
@@ -103,4 +105,3 @@ EFI_DRIVER_STOP_PROTOCOL gUndiDriverStop = {
   StopDriver,
   StartDriver
 };
-
