@@ -1,0 +1,373 @@
+/**************************************************************************
+
+Copyright (c) 2016, Intel Corporation
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Intel Corporation nor the names of its contributors
+      may be used to endorse or promote products derived from this software
+      without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+***************************************************************************/
+// Revision History:
+//
+// --*/
+#include "GigUndiDxeStrDefs.h"
+
+#include "NVDataStruc.h"
+
+//
+// Formset class used by Device Manager
+//
+#define EFI_NON_DEVICE_CLASS              0x00
+#define EFI_DISK_DEVICE_CLASS             0x01
+#define EFI_VIDEO_DEVICE_CLASS            0x02
+#define EFI_NETWORK_DEVICE_CLASS          0x04
+#define EFI_INPUT_DEVICE_CLASS            0x08
+#define EFI_ON_BOARD_DEVICE_CLASS         0x10
+#define EFI_OTHER_DEVICE_CLASS            0x20
+
+//
+// Formset subclass
+//
+#define EFI_SETUP_APPLICATION_SUBCLASS    0x00
+#define EFI_GENERAL_APPLICATION_SUBCLASS  0x01
+#define EFI_FRONT_PAGE_SUBCLASS           0x02
+#define EFI_SINGLE_USE_SUBCLASS           0x03
+
+//
+// EFI Variable attributes
+//
+#define EFI_VARIABLE_NON_VOLATILE       0x00000001
+#define EFI_VARIABLE_BOOTSERVICE_ACCESS 0x00000002
+#define EFI_VARIABLE_RUNTIME_ACCESS     0x00000004
+#define EFI_VARIABLE_READ_ONLY          0x00000008
+
+
+formset
+
+  guid     = E1000_HII_FORM_GUID,
+
+  title    = STRING_TOKEN(STR_INV_FORM_SET_TITLE),
+  help     = STRING_TOKEN(STR_INV_FORM_SET_1_HELP),
+
+  classguid = EFI_HII_PLATFORM_SETUP_FORMSET_GUID,
+
+  class     = EFI_NETWORK_DEVICE_CLASS,
+  subclass  = EFI_SETUP_APPLICATION_SUBCLASS,
+
+  //
+  // Define a Buffer Storage (EFI_IFR_VARSTORE)
+  //
+  varstore UNDI_DRIVER_CONFIGURATION,        // This is the data structure type
+    varid = STORAGE_VARIABLE_ID,         // Optional VarStore ID
+    name  = UndiNVData,                      // Define referenced name in vfr
+    guid  = E1000_HII_DATA_GUID;            // GUID of this buffer storage
+
+
+  form formid = FORM_MAIN,
+    title  = STRING_TOKEN(STR_INV_FORM1_TITLE);  // note formid is a variable (for readability) (UINT16) - also added Form to the line to signify the Op-Code
+
+
+    goto FORM_NIC,
+    prompt  = STRING_TOKEN(STR_NIC_CONFIG_MENU_REF),
+    help  =   STRING_TOKEN(STR_NIC_CONFIG_MENU_REF_HLP),
+    key = QUESTION_ID_NIC_CONFIG_MENU;
+
+    //
+    // Add a separation line
+    //
+    text
+      help   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      flags  = 0,
+      key    = 0;
+
+    //
+    // Blink LED    
+    // 
+    numeric varid      = UndiNVData.BlinkLed,
+            questionid = QUESTION_ID_BLINK_LED,
+            prompt     = STRING_TOKEN(STR_BLINK_LED_PROMPT),
+            help       = STRING_TOKEN(STR_BLINK_LED_HLP),
+            flags      = INTERACTIVE, 
+            minimum    = 0,
+            maximum    = 15,
+            step       = 0,
+            default    = 0,
+    endnumeric;
+
+    //
+    // Add a separation line
+    //
+    text
+      help   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      flags  = 0,
+      key    = 0;
+
+      //
+      // UEFI Driver name 
+      //
+      text
+        help   = STRING_TOKEN(STR_EFI_DRIVER_VER_HELP),
+        text   = STRING_TOKEN(STR_EFI_DRIVER_VER_PROMPT),
+        text   = STRING_TOKEN(STR_EFI_DRIVER_VER_TEXT),
+        flags  = 0,
+        key    = QUESTION_ID_EFI_DRIVER_VER;
+
+    //
+    // Adapter PBA
+    // 
+    text
+      help   = STRING_TOKEN(STR_ADAPTER_PBA_HELP),
+      text   = STRING_TOKEN(STR_ADAPTER_PBA_PROMPT),
+      text   = STRING_TOKEN(STR_ADAPTER_PBA_TEXT),
+      flags  = 0,
+      key    = QUESTION_ID_ADAPTER_PBA;
+
+    //
+    // Device Name
+    // 
+    text
+        help   = STRING_TOKEN(STR_DEVICE_NAME_HELP),
+        text   = STRING_TOKEN(STR_DEVICE_NAME_PROMPT),
+        text   = STRING_TOKEN(STR_DEVICE_NAME_TEXT),
+        flags  = 0,
+        key    = QUESTION_ID_DEVICE_NAME;
+
+    //
+    // Chip type
+    //
+    text
+      help   = STRING_TOKEN(STR_CONTROLER_ID_HELP),
+      text   = STRING_TOKEN(STR_CONTROLER_ID_PROMPT),
+      text   = STRING_TOKEN(STR_CONTROLER_ID_TEXT),
+      flags  = 0,
+      key    = QUESTION_ID_CONTROLER_ID;
+
+    //
+    // PCI Device ID
+    //
+    text
+      help   = STRING_TOKEN(STR_DEVICE_ID_HELP),
+      text   = STRING_TOKEN(STR_DEVICE_ID_PROMPT),
+      text   = STRING_TOKEN(STR_DEVICE_ID_TEXT),
+      flags  = 0,
+      key    = QUESTION_ID_DEVICE_ID;
+
+    //
+    // Bus/Device/Function
+    //
+    text
+      help   = STRING_TOKEN(STR_PCI_BUS_DEV_FUNC_HELP),
+      text   = STRING_TOKEN(STR_PCI_BUS_DEV_FUNC_PROMPT),
+      text   = STRING_TOKEN(STR_PCI_BUS_DEV_FUNC_TEXT),
+      flags  = 0,
+      key    = QUESTION_ID_PCI_BUS_DEV_FUNC;
+
+    //
+    // Add a separation line
+    //
+    text
+      help   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      flags  = 0,
+      key    = 0;
+
+    // 
+    // Link status
+    //
+    grayoutif TRUE; /* This is a READ ONLY field */
+
+      oneof varid       = UndiNVData.LinkStatus,
+            questionid  = QUESTION_ID_LINK_STATUS,
+            prompt      = STRING_TOKEN(STR_LINK_STATUS_PROMPT),
+            help        = STRING_TOKEN(STR_LINK_STATUS_HELP),
+            flags       = 0,
+            option text = STRING_TOKEN(STR_LINK_STAT_DISCONNECTED), value = 0, flags = 0;
+            option text = STRING_TOKEN(STR_LINK_STAT_CONNECTED),    value = 1, flags = 0;
+      endoneof;
+
+    endif;
+
+    //
+    // Add a separation line
+    //
+    text
+      help   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      flags  = 0,
+      key    = 0;
+
+    //
+    // MAC Address
+    //
+    text
+      help   = STRING_TOKEN(STR_MAC_ADDR_HELP),
+      text   = STRING_TOKEN(STR_MAC_ADDR_PROMPT),
+      text   = STRING_TOKEN(STR_MAC_ADDR_TEXT),
+      flags  = 0,
+      key    = QUESTION_ID_MAC_ADDR;
+
+    suppressif TRUE;
+
+      numeric varid      = UndiNVData.AltMacAddrSupport,
+              questionid = QUESTION_ID_TMP_SUPPORT_ALT_MAC_ADDR,
+              prompt     = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help       = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              flags      = READ_ONLY,
+              minimum    = 0,
+              maximum    = 1,
+      endnumeric;
+
+    endif;
+
+    //
+    // Alternate (a.k.a. Virtual) MAC Address
+    //
+    suppressif ideqval UndiNVData.AltMacAddrSupport == 0;
+
+      grayoutif TRUE; /*  This is a READ ONLY field */
+        string varid      = UndiNVData.AltMacAddr,
+               questionid = QUESTION_ID_ALT_MAC_ADDR,
+               prompt     = STRING_TOKEN(STR_ALT_MAC_ADDR_PROMPT),
+               help       = STRING_TOKEN(STR_ALT_MAC_ADDR_HELP),
+               flags      = 0,
+               minsize    = 17,
+               maxsize    = 17,
+        endstring; 
+
+      endif;
+
+    endif;
+    
+  endform;
+
+
+
+  form formid = FORM_NIC,
+    title  = STRING_TOKEN(STR_NIC_CONFIG_MENU);
+
+    text
+      help   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      flags  = 0,
+      key    = 0;
+
+
+    //
+    // Add a separation line
+    //
+    text
+      help   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      text   = STRING_TOKEN(STR_INV_EMPTY_STRING),
+      flags  = 0,
+      key    = 0;
+
+    suppressif TRUE;
+
+      numeric varid   = UndiNVData.LinkSpeedSettingsSupported,
+              prompt  = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help    = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              minimum = 0,
+              maximum = 1,
+      endnumeric;
+
+    endif;
+
+    grayoutif ideqval UndiNVData.LinkSpeedSettingsSupported == 0;
+
+      oneof varid         = UndiNVData.LinkSpeed,
+            questionid    = QUESTION_ID_LINK_SPEED,
+            prompt        = STRING_TOKEN(STR_LINK_SPEED_PROMPT),
+            help          = STRING_TOKEN(STR_LINK_SPEED_HELP),
+            flags         = 0,
+            option text   = STRING_TOKEN(STR_AUTONEG_TEXT), value = LINK_SPEED_AUTO_NEG, flags = DEFAULT;
+
+            suppressif ideqval UndiNVData.LinkSpeedSettingsSupported == 0;
+              option text = STRING_TOKEN(STR_10HALF_TEXT),   value = LINK_SPEED_10HALF,   flags = 0;
+              option text = STRING_TOKEN(STR_10FULL_TEXT),   value = LINK_SPEED_10FULL,   flags = 0;
+              option text = STRING_TOKEN(STR_100HALF_TEXT),  value = LINK_SPEED_100HALF,  flags = 0;
+              option text = STRING_TOKEN(STR_100FULL_TEXT),  value = LINK_SPEED_100FULL,  flags = 0;
+            endif
+
+      endoneof;
+
+    endif;
+
+    suppressif TRUE;
+
+      numeric name    = WolSettingsSupported,
+              varid   = UndiNVData.WolSettingsSupported,
+              prompt  = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help    = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              flags   = READ_ONLY,
+              minimum = 0,
+              maximum = 1,
+      endnumeric;
+      
+      numeric name        = DefaultWolEnable,
+              varid       = UndiNVData.DefaultWolEnable,
+              questionid  = QUESTION_ID_DEFAULT_WOL,
+              prompt      = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              help        = STRING_TOKEN(STR_INV_EMPTY_STRING),
+              flags       = READ_ONLY,
+              minimum     = 0,
+              maximum     = 2,
+      endnumeric;
+
+    endif;
+
+    grayoutif ideqval UndiNVData.WolSettingsSupported == 0;
+
+      oneof varid         = UndiNVData.WolEnable,
+            questionid    = QUESTION_ID_WOL,
+            prompt        = STRING_TOKEN(STR_WOL_TEXT),
+            help          = STRING_TOKEN(STR_WOL_HELP),
+            flags         = 0,
+            default value = cond(questionref(WolSettingsSupported) == 1 ? WOL_NA : questionref(DefaultWolEnable)),
+
+            suppressif ideqval UndiNVData.WolSettingsSupported == 0;
+              option text = STRING_TOKEN(STR_DISABLED_TEXT), value = WOL_DISABLE, flags = 0;
+              option text = STRING_TOKEN(STR_ENABLED_TEXT),  value = WOL_ENABLE,  flags = 0;
+            endif
+
+            suppressif ideqval UndiNVData.WolSettingsSupported == 1;
+              option text = STRING_TOKEN(STR_NA_TEXT),       value = WOL_NA,      flags = 0;
+            endif
+
+      endoneof;
+    endif; // grayoutif
+
+
+
+  endform;
+
+
+endformset;
+
+

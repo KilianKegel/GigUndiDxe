@@ -1,0 +1,73 @@
+TianoCore UDK2015 Build Instructions for Intel(R) PRO/1000 Open Source Driver
+Copyright 2016, Intel Corporation, All Rights Reserved
+
+
+PREBUILD INSTRUCTIONS
+---------------------
+The files included in this source package allow the PRO/1000 UEFI UNDI driver binary
+to be built as part of the Tiano Core UDK2015 source tree. Before building the
+driver you must download the Tiano Core UDK2015 release source from
+www.tianocore.org and follow the instructions in Release Notes to build the
+tree for your target architecture.
+
+Note: Extract the contents of BaseTools(Windows).zip directly to the directory
+with the package folders.
+
+
+BUILD INSTRUCTIONS
+------------------
+These instructions use the Microsoft Visual Studio 12 (2013) compiler tools.
+Follow the below steps to integrate the PRO/1000 UEFI UNDI driver into the UDK2015 source tree.
+
+1. Extract the contents of GigUndiDxe.zip into the UDK2015 root/workspace 
+directory so that "IntelUndiPkg" is placed among the other "Pkg" folders.
+
+2. Change to the root directory and run edksetup.bat to set up a workspace
+environment for UDK2015.
+
+3. Provide architecture, toolchain, package to build, module and build type as
+parameters to build the UEFI driver executable. Supported architectures are: 
+A32, X64 and IPF (Itanium).
+For example, to build for the IA32 architecture:
+
+build -a IA32 -t VS2013x86 -p IntelUndiPkg\IntelGigUndiPkg.dsc -m IntelUndiPkg\GigUndiDxe\GigUndiDxe.inf -b RELEASE
+
+Important: Before performing an Itanium build, review the ITANIUM SPECIFIC
+section.
+
+4. The resultant .efi image is located in:
+\Build\IntelUndiPkg\RELEASE_{TOOLCHAIN}\{ARCHITECTURE}\GigUndiDxe.efi
+depending on target toolchain and architecture.
+
+
+ITANIUM SPECIFIC
+----------------
+The tools_def.txt file, which defines available toolchains, uses an old WINDDK
+version (3790.1830). This version is no longer available from official sources.
+Because of this, you will have to modify the tools_def defines.
+The oldest available version is "Windows Driver Kit Version 7.1.0" which can be
+downloaded from Microsoft's website. After you install the WDK, replace the
+following tools_def (located in \Conf\ folder) defines with:
+  DEFINE WINDDK_BIN16 = C:\WinDDK\7600.16385.1\bin\bin16
+  DEFINE WINDDK_BIN32 = C:\WinDDK\7600.16385.1\bin\x86
+  DEFINE WINDDK_BINX64 = C:\WinDDK\7600.16385.1\bin\x86\amd64
+  DEFINE WINDDK_BIN64 = C:\WinDDK\7600.16385.1\bin\x86\ia64
+
+lib.exe does not exist in this toolchain version, its functionality is included
+in link.exe.
+Replace this line:
+  *_DDK3790_IPF_SLINK_PATH = DEF(WINDDK_BIN64)\lib.exe
+with:
+  *_DDK3790_IPF_SLINK_PATH = DEF(WINDDK_BIN64)\link.exe /lib
+Then create Itanium build by issuing:
+build -a IPF -t DDK3790 -p IntelUndiPkg\IntelGigUndiPkg.dsc -m IntelUndiPkg\GigUndiDxe\GigUndiDxe.inf -b RELEASE
+
+Trademarks
+----------
+
+Intel, Itanium, and Pentium are trademarks or registered trademarks of Intel
+Corporation or its subsidiaries in the United States and other countries.
+
+* Other names and brands may be claimed as the property of others.
+
+
