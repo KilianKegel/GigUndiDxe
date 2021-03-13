@@ -75,12 +75,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "StartStop.h"
 #include "Version.h"
 #include "AdapterInformation.h"
+#include "DriverHealth.h"
 #include "Dma.h"
 
 
 
 
 
+
+// DRIVER_DATA forward declaration
+typedef struct DRIVER_DATA_S DRIVER_DATA;
+
+#include "LanEngine/Receive.h"
+#include "LanEngine/Transmit.h"
 
 
 #define MAX_NIC_INTERFACES  256
@@ -94,8 +101,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL_REVISION_31 0x00010001
 #define PXE_ROMID_MINORVER_31 0x10
 
-
-#define TWO_PAIR_DOWNSHIFT_TIMEOUT 30
 
 // PCI Base Address Register Bits
 #define PCI_BAR_IO_MASK             0x00000003
@@ -120,10 +125,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // PCI Configuration Space Register Offsets
 #define PCI_CAP_PTR         0x34    /* PCI Capabilities pointer */
 
-// Register offsets for IO Mode read/write
-#define IO_MODE_IOADDR      0x00
-#define IO_MODE_IODATA      0x04
-
 #define ETHER_MAC_ADDR_LEN 6
 
 // PBA constants
@@ -133,7 +134,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_PBA_30K 0x001E
 #define E1000_PBA_40K 0x0028
 #define E1000_PBA_48K 0x0030    /* 48KB, default RX allocation */
-
 
 // EEPROM Word Defines:
 #define INIT_CONTROL_WORD_2                 0x0F
@@ -202,37 +202,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GIG_UNDI_DEV_SIGNATURE   SIGNATURE_32 ('P', 'R', '0', 'g')
 
-/** Retrieves RX descriptor from RX ring structure
+typedef struct e1000_tx_desc        TRANSMIT_DESCRIPTOR;
+typedef struct e1000_rx_desc        RECEIVE_DESCRIPTOR;
 
-   @param[in]   R   RX ring
-   @param[in]   i   Number of descriptor
-
-   @return   Descriptor retrieved
-**/
-#define E1000_RX_DESC(R, i)          \
-          (&(((struct e1000_rx_desc *) (UINTN) ((R)->UnmappedAddress))[i]))
-
-/** Retrieves the address of the N-th RX buffer from the passed base address of
-    all RX buffers. The passed address may be virtual (usable by the driver for
-    reading received data) or physical (usable by the hardware to DMA stuff).
-
-  @param[in]   Address   Memory address (physical or virtual) of the RX buffer.
-  @param[in]   N         RX buffer index you want (0..DEFAULT_RX_DESCRIPTORS).
-
-  @return   Address of the requested RX buffer.
-*/
-#define E1000_RX_BUFFER_ADDR(Address, N) \
-          ((UINTN) (Address + (sizeof (LOCAL_RX_BUFFER) * N) + OFFSET_OF (LOCAL_RX_BUFFER, RxBuffer)))
-
-/** Retrieves TX descriptor from TX ring structure
-
-   @param[in]   R   TX ring
-   @param[in]   i   Number of descriptor
-
-   @return   Descriptor retrieved
-**/
-#define E1000_TX_DESC(R, i)          \
-          (&(((struct e1000_tx_desc *) (UINTN) ((R)->UnmappedAddress))[i]))
+#define TX_RING_FROM_ADAPTER(a)     ((TRANSMIT_RING*)(&(a)->TxRing))
+#define RX_RING_FROM_ADAPTER(a)     ((RECEIVE_RING*)(&(a)->RxRing))
+#define PCI_IO_FROM_ADAPTER(a)      (EFI_PCI_IO_PROTOCOL*)((a)->PciIo)
 
 /** Retrieves UNDI_PRIVATE_DATA structure using NII Protocol 3.1 instance
 
@@ -272,6 +247,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   CR (a, UNDI_PRIVATE_DATA, AdapterInformation, GIG_UNDI_DEV_SIGNATURE)
 
 
+/** Retrieves UNDI_PRIVATE_DATA structure using BCF handle
+
+   @param[in]   a   Current protocol instance
+
+   @return    UNDI_PRIVATE_DATA structure instance
+**/
+#define UNDI_PRIVATE_DATA_FROM_BCF_HANDLE(a) \
+  CR (a, UNDI_PRIVATE_DATA, NicInfo.BcfHandle, GIG_UNDI_DEV_SIGNATURE)
+
+/** Retrieves UNDI_PRIVATE_DATA structure using protocol instance.
+
+   @param[in]   a   Current protocol instance
+
+   @return   UNDI_PRIVATE_DATA structure instance
+**/
+#define UNDI_PRIVATE_DATA_FROM_PRIVATE_DATA_ACCESS(a) \
+  CR (a, UNDI_PRIVATE_DATA, PrivateDataAccess, GIG_UNDI_DEV_SIGNATURE)
+
 
 /** Macro to return the offset of a member within a struct.  This
    looks like it dereferences a null pointer, but it doesn't really.
@@ -282,6 +275,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    @return    Offset of a member within a struct
 **/
 #define STRUCT_OFFSET(Structure, Member)     ((UINTN) &(((Structure *) 0)->Member))
+
+/** Aligns number to specified granularity
+
+   @param[in]   x   Number
+   @param[in]   a   Granularity
+
+   @return   Number aligned to Granularity
+ */
+#define ALIGN(x, a)    (((x) + ((UINT64) (a) - 1)) & ~((UINT64) (a) - 1))
+
+/** Test bit mask against a value.
+
+   @param[in]   v   Value
+   @param[in]   m   Mask
+
+   @return    TRUE when value contains whole bit mask, otherwise - FALSE.
+ */
+#define BIT_TEST(v, m) (((v) & (m)) == (m))
 
 /** Macro to compare MAC addresses.  Returns true if the MAC addresses match.
    a and b must be UINT8 pointers to the first byte of MAC address.
@@ -306,9 +317,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define E1000_COPY_MAC(a, b) \
   *((UINT32 *) a) = *((UINT32 *) b);*((UINT16 *) (a + 4)) = *((UINT16 *) (b + 4))
 
+/** Helper for controller private data for() iteration loop.
+
+   @param[in]    Iter   Driver private data iteration pointer
+*/
+#define FOREACH_ACTIVE_CONTROLLER(Iter)                 \
+  for ((Iter) = GetFirstControllerPrivateData ();       \
+       (Iter) != NULL;                                  \
+       (Iter) = GetNextControllerPrivateData ((Iter)))
+
 /* External variables declarations */
 extern PXE_SW_UNDI *               mE1000Pxe31;
-extern UNDI_PRIVATE_DATA *         mE1000Undi32DeviceList[MAX_NIC_INTERFACES];
+extern UNDI_PRIVATE_DATA *         mUndi32DeviceList[MAX_NIC_INTERFACES];
 extern EFI_DRIVER_BINDING_PROTOCOL gUndiDriverBinding;
 extern EFI_DRIVER_BINDING_PROTOCOL gGigUndiDriverBinding;
 extern EFI_GUID                    gEfiNiiPointerGuid;
@@ -540,12 +560,6 @@ typedef struct {
   UINT8  McAddr[MAX_MCAST_ADDRESS_CNT][PXE_MAC_LENGTH]; // 8*32 is the size
 } MCAST_LIST;
 
-typedef struct PDA_WHITELIST_ENTRY_S {
-  UINT16  Offset;
-  UINT16  Length;
-  BOOLEAN WriteAllowed;
-} PDA_WHITELIST_ENTRY;
-
 typedef struct DRIVER_DATA_S {
   UINT16                State; // stopped, started or initialized
 
@@ -594,21 +608,15 @@ typedef struct DRIVER_DATA_S {
   UNMAP_MEM            UnMapMem;
   SYNC_MEM             SyncMem;
 
-  UNDI_DMA_MAPPING     TxRing;
-  UNDI_DMA_MAPPING     RxRing;
-  UNDI_DMA_MAPPING     RxBufferMapping;
-
   UINT8  IoBarIndex;
   UINT16 RxFilter;
   UINT8  IntMask;
 
   MCAST_LIST McastList;
 
-  UINT16                     CurRxInd;
-  UINT16                     CurTxInd;
-  UINT8                      ReceiveStarted;
-  UINT16                     XmitDoneHead;
-  UNDI_DMA_MAPPING           TxBufferMappings[DEFAULT_TX_DESCRIPTORS];
+  RECEIVE_RING               RxRing;
+  TRANSMIT_RING              TxRing;
+
   BOOLEAN                    MacAddrOverride;
   BOOLEAN                    FlashWriteInProgress;
   BOOLEAN                    SurpriseRemoval;
@@ -657,8 +665,6 @@ typedef struct UNDI_PRIVATE_DATA_S {
 
   UINT32                           LastAttemptVersion;
   UINT32                           LastAttemptStatus;
-
-  PDA_WHITELIST_ENTRY              *PdaWhiteList;
 } UNDI_PRIVATE_DATA;
 
 typedef struct {
@@ -771,8 +777,6 @@ E1000ReceiveStart (
   IN DRIVER_DATA *AdapterInfo
   );
 
-#define MAX_QUEUE_DISABLE_TIME  200
-
 /** Stops the receive unit.
 
    @param[in]   AdapterInfo   Pointer to the NIC data structure information
@@ -785,32 +789,20 @@ E1000ReceiveStop (
   IN DRIVER_DATA *AdapterInfo
   );
 
-#define MAX_QUEUE_DISABLE_TIME  200
-
-/** Stops the transmit unit.
-
-   @param[in]   AdapterInfo   Pointer to the NIC data structure information
-                              which the UNDI driver is layering on..
-
-   @retval   Transmit unit disabled
-**/
-VOID
-E1000TransmitDisable (
-  IN DRIVER_DATA *AdapterInfo
-  );
-
 /** Takes a command Block pointer (cpb) and sends the frame.  Takes either one fragment or many
    and places them onto the wire.  Cleanup of the send happens in the function UNDI_Status in DECODE.C
 
    @param[in]   AdapterInfo   Pointer to the instance data
-   @param[in]   Cpb           The command parameter Block address.  64 bits since this is Itanium(tm)
-                              processor friendly
-   @param[in]   OpFlags       The operation flags, tells if there is any special sauce on this transmit
+   @param[in]   Cpb       The command parameter Block address.  64 bits since this is Itanium(tm)
+                          processor friendly
+   @param[in]   OpFlags   The operation flags, tells if there is any special sauce on this transmit
 
-   @retval   PXE_STATCODE_SUCCESS        If the frame goes out
-   @retval   PXE_STATCODE_QUEUE_FULL     Transmit buffers aren't freed by upper layer
-   @retval   PXE_STATCODE_DEVICE_FAILURE Frame failed to go out
-   @retval   PXE_STATCODE_BUSY           If they need to call again later
+  @retval     PXE_STATCODE_SUCCESS          Packet enqueued for transmit.
+  @retval     PXE_STATCODE_DEVICE_FAILURE   AdapterInfo parameter is NULL.
+  @retval     PXE_STATCODE_DEVICE_FAILURE   Failed to send packet.
+  @retval     PXE_STATCODE_INVALID_CPB      CPB invalid.
+  @retval     PXE_STATCODE_UNSUPPORTED      Fragmented tranmission was requested.
+  @retval     PXE_STATCODE_QUEUE_FULL       Tx queue is full.
 **/
 UINTN
 E1000Transmit (
@@ -839,14 +831,18 @@ E1000Transmit (
    @param[out]  Db            The data buffer. The out of band method of passing
                               pre-digested information to the protocol.
 
-   @retval   PXE_STATCODE_NO_DATA If there is no data
-   @retval   PXE_STATCODE_SUCCESS If we passed the goods to the protocol.
+  @retval     PXE_STATCODE_NO_DATA        There is no data to receive.
+  @retval     PXE_STATCODE_DEVICE_FAILURE AdapterInfo is NULL.
+  @retval     PXE_STATCODE_DEVICE_FAILURE Device failure on packet receive.
+  @retval     PXE_STATCODE_INVALID_CPB    Invalid CPB/DB parameters.
+  @retval     PXE_STATCODE_NOT_STARTED    Rx queue not started.
+  @retval     PXE_STATCODE_SUCCESS        Received data passed to the protocol.
 **/
 UINTN
 E1000Receive (
-  IN  DRIVER_DATA *AdapterInfo,
-  IN  UINT64       Cpb,
-  OUT UINT64       Db
+  IN  DRIVER_DATA       *AdapterInfo,
+  IN  PXE_CPB_RECEIVE   *CpbReceive,
+  OUT PXE_DB_RECEIVE    *DbReceive
   );
 
 /** Resets the hardware and put it all (including the PHY) into a known good state.
@@ -888,26 +884,6 @@ E1000FreeTxBuffers (
   IN  DRIVER_DATA *AdapterInfo,
   IN  UINT16       NumEntries,
   OUT UINT64      *TxBuffer
-  );
-
-/** This is the drivers copy function so it does not need to rely on the BootServices
-   copy which goes away at runtime.
-
-   This copy function allows 64-bit or 32-bit copies
-   depending on platform architecture.  On Itanium we must check that both addresses
-   are naturally aligned before attempting a 64-bit copy.
-
-   @param[in]   Dest     Destination memory pointer to copy data to.
-   @param[in]   Source   Source memory pointer.
-   @param[in]   Count    Number of bytes to copy
-
-   @return    Memory copied from source to destination
-**/
-VOID
-E1000MemCopy (
-  IN UINT8* Dest,
-  IN UINT8* Source,
-  IN UINT32 Count
   );
 
 /** Sets specified bits in a device register
@@ -1140,4 +1116,27 @@ DelayInMicroseconds (
 **/
 #define DELAY_IN_MILLISECONDS(x)  DelayInMicroseconds (AdapterInfo, x * 1000)
 
+
+/** Iteration helper. Get first controller private data structure
+    within mUndi32DeviceList global array.
+
+   @return     UNDI_PRIVATE_DATA    Pointer to Private Data Structure.
+   @return     NULL                 No controllers within the array
+**/
+UNDI_PRIVATE_DATA*
+GetFirstControllerPrivateData (
+  );
+
+/** Iteration helper. Get controller private data structure standing
+    next to UndiPrivateData within mUndi32DeviceList global array.
+
+   @param[in]  UndiPrivateData        Pointer to Private Data Structure.
+
+   @return     UNDI_PRIVATE_DATA    Pointer to Private Data Structure.
+   @return     NULL                 No controllers within the array
+**/
+UNDI_PRIVATE_DATA*
+GetNextControllerPrivateData (
+  IN  UNDI_PRIVATE_DATA     *UndiPrivateData
+  );
 #endif /* E1000_H_ */

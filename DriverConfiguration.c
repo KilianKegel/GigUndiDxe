@@ -385,7 +385,7 @@ GigUndiDriverConfigurationSetOptions (
   }
 
   // Remember receiver state, so we can leave it in the same state as it was before settings were made.
-  ReceiveStarted = UndiPrivateData->NicInfo.ReceiveStarted;
+  ReceiveStarted = UndiPrivateData->NicInfo.RxRing.IsRunning;
 
   GigUndiDriverConfigurationDisplayMenu (UndiPrivateData);
 

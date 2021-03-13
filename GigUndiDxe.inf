@@ -100,12 +100,12 @@
   e1000_osdep.h
   EepromConfig.c
   EepromConfig.c
+  GigDriverHealth.c
   Hii.c
   Hii.h
   HiiInternalLib.c
   HiiInternalLib.h
   Init.c
-  Init.h
   NVDataStruc.h
   StartStop.c
   StartStop.h
@@ -148,6 +148,13 @@
   wol/wolimpl.h
   wol/wolinfo.c
   wol/wol_1G.c
+
+  LanEngine/Receive.c
+  LanEngine/Receive.h
+  LanEngine/ReceiveDep.c
+  LanEngine/Transmit.c
+  LanEngine/Transmit.h
+  LanEngine/TransmitDep.c
 
 [Packages]
   MdePkg/MdePkg.dec

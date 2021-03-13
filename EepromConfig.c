@@ -30,6 +30,108 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "wol.h"
 #include "DeviceSupport.h"
 
+/** Reads SR buffer.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[in]   Length           Number of words to read.
+   @param[out]  Data             Pointer to location with data to be read to.
+
+   @retval    EFI_SUCCESS            Buffer successfully read.
+   @retval    EFI_INVALID_PARAMETER  UndiPrivateData or Data is NULL.
+   @retval    EFI_DEVICE_ERROR       Failed to read buffer.
+**/
+EFI_STATUS
+ReadSrBuffer16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  IN  UINT16             Length,
+  OUT UINT16             *Data
+  )
+{
+  INT32  GbeStatus;
+
+  if ((UndiPrivateData == NULL) ||
+      (Data == NULL))
+  {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  GbeStatus = e1000_read_nvm (&UndiPrivateData->NicInfo.Hw, Offset, Length, Data);
+
+  return (GbeStatus == E1000_SUCCESS) ? EFI_SUCCESS : EFI_DEVICE_ERROR;
+}
+
+/** Reads SR word.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[out]  Data             Pointer to location with data to be read to.
+
+   @retval    EFI_SUCCESS     Word successfully read.
+   @retval    !EFI_SUCCESS    Word not read, failure of underlying function.
+**/
+EFI_STATUS
+ReadSr16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  OUT UINT16             *Data
+  )
+{
+  return ReadSrBuffer16 (UndiPrivateData, Offset, 1, Data);
+}
+
+/** Writes SR buffer.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[in]   Length           Number of words to write.
+   @param[in]   Data             Pointer to location with words to be written.
+
+   @retval    EFI_SUCCESS            Buffer successfully written.
+   @retval    EFI_INVALID_PARAMETER  UndiPrivateData or Data is NULL.
+   @retval    EFI_DEVICE_ERROR       Failed to write buffer.
+**/
+EFI_STATUS
+WriteSrBuffer16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  IN  UINT16             Length,
+  IN  UINT16             *Data
+  )
+{
+  INT32  GbeStatus;
+
+  if ((UndiPrivateData == NULL) ||
+      (Data == NULL))
+  {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  GbeStatus = e1000_write_nvm (&UndiPrivateData->NicInfo.Hw, Offset, Length, Data);
+
+  return (GbeStatus == E1000_SUCCESS) ? EFI_SUCCESS : EFI_DEVICE_ERROR;
+}
+
+/** Writes SR word.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[in]   Data             Word to be written.
+
+   @retval    EFI_SUCCESS    Word successfully written.
+   @retval    !EFI_SUCCESS   Word not written, failure of underlying function.
+**/
+EFI_STATUS
+WriteSr16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  IN  UINT16             Data
+  )
+{
+  return WriteSrBuffer16 (UndiPrivateData, Offset, 1, &Data);
+}
+
 
 
 /** Gets LAN speed setting for port
@@ -271,7 +373,7 @@ EepromSetLanSpeed (
     // If the adapter was initialized on entry then force a full reset of the adapter.
     // Also re-enable the receive unit if it was enabled before we started the PHY loopback test.
     if (UndiPrivateData->NicInfo.UndiEnabled) {
-      ReceiveStarted = UndiPrivateData->NicInfo.ReceiveStarted;
+      ReceiveStarted = UndiPrivateData->NicInfo.RxRing.IsRunning;
 
       e1000_reset_hw (&UndiPrivateData->NicInfo.Hw);
       UndiPrivateData->NicInfo.HwInitialized = FALSE;

@@ -26,17 +26,30 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
-#ifndef INIT_H_
-#define INIT_H_
+#include "E1000.h"
 
-#define EFI_NII_POINTER_PROTOCOL_GUID \
-  { 0xE3161450, 0xAD0F, 0x11D9, { 0x96, 0x69, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
+HEALTH_MSG_ENTRY mDriverHealthEntry[] = { {0, NULL} };
 
-/* This is a macro to convert the preprocessor defined version number into a hex value
- that can be registered with EFI. */
-#define VERSION_TO_HEX  ((MAJORVERSION << 24) + (MINORVERSION << 16) + \
-                        (BUILDNUMBER / 10 << 12) + (BUILDNUMBER % 10 << 8))
 
-#define MAC_ADDRESS_SIZE_IN_BYTES 6
+/** Retrieves adapter specific health status information from SW/FW/HW.
 
-#endif /* INIT_H_ */
+   @param[in]   UndiPrivateData   Driver private data structure
+   @param[out]  ErrorCount        On return, number of errors found, if any
+   @param[out]  ErrorIndexes      On return, array that holds found health error indexes (from global array).
+                                  Valid only when ErrorCount != 0. Must be allocated by caller
+
+   @retval  EFI_SUCCESS            Adapter health information retrieved successfully
+**/
+EFI_STATUS
+GetAdapterHealthStatus (
+  IN   UNDI_PRIVATE_DATA  *UndiPrivateData,
+  OUT  UINT16             *ErrorCount,
+  OUT  UINT16             *ErrorIndexes
+  )
+{
+  ASSERT (ErrorCount != NULL);
+
+  *ErrorCount = 0; // E1000 driver always reports being healthy
+
+  return EFI_SUCCESS;
+}

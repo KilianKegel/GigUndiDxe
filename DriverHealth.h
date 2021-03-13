@@ -26,6 +26,48 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
-#define MAJORVERSION 9 /* GigUndi major version */ 
-#define MINORVERSION 4 /* GigUndi minor version */ 
-#define BUILDNUMBER 6 /* GigUndi build version */ 
+#ifndef DRIVER_HEALTH_H_
+#define DRIVER_HEALTH_H_
+
+
+#define MAX_DRIVER_HEALTH_ERROR_STRING       260
+
+typedef struct HEALTH_MSG_ENTRY_S {
+  EFI_STRING_ID  StringId;
+  CHAR8          *Msg;
+} HEALTH_MSG_ENTRY;
+
+typedef struct UNDI_PRIVATE_DATA_S UNDI_PRIVATE_DATA;
+
+/** Helper safe function to add health error (exceeding number will be handled in
+   GetControllerHealthStatus()).
+
+   @param[out]  ErrorCount        Pointer to variable that holds error count
+   @param[out]  ErrorIndexes      Pointer to array that holds error indexes
+   @param[in]   ErrIdx            Index of health error in global arrays
+**/
+VOID
+AddHealthError (
+  OUT  UINT16  *ErrorCount,
+  OUT  UINT16  *ErrorIndexes,
+  IN   UINT16  ErrIdx
+  );
+
+/** Retrieves adapter specific health status information from SW/FW/HW.
+
+   @param[in]   UndiPrivateData   Driver private data structure
+   @param[out]  ErrorCount        On return, number of errors found, if any
+   @param[out]  ErrorIndexes      On return, array that holds found health error indexes (from global array).
+                                  Valid only when ErrorCount != 0. Must be allocated by caller
+
+   @retval  EFI_SUCCESS            Adapter health information retrieved successfully
+   @retval  !EFI_SUCCESS           Failed to retrieve adapter health info
+**/
+EFI_STATUS
+GetAdapterHealthStatus (
+  IN   UNDI_PRIVATE_DATA  *UndiPrivateData,
+  OUT  UINT16             *ErrorCount,
+  OUT  UINT16             *ErrorIndexes
+  );
+
+#endif /* DRIVER_HEALTH_H_ */

@@ -1196,7 +1196,7 @@ JustRead:
   }
 
   // give the stat flags here
-  if (AdapterInfo->ReceiveStarted) {
+  if (AdapterInfo->RxRing.IsRunning) {
     CdbPtr->StatFlags |= (AdapterInfo->RxFilter | PXE_STATFLAGS_COMMAND_COMPLETE);
   }
 
@@ -1461,12 +1461,8 @@ E1000UndiStatus (
   PXE_DB_GET_STATUS *       DbPtr;
   UINT16                    IntStatus;
   UINT16                    NumEntries;
-  E1000_RECEIVE_DESCRIPTOR *RxPtr;
-#if (DBG_LVL & CRITICAL)
-  UINT64 PhysicalRxBuffer;
-  UINT32 Rdh;
-  UINT32 Rdt;
-#endif /* (DBG_LVL & CRITICAL) */
+  EFI_STATUS                Status;
+  UINT16                    RxPacketLength;
 
   DEBUGPRINT (DECODE, ("E1000UndiStatus\n"));
 
@@ -1496,37 +1492,21 @@ E1000UndiStatus (
 
   // Fill in size of next available receive packet and
   // reserved field in caller's DB storage.
-  RxPtr = E1000_RX_DESC (&AdapterInfo->RxRing, AdapterInfo->CurRxInd);
+  Status = ReceiveIsPacketReady (
+             AdapterInfo,
+             &RxPacketLength,
+             NULL,
+             NULL,
+             NULL
+             );
 
-#if (DBG_LVL & CRITICAL)
-  PhysicalRxBuffer = E1000_RX_BUFFER_ADDR (
-                       AdapterInfo->RxBufferMapping.PhysicalAddress,
-                       AdapterInfo->CurRxInd
-                     );
-
-  if (RxPtr->buffer_addr != PhysicalRxBuffer) {
-    DEBUGPRINT (
-      CRITICAL, ("RX buffer address mismatch on desc 0x%.2X: expected %X, actual %X\n",
-      AdapterInfo->CurRxInd, PhysicalRxBuffer, RxPtr->buffer_addr)
-    );
-  }
-
-  Rdt = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT (0));
-  Rdh = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
-  if (Rdt == Rdh) {
-    DEBUGPRINT (CRITICAL, ("GetStatus ERROR: RX Buffers Full!\n"));
-  }
-#endif /* (DBG_LVL & CRITICAL) */
-
-  if ((RxPtr->status & (E1000_RXD_STAT_EOP | E1000_RXD_STAT_DD)) != 0) {
-    DEBUGPRINT (DECODE, ("Get Status->We have a Rx Frame at %x\n", AdapterInfo->CurRxInd));
-    DEBUGPRINT (DECODE, ("Frame length = %X\n", RxPtr->length));
-    DbPtr->RxFrameLen = RxPtr->length;
-    DbPtr->reserved = 0;
+  if (Status == EFI_SUCCESS) {
+    DbPtr->RxFrameLen = RxPacketLength;
   } else {
     DbPtr->RxFrameLen = 0;
-    DbPtr->reserved = 0;
   }
+
+  DbPtr->reserved = 0;
 
   // Fill in the completed transmit buffer addresses so they can be freed by
   // the calling application or driver
@@ -1730,15 +1710,12 @@ E1000UndiReceive (
     return;
   }
 
-  // Check if RU has started.
-  if (!AdapterInfo->ReceiveStarted) {
-    CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
-    CdbPtr->StatCode = PXE_STATCODE_NOT_INITIALIZED;
-    return;
-  }
 
-
-  CdbPtr->StatCode = (UINT16) E1000Receive (AdapterInfo, CdbPtr->CPBaddr, CdbPtr->DBaddr);
+  CdbPtr->StatCode = (UINT16) E1000Receive (
+                                AdapterInfo,
+                                (PXE_CPB_RECEIVE *) (UINTN) CdbPtr->CPBaddr,
+                                (PXE_DB_RECEIVE *) (UINTN) CdbPtr->DBaddr
+                                );
 
   if (CdbPtr->StatCode == PXE_STATCODE_SUCCESS) {
     CdbPtr->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
@@ -1779,7 +1756,7 @@ E1000UndiApiEntry (
     return;
   }
 
-  AdapterInfo = &(mE1000Undi32DeviceList[CdbPtr->IFnum]->NicInfo);
+  AdapterInfo = &(mUndi32DeviceList[CdbPtr->IFnum]->NicInfo);
 
   // Check if InitUndiNotifyExitBs was called before
   if (mExitBootServicesTriggered) {

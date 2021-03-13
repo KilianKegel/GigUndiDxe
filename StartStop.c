@@ -78,7 +78,7 @@ StartDriver (
   GigPrivate = UNDI_PRIVATE_DATA_FROM_DRIVER_STOP (This);
 
   // Save off the value of ReceiveStarted as it will be reset by InitializeGigUNDIDriver
-  ReceiveStarted = GigPrivate->NicInfo.ReceiveStarted;
+  ReceiveStarted = GigPrivate->NicInfo.RxRing.IsRunning;
 
   GigPrivate->NicInfo.HwInitialized = FALSE;
   e1000_reset_hw (&GigPrivate->NicInfo.Hw);

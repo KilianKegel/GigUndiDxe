@@ -147,61 +147,6 @@ _BuildPacket (
   }
 }
 
-/** Display the buffer and descriptors for debuging the PHY loopback test.
-
-   @param[in]   AdapterInfo   Pointer to the NIC data structure information
-                              which the UNDI driver is layering on so that we can
-                              get the MAC address
-
-   @return   Buffers and descriptors displayed
-**/
-VOID
-_DisplayBuffersAndDescriptors (
-  IN DRIVER_DATA *AdapterInfo
-  )
-{
-  E1000_RECEIVE_DESCRIPTOR * ReceiveDesc;
-  E1000_TRANSMIT_DESCRIPTOR *TransmitDesc;
-  UINT32                     j;
-
-  DEBUGPRINT (DIAG, ("Receive Descriptor\n"));
-  DEBUGPRINT (DIAG, ("RCTL=%X ", E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL)));
-  DEBUGPRINT (DIAG, ("RDH0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0))));
-  DEBUGPRINT (DIAG, ("RDT0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT (0))));
-  DEBUGPRINT (DIAG, ("cur_rx_ind=%X\n", AdapterInfo->CurRxInd));
-
-  ReceiveDesc = E1000_RX_DESC (&AdapterInfo->RxRing, 0);
-  for (j = 0; j < DEFAULT_RX_DESCRIPTORS; j++) {
-    DEBUGPRINT (DIAG, ("Buff=%x,", ReceiveDesc->buffer_addr));
-    DEBUGPRINT (DIAG, ("Len=%x,", ReceiveDesc->length));
-    DEBUGPRINT (DIAG, ("Stat=%x,", ReceiveDesc->status));
-    DEBUGPRINT (DIAG, ("Csum=%x,", ReceiveDesc->csum));
-    DEBUGPRINT (DIAG, ("Special=%x\n", ReceiveDesc->special));
-    ReceiveDesc++;
-  }
-
-  DEBUGWAIT (DIAG);
-  DEBUGPRINT (DIAG, ("Transmit Descriptor\n"));
-  DEBUGPRINT (DIAG, ("TCTL=%X ", E1000_READ_REG (&AdapterInfo->Hw, E1000_TCTL)));
-  DEBUGPRINT (DIAG, ("TDH0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_TDH (0))));
-  DEBUGPRINT (DIAG, ("TDT0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_TDT (0))));
-  DEBUGPRINT (DIAG, ("cur_tx_ind=%X\n", AdapterInfo->CurTxInd));
-
-  TransmitDesc = E1000_TX_DESC (&AdapterInfo->RxRing, 0);
-  for (j = 0; j < DEFAULT_TX_DESCRIPTORS; j++) {
-    DEBUGPRINT (DIAG, ("Buff=%x,", TransmitDesc->buffer_addr));
-    DEBUGPRINT (DIAG, ("Cmd=%x,", TransmitDesc->lower.flags.cmd));
-    DEBUGPRINT (DIAG, ("Cso=%x,", TransmitDesc->lower.flags.cso));
-    DEBUGPRINT (DIAG, ("Length=%x,", TransmitDesc->lower.flags.length));
-    DEBUGPRINT (DIAG, ("Status= %x,", TransmitDesc->upper.fields.status));
-    DEBUGPRINT (DIAG, ("Special=%x,", TransmitDesc->upper.fields.special));
-    DEBUGPRINT (DIAG, ("Css=%x\n", TransmitDesc->upper.fields.css));
-    TransmitDesc++;
-  }
-
-  DEBUGWAIT (DIAG);
-}
-
 /** This routine is used by diagnostic software to put
    the 82544, 82540, 82545, and 82546 MAC based network
    cards and the M88E1000 PHY into loopback mode.
@@ -1131,7 +1076,6 @@ GigUndiRunPhyLoopback (
                (UINT64) (UINTN) &PxeCpbTransmit,
                PXE_OPFLAGS_TRANSMIT_WHOLE
              );
-    _DisplayBuffersAndDescriptors (AdapterInfo);
 
     if (EFI_ERROR (Status)) {
       DEBUGPRINT (CRITICAL, ("E1000Transmit error Status %X. Iteration=%d\n", Status, j));
@@ -1153,9 +1097,9 @@ GigUndiRunPhyLoopback (
     for (i = 0; i <= 100000; i++) {
       Status = E1000Receive (
                  AdapterInfo,
-                 (UINT64) (UINTN) &CpbReceive,
-                 (UINT64) (UINTN) &DbReceive
-               );
+                 (PXE_CPB_RECEIVE *) (UINTN) &CpbReceive,
+                 (PXE_DB_RECEIVE *) (UINTN) &DbReceive
+                 );
       gBS->Stall (10);
 
       if (Status == PXE_STATCODE_NO_DATA) {
@@ -1220,7 +1164,7 @@ GigUndiPhyLoopback (
   UINT8            ReceiveStarted;
   EFI_STATUS       Status;
 
-  ReceiveStarted = UndiPrivateData->NicInfo.ReceiveStarted;
+  ReceiveStarted = UndiPrivateData->NicInfo.RxRing.IsRunning;
   UndiPrivateData->NicInfo.DriverBusy = TRUE;
 
   DEBUGPRINT (DIAG, ("UndiPrivateData->NicInfo.Block %X\n", (UINTN) UndiPrivateData->NicInfo.Block));

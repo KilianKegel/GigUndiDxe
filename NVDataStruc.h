@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   { 0xa31abb16, 0xc627, 0x475b, { 0x98, 0x8e, 0x7e, 0xe0, 0x77, 0x67, 0x40, 0xf3 } }
 
 
+#ifndef SWITCH_MODE
 // #define VAR_EQ_TEST_NAME  0x100
 
 #define STORAGE_VARIABLE_ID                   0x1234
@@ -145,4 +146,5 @@ typedef struct {
 #define       QUESTION_ID_TMP_SUPPORT_LINK_SPD_STATUS           0x1408
 #define       QUESTION_ID_LLDP_AGENT                            0x160A
 #define       QUESTION_ID_LLDP_AGENT_DEAULT                     0x160B
+#endif /* SWITCH_MODE */
 #endif /* NV_DATA_STRUC_H_ */

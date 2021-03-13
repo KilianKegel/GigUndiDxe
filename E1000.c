@@ -74,153 +74,6 @@ IsAltMacAddrSupported (
 
 
 
-/** Implements IO blocking when reading DMA memory.
-
-   @param[in]   AdapterInfo   Pointer to the NIC data structure information
-                              which the UNDI driver is layering on.
-   @param[in]   Flag          Block flag
-
-   @return    Lock is acquired or released according to Flag
-**/
-VOID
-E1000BlockIt (
-  IN DRIVER_DATA *AdapterInfo,
-  IN UINT32       Flag
-  )
-{
-  if (AdapterInfo->Block != NULL) {
-    (*AdapterInfo->Block) (AdapterInfo->UniqueId, Flag);
-  } else {
-    if (mInitializeLock) {
-      EfiInitializeLock (&mLock, TPL_NOTIFY);
-      mInitializeLock = FALSE;
-    }
-
-    if (Flag != 0) {
-      EfiAcquireLock (&mLock);
-    } else {
-      EfiReleaseLock (&mLock);
-    }
-  }
-}
-
-/** Maps a virtual address to a physical address.  This is necessary for runtime functionality and also
-   on some platforms that have a chipset that cannot allow DMAs above 4GB.
-
-   @param[in]   AdapterInfo      Pointer to the NIC data structure information
-                                 which the UNDI driver is layering on.
-   @param[in]   VirtualAddress   Virtual Address of the data buffer to map.
-   @param[in]   Size             Minimum size of the buffer to map.
-   @param[out]  MappedAddress    Pointer to store the address of the mapped buffer.
-
-   @return    Virtual address mapped to physical
-**/
-VOID
-E1000MapMem (
-  IN  DRIVER_DATA *AdapterInfo,
-  IN  UINT64       VirtualAddress,
-  IN  UINT32       Size,
-  OUT UINTN       *MappedAddress
-  )
-{
-  if (AdapterInfo->MapMem != NULL) {
-    (*AdapterInfo->MapMem) (
-                    AdapterInfo->UniqueId,
-                    VirtualAddress,
-                    Size,
-                    TO_DEVICE,
-                    (UINT64) (UINTN) MappedAddress
-                  );
-
-    if (*MappedAddress == 0) {
-      *((UINTN *) MappedAddress) = (UINTN) VirtualAddress;
-    }
-  } else {
-    *((UINTN *) MappedAddress) = (UINTN) VirtualAddress;
-  }
-}
-
-/** UnMaps a virtual address to a physical address.  This is necessary for runtime functionality and also
-   on some platforms that have a chipset that cannot allow DMAs above 4GB.
-
-   @param[in]   AdapterInfo   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on.
-   @param[in]   VirtualAddress   Virtual Address of the data buffer to map.
-   @param[in]   Size             Minimum size of the buffer to map.
-   @param[in]   MappedAddress   Pointer to store the address of the mapped buffer.
-
-   @return    Physical address unmapped
-**/
-VOID
-E1000UnMapMem (
-  IN DRIVER_DATA *AdapterInfo,
-  IN UINT64       VirtualAddress,
-  IN UINT32       Size,
-  IN UINT64       MappedAddress
-  )
-{
-  if (AdapterInfo->UnMapMem != NULL) {
-    (*AdapterInfo->UnMapMem) (
-                    AdapterInfo->UniqueId,
-                    VirtualAddress,
-                    Size,
-                    TO_DEVICE,
-                    (UINT64) MappedAddress
-                  );
-  }
-}
-
-/** This is the drivers copy function so it does not need to rely on the BootServices
-   copy which goes away at runtime.
-
-   This copy function allows 64-bit or 32-bit copies
-   depending on platform architecture.  On Itanium we must check that both addresses
-   are naturally aligned before attempting a 64-bit copy.
-
-   @param[in]   Dest     Destination memory pointer to copy data to.
-   @param[in]   Source   Source memory pointer.
-   @param[in]   Count    Number of bytes to copy
-
-   @return    Memory copied from source to destination
-**/
-VOID
-E1000MemCopy (
-  IN UINT8* Dest,
-  IN UINT8* Source,
-  IN UINT32 Count
-  )
-{
-  UINT32 BytesToCopy;
-  UINT32 IntsToCopy;
-  UINTN* SourcePtr;
-  UINTN* DestPtr;
-  UINT8* SourceBytePtr;
-  UINT8* DestBytePtr;
-
-  IntsToCopy = Count / sizeof (UINTN);
-  BytesToCopy = Count % sizeof (UINTN);
-
-  SourcePtr = (UINTN *) Source;
-  DestPtr = (UINTN *) Dest;
-
-  while (IntsToCopy > 0) {
-    *DestPtr = *SourcePtr;
-    SourcePtr++;
-    DestPtr++;
-    IntsToCopy--;
-  }
-
-  // Copy the leftover bytes.
-  SourceBytePtr = (UINT8 *) SourcePtr;
-  DestBytePtr = (UINT8 *) DestPtr;
-  while (BytesToCopy > 0) {
-    *DestBytePtr = *SourceBytePtr;
-    SourceBytePtr++;
-    DestBytePtr++;
-    BytesToCopy--;
-  }
-}
-
 /** Wait for up to 15 seconds for two pair downshift to complete
 
    @param[in]   AdapterInfo   Pointer to the NIC data structure information
@@ -385,10 +238,12 @@ E1000Statistics (
                           processor friendly
    @param[in]   OpFlags   The operation flags, tells if there is any special sauce on this transmit
 
-   @retval   PXE_STATCODE_SUCCESS        If the frame goes out
-   @retval   PXE_STATCODE_QUEUE_FULL     Transmit buffers aren't freed by upper layer
-   @retval   PXE_STATCODE_DEVICE_FAILURE Frame failed to go out
-   @retval   PXE_STATCODE_BUSY           If they need to call again later
+  @retval     PXE_STATCODE_SUCCESS          Packet enqueued for transmit.
+  @retval     PXE_STATCODE_DEVICE_FAILURE   AdapterInfo parameter is NULL.
+  @retval     PXE_STATCODE_DEVICE_FAILURE   Failed to send packet.
+  @retval     PXE_STATCODE_INVALID_CPB      CPB invalid.
+  @retval     PXE_STATCODE_UNSUPPORTED      Fragmented tranmission was requested.
+  @retval     PXE_STATCODE_QUEUE_FULL       Tx queue is full.
 **/
 UINTN
 E1000Transmit (
@@ -397,177 +252,75 @@ E1000Transmit (
   IN UINT16       OpFlags
   )
 {
-  PXE_CPB_TRANSMIT_FRAGMENTS *TxFrags;
-  PXE_CPB_TRANSMIT           *TxBuffer;
-  E1000_TRANSMIT_DESCRIPTOR  *TransmitDescriptor;
-  UINT32                      i;
-  INT16                       WaitMsec;
+  PXE_STATCODE                StatCode;
   EFI_STATUS                  Status;
-  UNDI_DMA_MAPPING           *TxBufMapping;
-#if (DBG_LVL & TX)
-  UINT8                      *UnmappedTxBuffer;
-#endif /* (DBG_LVL & TX) */
 
-  TxBufMapping = &AdapterInfo->TxBufferMappings[AdapterInfo->CurTxInd];
+  PXE_CPB_TRANSMIT            *TxBuffer;
 
+  UINT16                      PacketLength;
+  BOOLEAN                     IsBlocking;
 
-
-  // Transmit buffers must be freed by the upper layer before we can transmit any more.
-  if (TxBufMapping->PhysicalAddress != 0) {
-    DEBUGPRINT (CRITICAL, ("TX buffers have all been used! cur_tx=%d\n", AdapterInfo->CurTxInd));
-    for (i = 0; i < DEFAULT_TX_DESCRIPTORS; i++) {
-      DEBUGPRINT (CRITICAL, ("%x ", AdapterInfo->TxBufferMappings[i]));
-    }
-    DEBUGWAIT (CRITICAL);
-
-    // According to UEFI spec we should return PXE_STATCODE_BUFFER_FULL,
-    // but SNP is not implemented to recognize this callback.
-    return PXE_STATCODE_QUEUE_FULL;
+  if (AdapterInfo == NULL) {
+    // Should not happen
+    ASSERT (AdapterInfo != NULL);
+    StatCode = PXE_STATCODE_DEVICE_FAILURE;
+    goto Exit;
   }
 
-  // Make some short cut pointers so we don't have to worry about typecasting later.
-  // If the TX has fragments we will use the
-  // tx_tpr_f pointer, otherwise the tx_ptr_l (l is for linear)
-  TxBuffer  = (PXE_CPB_TRANSMIT *) (UINTN) Cpb;
-  TxFrags   = (PXE_CPB_TRANSMIT_FRAGMENTS *) (UINTN) Cpb;
+  if (Cpb == 0) {
+    StatCode = PXE_STATCODE_INVALID_CPB;
+    goto Exit;
+  }
 
-  // quicker pointer to the next available Tx descriptor to use.
-  TransmitDescriptor = E1000_TX_DESC (&AdapterInfo->TxRing, AdapterInfo->CurTxInd);
-
-  // Opflags will tell us if this Tx has fragments
-  // So far the linear case (the no fragments case, the else on this if) is the majority
-  // of all frames sent.
-  if (OpFlags & PXE_OPFLAGS_TRANSMIT_FRAGMENTED) {
-
-    // this count cannot be more than 8;
-    DEBUGPRINT (E1000, ("Fragments %x\n", TxFrags->FragCnt));
-
-    // for each fragment, give it a descriptor, being sure to keep track of the number used.
-    for (i = 0; i < TxFrags->FragCnt; i++) {
-
-      // Put the size of the fragment in the descriptor
-      E1000MapMem (
-        AdapterInfo,
-        TxFrags->FragDesc[i].FragAddr,
-        TxFrags->FragDesc[i].FragLen,
-        (UINTN *) &TransmitDescriptor->buffer_addr
-      );
-
-#if (DBG_LVL & TX)
-      UnmappedTxBuffer = (UINT8 *) TxFrags->FragDesc[i].FragAddr;
-#endif /* (DBG_LVL & TX) */
-
-      TransmitDescriptor->lower.flags.length  = (UINT16) TxFrags->FragDesc[i].FragLen;
-      TransmitDescriptor->lower.data = (E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
-
-
-      // If this is the last fragment we must also set the EOP bit
-      if ((i + 1) == TxFrags->FragCnt) {
-        TransmitDescriptor->lower.data |= E1000_TXD_CMD_EOP;
-      }
-
-      // move our software counter passed the frame we just used, watching for wrapping
-      DEBUGPRINT (E1000, ("Advancing TX pointer %x\n", AdapterInfo->CurTxInd));
-      AdapterInfo->CurTxInd++;
-      if (AdapterInfo->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
-        AdapterInfo->CurTxInd = 0;
-      }
-      TransmitDescriptor = E1000_TX_DESC (&AdapterInfo->TxRing, AdapterInfo->CurTxInd);
-    }
+  if (BIT_TEST (OpFlags, PXE_OPFLAGS_TRANSMIT_FRAGMENTED)) {
+    // Fragmented transmit
+    // Not necessary for Windows boot case. Nevertheless, this needs to be
+    // implemented.
+    DEBUGPRINT (TX, ("Fragmented transmit\n"));
+    StatCode = PXE_STATCODE_UNSUPPORTED;
+    goto Exit;
   } else {
-    DEBUGPRINT (E1000, ("No Fragments\n"));
+    // Single transmit
+    DEBUGPRINT (TX, ("Single transmit\n"));
 
-    TxBufMapping->UnmappedAddress = TxBuffer->FrameAddr;
-    TxBufMapping->Size = TxBuffer->DataLen + TxBuffer->MediaheaderLen;
+    TxBuffer      = (PXE_CPB_TRANSMIT *) (UINTN) Cpb;
+    PacketLength  = (UINT16) ((UINT16) TxBuffer->DataLen + TxBuffer->MediaheaderLen);
 
-    // Make the Tx buffer accessible for adapter over DMA
-    Status = UndiDmaMapMemoryRead (
-               AdapterInfo->PciIo,
-               TxBufMapping
+    if (TxBuffer->FrameAddr == 0
+      || PacketLength == 0)
+    {
+      StatCode = PXE_STATCODE_INVALID_CPB;
+      goto Exit;
+    }
+
+    IsBlocking = BIT_TEST (OpFlags, PXE_OPFLAGS_TRANSMIT_BLOCK);
+
+    Status = TransmitSend (
+               AdapterInfo,
+               TxBuffer->FrameAddr,
+               PacketLength,
+               IsBlocking
                );
 
-    if (EFI_ERROR (Status)) {
-      DEBUGPRINT (CRITICAL, ("Failed to map Tx buffer: %r\n", Status));
-      DEBUGWAIT (CRITICAL);
-      return PXE_STATCODE_DEVICE_FAILURE;
-    }
+    switch (Status) {
+    case EFI_SUCCESS:
+      StatCode = PXE_STATCODE_SUCCESS;
+      break;
 
-    TransmitDescriptor->buffer_addr = TxBufMapping->PhysicalAddress;
-    DEBUGPRINT (E1000, ("Packet buffer at %x\n", TransmitDescriptor->buffer_addr));
+    case EFI_OUT_OF_RESOURCES:
+      DEBUGPRINT (TX, ("Tx queue is full.\n"));
+      StatCode = PXE_STATCODE_QUEUE_FULL;
+      goto Exit;
 
-#if (DBG_LVL & TX)
-    UnmappedTxBuffer = (UINT8 *) TxBufMapping->UnmappedAddress;
-#endif /* (DBG_LVL & TX) */
-
-    // Set the proper bits to tell the chip that this is the last descriptor in the send,
-    // and be sure to tell us when its done.
-    // EOP - End of packet
-    // IFCs - Insert FCS (Ethernet CRC)
-    // RS - Report Status
-    TransmitDescriptor->lower.data = (E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
-    TransmitDescriptor->upper.fields.status = 0;
-    TransmitDescriptor->lower.data |= E1000_TXD_CMD_EOP;
-    TransmitDescriptor->lower.flags.length  = (UINT16) ((UINT16) TxBuffer->DataLen +
-                                                                 TxBuffer->MediaheaderLen);
-
-    DEBUGPRINT (E1000, ("BuffAddr=%x, ", TransmitDescriptor->buffer_addr));
-    DEBUGPRINT (E1000, ("Cmd=%x,", TransmitDescriptor->lower.flags.cmd));
-    DEBUGPRINT (E1000, ("Cso=%x,", TransmitDescriptor->lower.flags.cso));
-    DEBUGPRINT (E1000, ("Len=%x,", TransmitDescriptor->lower.flags.length));
-    DEBUGPRINT (E1000, ("Status=%x,", TransmitDescriptor->upper.fields.status));
-    DEBUGPRINT (E1000, ("Special=%x,", TransmitDescriptor->upper.fields.special));
-    DEBUGPRINT (E1000, ("Css=%x\n", TransmitDescriptor->upper.fields.css));
-
-    // In the zero fragment case, we need to add the header size to the payload size
-    // to accurately tell the hw how big is the packet.
-    // Move our software counter passed the frame we just used, watching for wrapping
-    AdapterInfo->CurTxInd++;
-    if (AdapterInfo->CurTxInd >= DEFAULT_TX_DESCRIPTORS) {
-      AdapterInfo->CurTxInd = 0;
+    default:
+      ASSERT_EFI_ERROR (Status);
+      StatCode = PXE_STATCODE_DEVICE_FAILURE;
+      goto Exit;
     }
   }
 
-#if (DBG_LVL & TX)
-  DEBUGPRINT (TX, ("Packet length %d, data:", TransmitDescriptor->lower.flags.length));
-  for (i = 0; i < TransmitDescriptor->lower.flags.length; i++) {
-    if (i % 16 == 0) {
-      DEBUGDUMP (TX, ("\n%p ", &UnmappedTxBuffer[i]));
-    }
-
-    DEBUGDUMP (TX, ("%.2X ", UnmappedTxBuffer[i]));
-  }
-  DEBUGDUMP (TX, ("\n"))
-#endif /* (DBG_LVL & TX) */
-
-  // Turn on the blocking function so we don't get swapped out
-  // Then move the Tail pointer so the HW knows to start processing the TX we just setup.
-  DEBUGWAIT (E1000);
-  E1000BlockIt (AdapterInfo, TRUE);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDT (0), AdapterInfo->CurTxInd);
-  E1000BlockIt (AdapterInfo, FALSE);
-
-  // If the OpFlags tells us to wait for the packet to hit the wire, we will wait.
-  if ((OpFlags & PXE_OPFLAGS_TRANSMIT_BLOCK) != 0) {
-    WaitMsec = 1000;
-
-    while ((TransmitDescriptor->upper.fields.status & E1000_TXD_STAT_DD) == 0) {
-      DELAY_IN_MILLISECONDS (10);
-      WaitMsec -= 10;
-      if (WaitMsec <= 0) {
-        break;
-      }
-    }
-
-    // If we waited for a while, and it didn't finish then the HW must be bad.
-    if ((TransmitDescriptor->upper.fields.status & E1000_TXD_STAT_DD) == 0) {
-      DEBUGPRINT (CRITICAL, ("ERROR: Network device transmit failure\n"));
-      return PXE_STATCODE_DEVICE_FAILURE;
-    } else {
-      DEBUGPRINT (E1000, ("Transmit success\n"));
-    }
-  }
-
-  return PXE_STATCODE_SUCCESS;
+Exit:
+  return StatCode;
 }
 
 /** Copies the frame from our internal storage ring (As pointed to by AdapterInfo->rx_ring)
@@ -590,174 +343,121 @@ E1000Transmit (
    @param[out]  Db            The data buffer. The out of band method of passing
                               pre-digested information to the protocol.
 
-   @retval   PXE_STATCODE_NO_DATA If there is no data
-   @retval   PXE_STATCODE_SUCCESS If we passed the goods to the protocol.
+  @retval     PXE_STATCODE_NO_DATA        There is no data to receive.
+  @retval     PXE_STATCODE_DEVICE_FAILURE AdapterInfo is NULL.
+  @retval     PXE_STATCODE_DEVICE_FAILURE Device failure on packet receive.
+  @retval     PXE_STATCODE_INVALID_CPB    Invalid CPB/DB parameters.
+  @retval     PXE_STATCODE_NOT_STARTED    Rx queue not started.
+  @retval     PXE_STATCODE_SUCCESS        Received data passed to the protocol.
 **/
 UINTN
 E1000Receive (
-  IN  DRIVER_DATA *AdapterInfo,
-  IN  UINT64       Cpb,
-  OUT UINT64       Db
+  IN  DRIVER_DATA       *AdapterInfo,
+  IN  PXE_CPB_RECEIVE   *CpbReceive,
+  OUT PXE_DB_RECEIVE    *DbReceive
   )
 {
-  PXE_CPB_RECEIVE *         CpbReceive;
-  PXE_DB_RECEIVE *          DbReceive;
-  PXE_FRAME_TYPE            PacketType;
-  E1000_RECEIVE_DESCRIPTOR *ReceiveDescriptor;
-  ETHER_HEADER *            EtherHeader;
-  PXE_STATCODE              StatCode;
-  UINT16                    DataLength;
-#if (DBG_LVL & RX)
-  UINT8 *                   PacketPtr;
-  UINT16                    i;
-#endif /* (DBG_LVL & RX) */
-#if (DBG_LVL & CRITICAL) && (DBG_LVL & RX)
-  VOID *                    PhysicalRxBuffer;
-  UINT32                    Rdh;
-  UINT32                    Rdt;
-#endif /* (DBG_LVL & CRITICAL) && (DBG_LVL & RX) */
+  PXE_STATCODE      StatCode;
+  EFI_STATUS        Status;
 
-  PacketType  = PXE_FRAME_TYPE_NONE;
-  StatCode    = PXE_STATCODE_NO_DATA;
+  UINT8             *RxBuffer;
+  UINT16            RxBufferSize;
+  UINT16            BytesReceived;
+  UINT16            PacketLength;
 
-  // acknowledge the interrupts
+  ETHER_HEADER      *Header;
+  PXE_FRAME_TYPE    PacketType;
+
+  if (AdapterInfo == NULL) {
+    // Should not happen
+    ASSERT (AdapterInfo != NULL);
+    StatCode = PXE_STATCODE_DEVICE_FAILURE;
+    goto Exit;
+  }
+
+  // Acknowledge the interrupts
   E1000_READ_REG (&AdapterInfo->Hw, E1000_ICR);
 
-
-  // DEBUGPRINT(E1000, ("E1000Receive\n"));
-  // DEBUGPRINT(E1000, ("RCTL=%X ", E1000_READ_REG(&AdapterInfo->Hw, E1000_RCTL)));
-  // DEBUGPRINT(E1000, ("RDH0=%x ", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH(0))));
-  // DEBUGPRINT(E1000, ("RDT0=%x\n", (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT(0))));
-  // DEBUGPRINT(E1000, ("RDBAL=%x desc=%X\n",  E1000_READ_REG (
-  //                                            &AdapterInfo->Hw, E1000_RDBAL),
-  //                                            (UINTN) AdapterInfo->rx_ring)
-  //                                          );
-  // rar_low = E1000_READ_REG_ARRAY(&AdapterInfo->Hw, E1000_RA, 0);
-  // rar_high = E1000_READ_REG_ARRAY(&AdapterInfo->Hw, E1000_RA, 1);
-  // DEBUGPRINT(E1000, ("Receive Addr = %X %X\n", rar_high, rar_low));
-
-  // for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
-  //   DEBUGPRINT(E1000, ("buffer=%X ", AdapterInfo->rx_ring[i].buffer_addr));
-  //   DEBUGPRINT(E1000, ("csum=%X ", AdapterInfo->rx_ring[i].csum));
-  //   DEBUGPRINT(E1000, ("special=%X ", AdapterInfo->rx_ring[i].special));
-  //   DEBUGPRINT(E1000, ("status=%X ", AdapterInfo->rx_ring[i].status));
-  //   DEBUGPRINT(E1000, ("len=%X ", AdapterInfo->rx_ring[i].length));
-  //   DEBUGPRINT(E1000, ("err=%X\n", AdapterInfo->rx_ring[i].errors));
-  // }
-
-
-  // Make quick copies of the buffer pointers so we can use them without fear of corrupting the originals
-  CpbReceive  = (PXE_CPB_RECEIVE *) (UINTN) Cpb;
-  DbReceive   = (PXE_DB_RECEIVE *) (UINTN) Db;
-
-  // Get a pointer to the buffer that should have a rx in it, IF one is really there.
-  ReceiveDescriptor = E1000_RX_DESC (&AdapterInfo->RxRing, AdapterInfo->CurRxInd);
-
-#if (DBG_LVL & CRITICAL) && (DBG_LVL & RX)
-  PhysicalRxBuffer = E1000_RX_BUFFER_ADDR (
-                       AdapterInfo->RxBufferMapping.PhysicalAddress,
-                       AdapterInfo->CurRxInd
-                     );
-
-  if (ReceiveDescriptor->buffer_addr != PhysicalRxBuffer) {
-    DEBUGPRINT (
-      CRITICAL, ("RX buffer address mismatch on desc 0x%.2X: expected %X, actual %X\n",
-      AdapterInfo->CurRxInd, PhysicalRxBuffer, ReceiveDescriptor->buffer_addr)
-    );
+  if ((CpbReceive == NULL)
+    || (CpbReceive->BufferLen == 0)
+    || (CpbReceive->BufferLen > 0xFFFF)
+    || (CpbReceive->BufferAddr == 0))
+  {
+    StatCode = PXE_STATCODE_INVALID_CPB;
+    goto Exit;
   }
 
-  Rdt = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDT (0));
-  Rdh = E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
-  if (Rdt == Rdh) {
-    DEBUGPRINT (CRITICAL, ("Receive ERROR: RX Buffers Full!\n"));
-  }
-#endif /* (DBG_LVL & CRITICAL) && (DBG_LVL & RX) */
-
-  if ((ReceiveDescriptor->status & (E1000_RXD_STAT_EOP | E1000_RXD_STAT_DD)) != 0) {
-
-    // Just to make sure we don't try to copy a zero length, only copy a positive sized packet.
-    if ((ReceiveDescriptor->length != 0) && (ReceiveDescriptor->errors == 0)) {
-
-      // If the buffer passed us is smaller than the packet, only copy the size of the buffer.
-      DataLength = MIN (ReceiveDescriptor->length, (UINT16) CpbReceive->BufferLen);
-
-      // Copy the packet from our list to the EFI buffer.
-      E1000MemCopy (
-        (UINT8 *) (UINTN) CpbReceive->BufferAddr,
-        (UINT8 *) E1000_RX_BUFFER_ADDR (
-                    AdapterInfo->RxBufferMapping.UnmappedAddress,
-                    AdapterInfo->CurRxInd
-                  ),
-        DataLength
-      );
-
-#if (DBG_LVL & RX)
-      PacketPtr = (UINT8 *) (UINTN) CpbReceive->BufferAddr;
-
-      DEBUGPRINT (RX, ("Packet Data \n"));
-      for (i = 0; i < TempLen; i++) {
-        DEBUGPRINT (RX, ("%x ", PacketPtr[i]));
-      }
-      DEBUGPRINT (RX, ("\n"));
-#endif /* (DBG_LVL & RX) */
-
-      // Fill the DB with needed information
-      DbReceive->FrameLen       = ReceiveDescriptor->length;  // includes header
-      DbReceive->MediaHeaderLen = PXE_MAC_HEADER_LEN_ETHER;
-
-      EtherHeader = (ETHER_HEADER *) E1000_RX_BUFFER_ADDR (
-                                       AdapterInfo->RxBufferMapping.UnmappedAddress,
-                                       AdapterInfo->CurRxInd
-                                     );
-
-      // Figure out if the packet was meant for us, was a broadcast, multicast or we
-      // recieved a frame in promiscuous mode.
-      if (E1000_COMPARE_MAC (EtherHeader->DestAddr, AdapterInfo->Hw.mac.addr) == 0) {
-        PacketType = PXE_FRAME_TYPE_UNICAST;
-        DEBUGPRINT (E1000, ("unicast packet for us.\n"));
-      } else if (E1000_COMPARE_MAC (EtherHeader->DestAddr, AdapterInfo->BroadcastNodeAddress) == 0) {
-        PacketType = PXE_FRAME_TYPE_BROADCAST;
-        DEBUGPRINT (E1000, ("broadcast packet.\n"));
-      } else {
-
-        // That leaves multicast or we must be in promiscuous mode.
-        // Check for the Mcast bit in the address. otherwise its a promiscuous receive.
-        if ((EtherHeader->DestAddr[0] & 1) == 1) {
-          PacketType = PXE_FRAME_TYPE_MULTICAST;
-          DEBUGPRINT (E1000, ("multicast packet.\n"));
-        } else {
-          PacketType = PXE_FRAME_TYPE_PROMISCUOUS;
-          DEBUGPRINT (E1000, ("unicast promiscuous.\n"));
-        }
-      }
-      DbReceive->Type = PacketType;
-      DEBUGPRINT (E1000, ("PacketType %x\n", PacketType));
-
-      // Put the protocol (UDP, TCP/IP) in the data buffer.
-      DbReceive->Protocol = EtherHeader->Type;
-      DEBUGPRINT (E1000, ("protocol %x\n", EtherHeader->Type));
-
-      E1000_COPY_MAC (DbReceive->SrcAddr, EtherHeader->SrcAddr);
-      E1000_COPY_MAC (DbReceive->DestAddr, EtherHeader->DestAddr);
-
-      StatCode = PXE_STATCODE_SUCCESS;
-    } else {
-      DEBUGPRINT (CRITICAL, ("ERROR: Received zero sized packet or receive error!\n"));
-    }
-
-    // Clean up the packet
-    ReceiveDescriptor->status = 0;
-    ReceiveDescriptor->length = 0;
-
-    // Move the current cleaned buffer pointer, being careful to wrap it as needed.
-    // Then update the hardware, so it knows that an additional buffer can be used.
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), AdapterInfo->CurRxInd);
-    AdapterInfo->CurRxInd++;
-    if (AdapterInfo->CurRxInd == DEFAULT_RX_DESCRIPTORS) {
-      AdapterInfo->CurRxInd = 0;
-    }
+  if (DbReceive == NULL) {
+    StatCode = PXE_STATCODE_INVALID_CDB;
+    goto Exit;
   }
 
+  // Try to get packet from Rx ring
+  RxBuffer      = (UINT8*) (UINTN) CpbReceive->BufferAddr;
+  RxBufferSize  = (UINT16) CpbReceive->BufferLen;
+  BytesReceived = RxBufferSize;
+
+  Status = ReceiveGetPacket (
+             AdapterInfo,
+             RxBuffer,
+             &BytesReceived,
+             &PacketLength
+             );
+
+  switch (Status) {
+  case EFI_SUCCESS:
+    // Packet received successfully
+    DEBUGPRINT (RX, ("Packet received successfully.\n"));
+    break;
+
+  case EFI_NOT_STARTED:
+    // Rx ring not started yet
+    StatCode = PXE_STATCODE_NOT_STARTED;
+    DEBUGPRINT (RX, ("Ring not started.\n"));
+    goto Exit;
+
+  case EFI_DEVICE_ERROR:
+  case EFI_NOT_READY:
+    // No data in case device fails or no packet is received
+    StatCode = PXE_STATCODE_NO_DATA;
+    goto Exit;
+
+  default:
+    // Other possible funny cases
+    ASSERT_EFI_ERROR (Status);
+    StatCode = PXE_STATCODE_DEVICE_FAILURE;
+    goto Exit;
+  }
+
+  PacketType  = PXE_FRAME_TYPE_NONE;
+  Header      = (ETHER_HEADER*) RxBuffer;
+
+  // Fill the DB with information about the packet
+  DbReceive->FrameLen         = PacketLength;
+  DbReceive->MediaHeaderLen   = PXE_MAC_HEADER_LEN_ETHER;
+
+  // Obtain packet type from MAC address
+  if (CompareMem (Header->DestAddr, AdapterInfo->Hw.mac.perm_addr, PXE_HWADDR_LEN_ETHER) == 0) {
+    DEBUGPRINT (RX, ("Unicast packet\n"));
+    PacketType = PXE_FRAME_TYPE_UNICAST;
+  } else if (CompareMem (Header->DestAddr, AdapterInfo->BroadcastNodeAddress, PXE_HWADDR_LEN_ETHER) == 0) {
+    DEBUGPRINT (RX, ("Broadcast packet\n"));
+    PacketType = PXE_FRAME_TYPE_BROADCAST;
+  } else if (BIT_TEST (Header->DestAddr[0], 1)) {
+    DEBUGPRINT (RX, ("Multicast packet\n"));
+    PacketType = PXE_FRAME_TYPE_MULTICAST;
+  } else {
+    DEBUGPRINT (RX, ("Promiscuous packet\n"));
+    PacketType = PXE_FRAME_TYPE_PROMISCUOUS;
+  }
+
+  DbReceive->Type     = PacketType;
+  DbReceive->Protocol = Header->Type;
+  CopyMem (DbReceive->SrcAddr, Header->SrcAddr, PXE_HWADDR_LEN_ETHER);
+  CopyMem (DbReceive->DestAddr, Header->DestAddr, PXE_HWADDR_LEN_ETHER);
+  StatCode = PXE_STATCODE_SUCCESS;
+
+Exit:
   return StatCode;
 }
 
@@ -815,21 +515,32 @@ E1000Shutdown (
   IN DRIVER_DATA *AdapterInfo
   )
 {
-  UINT32 Reg;
+  EFI_STATUS  Status;
 
   DEBUGPRINT (E1000, ("E1000Shutdown - adapter stop\n"));
 
   // Disable the transmit and receive DMA
-  E1000ReceiveStop (AdapterInfo);
-  E1000TransmitDisable (AdapterInfo);
+  Status = ReceiveStop (AdapterInfo);
 
-  Reg = E1000_READ_REG (&AdapterInfo->Hw, E1000_TCTL);
-  Reg = (Reg & ~E1000_TCTL_EN);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TCTL, Reg);
+  switch (Status) {
+  case EFI_SUCCESS:
+  case EFI_NOT_STARTED:
+    break;
+  default:
+    ASSERT_EFI_ERROR (Status);
+  }
 
-  // Disable the receive unit so the hardware does not continue to DMA packets to memory.
-  // Also release the software semaphore.
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, 0);
+  Status = TransmitStop (AdapterInfo);
+
+  switch (Status) {
+  case EFI_SUCCESS:
+  case EFI_NOT_STARTED:
+    break;
+  default:
+    ASSERT_EFI_ERROR (Status);
+  }
+
+  // Release the software semaphore.
   E1000_WRITE_REG (&AdapterInfo->Hw, E1000_SWSM, 0);
   E1000PciFlush (&AdapterInfo->Hw);
 
@@ -837,7 +548,6 @@ E1000Shutdown (
   // have time to complete.
   DELAY_IN_MILLISECONDS (10);
 
-  AdapterInfo->ReceiveStarted = FALSE;
   AdapterInfo->RxFilter = 0;
 
   return PXE_STATCODE_SUCCESS;
@@ -1074,166 +784,53 @@ E1000TxRxConfigure (
   IN DRIVER_DATA *AdapterInfo
   )
 {
-  UINT32                    TempReg;
-  UINT64                    MemAddr;
-  UINT32                   *MemPtr;
-  UINT16                    i;
-  E1000_RECEIVE_DESCRIPTOR *RxDesc;
-  UINT8                    *PhysicalRxBuffer;
-  LOCAL_RX_BUFFER          *VirtualRxBuffer;
+  EFI_STATUS      Status;
 
-  DEBUGPRINT (E1000, ("E1000TxRxConfigure\n"));
+  Status = ReceiveStop (AdapterInfo);
 
-  E1000ReceiveStop (AdapterInfo);
-
-  DEBUGPRINT (
-    E1000, ("Rx Ring %x Tx Ring %X  RX size %X \n",
-    E1000_RX_DESC (&AdapterInfo->RxRing, 0),
-    E1000_TX_DESC (&AdapterInfo->TxRing, 0),
-    sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS)
-  );
-
-  ZeroMem (AdapterInfo->TxBufferMappings, sizeof (AdapterInfo->TxBufferMappings));
-
-  PhysicalRxBuffer = (UINT8 *) (UINTN) AdapterInfo->RxBufferMapping.PhysicalAddress;
-  VirtualRxBuffer = (LOCAL_RX_BUFFER *) (UINTN) AdapterInfo->RxBufferMapping.UnmappedAddress;
-
-  DEBUGPRINT (
-    E1000, ("Local RX Buffer: 0x%p (Physical) / 0x%p (Virtual) / 0x%X (Size)\n",
-    PhysicalRxBuffer, VirtualRxBuffer,
-    sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS)
-  );
-
-  // now to link the RX Ring to the local buffers
-  for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
-    RxDesc = E1000_RX_DESC (&AdapterInfo->RxRing, i);
-    RxDesc->buffer_addr = (UINT64) E1000_RX_BUFFER_ADDR (PhysicalRxBuffer, i);
-    RxDesc->status = E1000_RXD_STAT_IXSM;
-
-    DEBUGPRINT (
-      E1000, ("RX Desc 0x%.2X -> 0x%p (Physical) / 0x%p (Virtual)\n",
-      i, E1000_RX_BUFFER_ADDR (PhysicalRxBuffer, i), E1000_RX_BUFFER_ADDR ((UINT8 *) VirtualRxBuffer, i))
-    );
+  switch (Status) {
+  case EFI_SUCCESS:
+  case EFI_NOT_STARTED:
+    break;
+  default:
+    DEBUGPRINT (CRITICAL, ("Failed to stop Rx queue: %r\n"));
+    ASSERT_EFI_ERROR (Status);
+    return;
   }
 
-  // Setup the RDBAL (lower 32 bits of the buffer addr), RDBAH (higher 32 bits)
-  // EFI_PHYSICAL/VIRTUAL_ADDRESS is always UINT64. We cast it down to UINT32.
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDBAL (0), (UINT32) AdapterInfo->RxRing.PhysicalAddress);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDBAH (0), (UINT32) (AdapterInfo->RxRing.PhysicalAddress >> 32));
+  Status = TransmitStop (AdapterInfo);
 
-  // Setup the RDLEN (amount of memory for the RX buffers that hardware can't go over)
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDLEN (0), (sizeof (E1000_RECEIVE_DESCRIPTOR) * DEFAULT_RX_DESCRIPTORS));
-
-  DEBUGPRINT (E1000, ("RDBAL0 %X\n", (UINT32) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDBAL (0))));
-  DEBUGPRINT (E1000, ("RDBAH0 %X\n", (UINT32) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDBAH (0))));
-  DEBUGPRINT (E1000, ("Rx Ring @ %p (Physical)\n", AdapterInfo->RxRing.PhysicalAddress));
-
-  // Set the transmit tail equal to the head pointer (we do not want hardware to try to
-  // transmit packets yet).
-  AdapterInfo->CurTxInd = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_TDH (0));
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDT (0), AdapterInfo->CurTxInd);
-  AdapterInfo->XmitDoneHead = AdapterInfo->CurTxInd;
-
-  AdapterInfo->CurRxInd = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), AdapterInfo->CurRxInd);
-
-  if (AdapterInfo->Hw.mac.type != e1000_82575 &&
-    AdapterInfo->Hw.mac.type != e1000_82576 &&
-    AdapterInfo->Hw.mac.type != e1000_82580
-    && AdapterInfo->Hw.mac.type != e1000_i350
-    && AdapterInfo->Hw.mac.type  != e1000_i354
-    && AdapterInfo->Hw.mac.type != e1000_i210
-    && AdapterInfo->Hw.mac.type != e1000_i211
-    )
-  {
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_SRRCTL (0), E1000_SRRCTL_DESCTYPE_LEGACY);
-
-    E1000SetRegBits (AdapterInfo, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
-    i = 0;
-    do {
-      TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RXDCTL (0));
-      i++;
-      if ((TempReg & E1000_RXDCTL_QUEUE_ENABLE) != 0) {
-        DEBUGPRINT (E1000, ("RX queue enabled, after attempt i = %d\n", i));
-        break;
-      }
-
-      DelayInMicroseconds (AdapterInfo, 1);
-    } while (i < 1000);
-
-    if (i >= 1000) {
-      DEBUGPRINT (CRITICAL, ("Enable RX queue failed!\n"));
-    }
+  switch (Status) {
+  case EFI_SUCCESS:
+  case EFI_NOT_STARTED:
+    break;
+  default:
+    DEBUGPRINT (CRITICAL, ("Failed to stop Tx queue: %r\n"));
+    ASSERT_EFI_ERROR (Status);
+    goto ExitStartRx;
   }
 
+  Status = ReceiveReset (AdapterInfo);
 
-#ifndef NO_82575_SUPPORT
-  if (AdapterInfo->Hw.mac.type != e1000_82575 &&
-    AdapterInfo->Hw.mac.type != e1000_82576 &&
-    AdapterInfo->Hw.mac.type != e1000_82580
-    && AdapterInfo->Hw.mac.type != e1000_i350
-    && AdapterInfo->Hw.mac.type  != e1000_i354
-    && AdapterInfo->Hw.mac.type != e1000_i210
-    && AdapterInfo->Hw.mac.type != e1000_i211
-    )
-#endif /* NO_82575_SUPPORT */
-  {
-    // Set the software tail pointer just behind head to give hardware the entire ring
-    if (AdapterInfo->CurRxInd == 0) {
-      E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), DEFAULT_RX_DESCRIPTORS - 1);
-    } else {
-      E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), AdapterInfo->CurRxInd - 1);
-    }
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("Failed to reset Rx queue: %r\n"));
+    ASSERT_EFI_ERROR (Status);
+    goto ExitStartTx;
   }
 
-  // Zero out PSRCTL to use default packet size settings in RCTL
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_PSRCTL, 0);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_MRQC, 0);
+  Status = TransmitReset (AdapterInfo);
 
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDBAL (0), (UINT32) (UINTN) (AdapterInfo->TxRing.PhysicalAddress));
-  MemAddr = (UINT64) (UINTN) AdapterInfo->TxRing.PhysicalAddress;
-  MemPtr  = (UINT32 *) &MemAddr;
-  MemPtr++;
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDBAH (0), *MemPtr);
-  DEBUGPRINT (E1000, ("TdBah0 %X\n", *MemPtr));
-  DEBUGWAIT (E1000);
-  E1000_WRITE_REG (
-    &AdapterInfo->Hw,
-    E1000_TDLEN (0),
-    (sizeof (E1000_TRANSMIT_DESCRIPTOR) * DEFAULT_TX_DESCRIPTORS)
-  );
-
-  if (AdapterInfo->Hw.mac.type == e1000_82580
-    || AdapterInfo->Hw.mac.type == e1000_i350
-    || AdapterInfo->Hw.mac.type  == e1000_i354
-    || AdapterInfo->Hw.mac.type == e1000_i210
-    || AdapterInfo->Hw.mac.type == e1000_i211
-    )
-  {
-    E1000SetRegBits (AdapterInfo, E1000_TXDCTL (0), E1000_TXDCTL_QUEUE_ENABLE);
-
-    for (i = 0; i < 1000; i++) {
-      TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_TXDCTL (0));
-      if ((TempReg & E1000_TXDCTL_QUEUE_ENABLE) != 0) {
-        DEBUGPRINT (E1000, ("TX queue enabled, after attempt i = %d\n", i));
-        break;
-      }
-
-      DelayInMicroseconds (AdapterInfo, 1);
-    }
-    if (i >= 1000) {
-      DEBUGPRINT (CRITICAL, ("Enable TX queue failed!\n"));
-    }
-    AdapterInfo->CurTxInd = 0;
-    AdapterInfo->XmitDoneHead = 0;
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("Failed to reset Tx queue: %r\n"));
+    ASSERT_EFI_ERROR (Status);
   }
 
-
-  TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_TCTL);
-  TempReg = (TempReg | E1000_TCTL_EN | E1000_TCTL_PSP);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TCTL, TempReg);
-
-  E1000PciFlush (&AdapterInfo->Hw);
+ExitStartTx:
+  Status = TransmitStart (AdapterInfo);
+  ASSERT_EFI_ERROR (Status);
+ExitStartRx:
+  Status = ReceiveStart (AdapterInfo);
+  ASSERT_EFI_ERROR (Status);
 }
 /** This function performs PCI-E initialization for the device.
 
@@ -1295,56 +892,7 @@ E1000PciInit (
     goto PciIoError;
   }
 
-  // Allocate common DMA buffer for Tx descriptors
-  AdapterInfo->TxRing.Size = TX_RING_SIZE;
-
-  Status = UndiDmaAllocateCommonBuffer (
-             AdapterInfo->PciIo,
-             &AdapterInfo->TxRing
-             );
-
-  if (EFI_ERROR (Status)) {
-    goto OnAllocError;
-  }
-
-  // Allocate common DMA buffer for Rx descriptors
-  AdapterInfo->RxRing.Size = RX_RING_SIZE;
-
-  Status = UndiDmaAllocateCommonBuffer (
-             AdapterInfo->PciIo,
-             &AdapterInfo->RxRing
-             );
-
-  if (EFI_ERROR (Status)) {
-    goto OnAllocError;
-  }
-
-  // Allocate common DMA buffer for Rx buffers
-  AdapterInfo->RxBufferMapping.Size = RX_BUFFERS_SIZE;
-
-  Status = UndiDmaAllocateCommonBuffer (
-             AdapterInfo->PciIo,
-             &AdapterInfo->RxBufferMapping
-             );
-
-  if (EFI_ERROR (Status)) {
-    goto OnAllocError;
-  }
-
   return EFI_SUCCESS;
-
-OnAllocError:
-      if (AdapterInfo->TxRing.Mapping != NULL) {
-        UndiDmaFreeCommonBuffer (AdapterInfo->PciIo, &AdapterInfo->TxRing);
-      }
-
-      if (AdapterInfo->RxRing.Mapping != NULL) {
-        UndiDmaFreeCommonBuffer (AdapterInfo->PciIo, &AdapterInfo->RxRing);
-      }
-
-      if (AdapterInfo->RxBufferMapping.Mapping != NULL) {
-        UndiDmaFreeCommonBuffer (AdapterInfo->PciIo, &AdapterInfo->RxBufferMapping);
-      }
 
 PciIoError:
   if (PciAttributesSaved) {
@@ -1432,7 +980,7 @@ E1000FirstTimeInit (
                        &AdapterInfo->Bus,
                        &AdapterInfo->Device,
                        &AdapterInfo->Function
-                     );
+                       );
 
   DEBUGPRINT (INIT, ("AdapterInfo->IoBarIndex = %X\n", AdapterInfo->IoBarIndex));
   DEBUGPRINT (INIT, ("PCI Command Register = %X\n", PciConfigHeader->Command));
@@ -1536,12 +1084,6 @@ E1000FirstTimeInit (
   }
 
 
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDH (0), 0);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_TDH (0), 0);
-  AdapterInfo->CurTxInd = 0;
-  AdapterInfo->XmitDoneHead = 0;
-  AdapterInfo->CurRxInd = 0;
-
 #ifndef NO_82571_SUPPORT
 
   // On 82571 based adapters if either port is reset then the
@@ -1580,21 +1122,6 @@ E1000Inititialize (
   PXE_STATCODE PxeStatcode = PXE_STATCODE_SUCCESS;
 
   DEBUGPRINT (E1000, ("E1000Inititialize\n"));
-
-  ZeroMem (
-    (VOID *) (UINTN) AdapterInfo->RxRing.UnmappedAddress,
-    RX_RING_SIZE
-    );
-
-  ZeroMem (
-    (VOID *) (UINTN) AdapterInfo->TxRing.UnmappedAddress,
-    TX_RING_SIZE
-    );
-
-  ZeroMem (
-    (VOID *) (UINTN) AdapterInfo->RxBufferMapping.UnmappedAddress,
-    RX_BUFFERS_SIZE
-    );
 
 
   DEBUGWAIT (E1000);
@@ -1742,7 +1269,7 @@ E1000SetFilter (
     // Put the card into the proper mode...
     // Rx unit needs to be disabled and re-enabled
     // while changing filters.
-    if (AdapterInfo->ReceiveStarted) {
+    if (AdapterInfo->RxRing.IsRunning) {
       RxDisable (AdapterInfo);
     }
 
@@ -1750,7 +1277,7 @@ E1000SetFilter (
     AdapterInfo->RxFilter = NewFilter;
     E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, UpdateRCTL);
 
-    if (AdapterInfo->ReceiveStarted) {
+    if (AdapterInfo->RxRing.IsRunning) {
       RxEnable (AdapterInfo);
     }
   }
@@ -1786,10 +1313,10 @@ E1000SetFilter (
         DEBUGPRINT (E1000, ("\n"));
       }
 
-      E1000BlockIt (AdapterInfo, TRUE);
+      TransmitLockIo (AdapterInfo, TRUE);
 
       //Rx unit needs to be disabled while changing filters.
-      if (AdapterInfo->ReceiveStarted) {
+      if (AdapterInfo->RxRing.IsRunning) {
         RxDisable (AdapterInfo);
       }
       e1000_update_mc_addr_list (
@@ -1797,10 +1324,10 @@ E1000SetFilter (
         &McAddrList[0][0],
         MulticastCount
       );
-      if (AdapterInfo->ReceiveStarted) {
+      if (AdapterInfo->RxRing.IsRunning) {
         RxEnable (AdapterInfo);
       }
-      E1000BlockIt (AdapterInfo, FALSE);
+      TransmitLockIo (AdapterInfo, FALSE);
     }
 
     // are we setting the list or resetting??
@@ -1840,79 +1367,29 @@ E1000ReceiveStop (
   IN DRIVER_DATA *AdapterInfo
   )
 {
-  E1000_RECEIVE_DESCRIPTOR *ReceiveDesc;
-  UINT32                    TempReg;
-  UINTN                     i;
-  UINT32                    RxdCtl;
+  EFI_STATUS      Status;
 
-  DEBUGPRINT (E1000, ("E1000ReceiveStop\n"));
+  Status = ReceiveStop (AdapterInfo);
 
-  if (!AdapterInfo->ReceiveStarted) {
-    DEBUGPRINT (CRITICAL, ("Receive unit already disabled!\n"));
-    return;
+  switch (Status) {
+  case EFI_NOT_STARTED:
+    DEBUGPRINT (E1000, ("Rx queue already stopped.\n"));
+    break;
+  case EFI_SUCCESS:
+    DEBUGPRINT (E1000, ("Rx queue stopped successfully.\n"));
+    break;
+  default:
+    DEBUGPRINT (CRITICAL, ("Failed to stop Rx queue: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
+    break;
   }
 
-  if (AdapterInfo->Hw.mac.type == e1000_82571) {
-    TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
-    TempReg &= ~E1000_RCTL_EN;
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, TempReg);
+  Status = ReceiveReset (AdapterInfo);
+
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("Failed to reset Rx queue: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
   }
-
-  // On I82575 the ring must be reset when the recieve unit is disabled.
-  if (AdapterInfo->Hw.mac.type == e1000_82575
-    || AdapterInfo->Hw.mac.type == e1000_82576
-#ifndef NO_82580_SUPPORT
-    || AdapterInfo->Hw.mac.type == e1000_82580
-#endif /* NO_82580_SUPPORT */
-    || AdapterInfo->Hw.mac.type == e1000_i350
-    || AdapterInfo->Hw.mac.type  == e1000_i354
-    || AdapterInfo->Hw.mac.type == e1000_i210
-    || AdapterInfo->Hw.mac.type == e1000_i211
-    )
-  {
-    E1000ClearRegBits (AdapterInfo, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
-
-    i = 0;
-    do {
-      gBS->Stall (1);
-      RxdCtl = E1000_READ_REG (&AdapterInfo->Hw, E1000_RXDCTL (0));
-
-      i++;
-      if (i >= MAX_QUEUE_DISABLE_TIME) {
-        break;
-      }
-    } while ((RxdCtl & E1000_RXDCTL_QUEUE_ENABLE) != 0);
-    DEBUGPRINT (E1000, ("Receiver Disabled\n"));
-
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDH (0), 0);
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), 0);
-    AdapterInfo->CurRxInd = 0;
-  }
-
-  if (AdapterInfo->Hw.mac.type == e1000_82575
-    || AdapterInfo->Hw.mac.type == e1000_82576
-#ifndef NO_82580_SUPPORT
-    || AdapterInfo->Hw.mac.type == e1000_82580
-#endif /* NO_82580_SUPPORT */
-    || AdapterInfo->Hw.mac.type == e1000_i350
-    || AdapterInfo->Hw.mac.type  == e1000_i354
-    || AdapterInfo->Hw.mac.type == e1000_i210
-    || AdapterInfo->Hw.mac.type == e1000_i211
-    || AdapterInfo->Hw.mac.type == e1000_82571
-    )
-  {
-    // Clean up any left over packets
-    ReceiveDesc = E1000_RX_DESC (&AdapterInfo->RxRing, 0);
-    for (i = 0; i < DEFAULT_RX_DESCRIPTORS; i++) {
-      ReceiveDesc->length = 0;
-      ReceiveDesc->status = 0;
-      ReceiveDesc->errors = 0;
-      ReceiveDesc++;
-    }
-  }
-
-  AdapterInfo->ReceiveStarted = FALSE;
-  return;
 }
 
 /** Starts the receive unit.
@@ -1927,102 +1404,22 @@ E1000ReceiveStart (
   IN DRIVER_DATA *AdapterInfo
   )
 {
-  UINT32 TempReg;
-  UINTN  i;
+  EFI_STATUS      Status;
 
   DEBUGPRINT (E1000, ("E1000ReceiveStart\n"));
 
-  if (AdapterInfo->ReceiveStarted) {
-    DEBUGPRINT (CRITICAL, ("Receive unit already started!\n"));
-    return;
-  }
+  Status = ReceiveStart (AdapterInfo);
 
-  TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RCTL);
-  TempReg |= (E1000_RCTL_EN | E1000_RCTL_BAM);
-  E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RCTL, TempReg);
-
-  // Move the tail descriptor to begin receives on I82575
-#ifndef NO_82575_SUPPORT
-  if (AdapterInfo->Hw.mac.type == e1000_82575
-#ifndef NO_82576_SUPPORT
-    || AdapterInfo->Hw.mac.type == e1000_82576
-#ifndef NO_82580_SUPPORT
-    || AdapterInfo->Hw.mac.type == e1000_82580
-#endif /* NO_82580_SUPPORT */
-    || AdapterInfo->Hw.mac.type == e1000_i350
-    || AdapterInfo->Hw.mac.type == e1000_i354
-    || AdapterInfo->Hw.mac.type == e1000_i210
-    || AdapterInfo->Hw.mac.type == e1000_i211
-#endif /* NO_82576_SUPPORT */
-    )
-  {
-    if (AdapterInfo->Hw.mac.type == e1000_82575) {
-      e1000_rx_fifo_flush_base (&AdapterInfo->Hw);
-    }
-
-    E1000SetRegBits (AdapterInfo, E1000_RXDCTL (0), E1000_RXDCTL_QUEUE_ENABLE);
-
-    i = 0;
-    do {
-      gBS->Stall (1);
-      TempReg = E1000_READ_REG (&AdapterInfo->Hw, E1000_RXDCTL (0));
-
-      i++;
-      if (i >= MAX_QUEUE_ENABLE_TIME) {
-        break;
-      }
-    } while ((TempReg & E1000_RXDCTL_QUEUE_ENABLE) == 0);
-
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDT (0), DEFAULT_RX_DESCRIPTORS - 1);
-    E1000_WRITE_REG (&AdapterInfo->Hw, E1000_RDH (0), 0);
-    AdapterInfo->CurRxInd = (UINT16) E1000_READ_REG (&AdapterInfo->Hw, E1000_RDH (0));
-
-  }
-#endif /* NO_82575_SUPPORT */
-
-  AdapterInfo->ReceiveStarted = TRUE;
-}
-
-/** Stops the transmit unit.
-
-   @param[in]   AdapterInfo   Pointer to the NIC data structure information
-                             which the UNDI driver is layering on..
-
-   @retval   Transmit unit disabled
-**/
-VOID
-E1000TransmitDisable (
-  IN DRIVER_DATA *AdapterInfo
-  )
-{
-  UINTN  i;
-  UINT32 TxdCtl;
-
-  DEBUGPRINT (E1000, ("E1000TransmitDisable\n"));
-
-
-  switch (AdapterInfo->Hw.mac.type) {
-#ifndef NO_82575_SUPPORT
-  case e1000_82575:
-  case e1000_82576:
-#endif /* NO_82575_SUPPORT */
-#ifndef NO_82580_SUPPORT
-  case e1000_82580:
-#endif /* NO_82580_SUPPORT */
-  case e1000_i350:
-  case e1000_i354:
-  case e1000_i210:
-  case e1000_i211:
-    E1000ClearRegBits (AdapterInfo, E1000_TXDCTL (0), E1000_TXDCTL_QUEUE_ENABLE);
-    i = 0;
-    do {
-      gBS->Stall (1);
-      TxdCtl = E1000_READ_REG (&AdapterInfo->Hw, E1000_TXDCTL (0));
-    } while ((++i < MAX_QUEUE_DISABLE_TIME)
-      && ((TxdCtl & E1000_TXDCTL_QUEUE_ENABLE) != 0));
-    DEBUGPRINT (E1000, ("Transmitter Disabled\n"));
+  switch (Status) {
+  case EFI_ALREADY_STARTED:
+    DEBUGPRINT (E1000, ("Rx queue already started.\n"));
+    break;
+  case EFI_SUCCESS:
+    DEBUGPRINT (E1000, ("Rx queue enabled successfully.\n"));
     break;
   default:
+    DEBUGPRINT (CRITICAL, ("Failed to start Rx queue: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
     break;
   }
 }
@@ -2130,55 +1527,53 @@ E1000FreeTxBuffers (
   OUT UINT64      *TxBuffer
   )
 {
-  E1000_TRANSMIT_DESCRIPTOR *TransmitDescriptor;
-  UINT32                     Tdh;
-  UINT16                     i;
-  UNDI_DMA_MAPPING          *TxBufMapping;
+  TRANSMIT_RING         *TxRing;
+  UINT16                i;
+  EFI_STATUS            Status;
+  EFI_VIRTUAL_ADDRESS   FreeTxBuffer;
 
-  DEBUGPRINT (E1000, ("E1000FreeTxBuffers\n"));
+  if (AdapterInfo == NULL
+    || TxBuffer == NULL
+    || NumEntries == 0)
+  {
+    ASSERT (AdapterInfo != NULL);
+    ASSERT (TxBuffer != NULL);
+    ASSERT (NumEntries != 0);
+    return 0;
+  }
 
-  // Read the TX head posistion so we can see which packets have been sent out on the wire.
-  Tdh = E1000_READ_REG (&AdapterInfo->Hw, E1000_TDH (0));
-  DEBUGPRINT (E1000, ("TDH = %d, AdapterInfo->XmitDoneHead = %d\n", Tdh, AdapterInfo->XmitDoneHead));
+  i       = 0;
+  TxRing  = TX_RING_FROM_ADAPTER (AdapterInfo);
 
-  // If Tdh does not equal xmit_done_head then we will fill all the transmitted buffer
-  // addresses between Tdh and xmit_done_head into the completed buffers array
-  i = 0;
+  Status = TransmitScanDescriptors (AdapterInfo);
+
+  switch (Status) {
+  case EFI_SUCCESS:
+  case EFI_NOT_READY:
+    break;
+
+  default:
+    ASSERT_EFI_ERROR (Status);
+    return 0;
+  }
+
   do {
     if (i >= NumEntries) {
-      DEBUGPRINT (E1000, ("Exceeded number of DB entries, i=%d, NumEntries=%d\n", i, NumEntries));
+      // TxBuffer is 100% filled with packets
       break;
     }
 
-    TransmitDescriptor = E1000_TX_DESC (&AdapterInfo->TxRing, AdapterInfo->XmitDoneHead);
-    TxBufMapping = &AdapterInfo->TxBufferMappings[AdapterInfo->XmitDoneHead];
+    Status = TransmitReleaseBuffer (
+               AdapterInfo,
+               &FreeTxBuffer
+               );
 
-    if ((TransmitDescriptor->upper.fields.status & E1000_TXD_STAT_DD) != 0) {
-
-      if (TxBufMapping->UnmappedAddress == 0) {
-        DEBUGPRINT (CRITICAL, ("ERROR: TX buffer complete without being marked used!\n"));
-        break;
-      }
-
-      DEBUGPRINT (E1000, ("Writing buffer address %d, %x\n", i, TxBuffer[i]));
-      UndiDmaUnmapMemory (AdapterInfo->PciIo, TxBufMapping);
-
-      TxBuffer[i] = TxBufMapping->UnmappedAddress;
-      i++;
-
-
-      ZeroMem (TxBufMapping, sizeof (UNDI_DMA_MAPPING));
-      TransmitDescriptor->upper.fields.status = 0;
-
-      AdapterInfo->XmitDoneHead++;
-      if (AdapterInfo->XmitDoneHead >= DEFAULT_TX_DESCRIPTORS) {
-        AdapterInfo->XmitDoneHead = 0;
-      }
-    } else {
-      DEBUGPRINT (E1000, ("TX Descriptor %d not done\n", AdapterInfo->XmitDoneHead));
-      break;
+    if (Status == EFI_SUCCESS) {
+      TxBuffer[i++] = FreeTxBuffer;
     }
-  } while (Tdh != AdapterInfo->XmitDoneHead);
+
+  } while (!EFI_ERROR (Status));
+
   return i;
 }
 

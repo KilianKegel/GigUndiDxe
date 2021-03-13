@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
 #include "E1000.h"
-#include "Init.h"
+
 #include "DeviceSupport.h"
 #include "Decode.h"
 #include "AdapterInformation.h"
@@ -38,10 +38,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+#define EFI_NII_POINTER_PROTOCOL_GUID \
+  { 0xE3161450, 0xAD0F, 0x11D9, { 0x96, 0x69, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
+
+/* This is a macro to convert the preprocessor defined version number into a hex value
+ that can be registered with EFI. */
+#define VERSION_TO_HEX  ((MAJORVERSION << 24) + (MINORVERSION << 16) + \
+                        (BUILDNUMBER / 10 << 12) + (BUILDNUMBER % 10 << 8))
+
+#define MAC_ADDRESS_SIZE_IN_BYTES 6
+
 /* Global Variables */
 VOID *             mE1000PxeMemPtr = NULL;
 PXE_SW_UNDI *      mE1000Pxe31 = NULL;  // 3.1 entry
-UNDI_PRIVATE_DATA *mE1000Undi32DeviceList[MAX_NIC_INTERFACES];
+UNDI_PRIVATE_DATA *mUndi32DeviceList[MAX_NIC_INTERFACES];
 NII_TABLE          mE1000UndiData;
 UINT16             mActiveControllers = 0;
 UINT16             mActiveChildren    = 0;
@@ -52,12 +62,6 @@ BOOLEAN            mExitBootServicesTriggered = FALSE;
 
 
 EFI_GUID gEfiNiiPointerGuid = EFI_NII_POINTER_PROTOCOL_GUID;
-
-/* mE1000Undi32DeviceList iteration helper */
-#define FOREACH_ACTIVE_CONTROLLER(d) \
-  for ((d) = GetFirstControllerPrivateData (); \
-       (d) != NULL; \
-       (d) = GetNextControllerPrivateData ((d)))
 
 /** Gets controller private data structure
 
@@ -75,7 +79,7 @@ GetControllerPrivateData (
   UNDI_PRIVATE_DATA   *Device;
 
   for (i = 0; i < MAX_NIC_INTERFACES; i++) {
-    Device = mE1000Undi32DeviceList[i];
+    Device = mUndi32DeviceList[i];
 
     if (Device != NULL) {
       if (Device->ControllerHandle == ControllerHandle) {
@@ -87,7 +91,7 @@ GetControllerPrivateData (
   return NULL;
 }
 
-/** Insert controller private data structure into mE1000Undi32DeviceList
+/** Insert controller private data structure into mUndi32DeviceList
     global array.
 
    @param[in]  UndiPrivateData        Pointer to Private Data struct
@@ -112,11 +116,11 @@ InsertControllerPrivateData (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  // Find first free slot within mE1000Undi32DeviceList
+  // Find first free slot within mUndi32DeviceList
   for (i = 0; i < MAX_NIC_INTERFACES; i++) {
-    if (mE1000Undi32DeviceList[i] == NULL) {
+    if (mUndi32DeviceList[i] == NULL) {
       UndiPrivateData->IfId   = i;
-      mE1000Undi32DeviceList[i]    = UndiPrivateData;
+      mUndi32DeviceList[i]    = UndiPrivateData;
       mActiveControllers++;
       break;
     }
@@ -130,7 +134,7 @@ InsertControllerPrivateData (
   return EFI_SUCCESS;
 }
 
-/** Remove controller private data structure from mE1000Undi32DeviceList
+/** Remove controller private data structure from mUndi32DeviceList
     global array.
 
    @param[in]  UndiPrivateData        Pointer to Private Data Structure.
@@ -147,15 +151,15 @@ RemoveControllerPrivateData (
     return EFI_INVALID_PARAMETER;
   }
 
-  // Assuming mE1000Undi32DeviceList[UndiPrivateData->IfNum] == UndiPrivateData
-  mE1000Undi32DeviceList[UndiPrivateData->IfId] = NULL;
+  // Assuming mUndi32DeviceList[UndiPrivateData->IfNum] == UndiPrivateData
+  mUndi32DeviceList[UndiPrivateData->IfId] = NULL;
   mActiveControllers--;
 
   return EFI_SUCCESS;
 }
 
 /** Iteration helper. Get first controller private data structure
-    within mE1000Undi32DeviceList global array.
+    within mUndi32DeviceList global array.
 
    @return     UNDI_PRIVATE_DATA    Pointer to Private Data Structure.
    @return     NULL                 No controllers within the array
@@ -167,8 +171,8 @@ GetFirstControllerPrivateData (
   UINTN   i;
 
   for (i = 0; i < MAX_NIC_INTERFACES; i++) {
-    if (mE1000Undi32DeviceList[i] != NULL) {
-      return mE1000Undi32DeviceList[i];
+    if (mUndi32DeviceList[i] != NULL) {
+      return mUndi32DeviceList[i];
     }
   }
 
@@ -176,7 +180,7 @@ GetFirstControllerPrivateData (
 }
 
 /** Iteration helper. Get controller private data structure standing
-    next to UndiPrivateData within mE1000Undi32DeviceList global array.
+    next to UndiPrivateData within mUndi32DeviceList global array.
 
    @param[in]  UndiPrivateData        Pointer to Private Data Structure.
 
@@ -199,8 +203,8 @@ GetNextControllerPrivateData (
   }
 
   for (i = UndiPrivateData->IfId + 1; i < MAX_NIC_INTERFACES; i++) {
-    if (mE1000Undi32DeviceList[i] != NULL) {
-      return mE1000Undi32DeviceList[i];
+    if (mUndi32DeviceList[i] != NULL) {
+      return mUndi32DeviceList[i];
     }
   }
 
@@ -1285,9 +1289,33 @@ InitController (
     return Status;
   }
 
-  UndiPrivateData->NicInfo.UndiEnabled = TRUE;
   if (Status == EFI_ACCESS_DENIED) {
     UndiPrivateData->NicInfo.UndiEnabled = FALSE;
+  } else {
+    // Initialize Tx & Rx queues
+    Status = TransmitInitialize (
+               &UndiPrivateData->NicInfo,
+               DEFAULT_TX_DESCRIPTORS
+               );
+
+    if (EFI_ERROR (Status)) {
+      DEBUGPRINT (CRITICAL, ("Failed to initialize Tx queue: %r\n", Status));
+      return Status;
+    }
+
+    Status = ReceiveInitialize (
+               &UndiPrivateData->NicInfo,
+               DEFAULT_RX_DESCRIPTORS,
+               RX_BUFFER_SIZE
+               );
+
+    if (EFI_ERROR (Status)) {
+      DEBUGPRINT (CRITICAL, ("Failed to initialize Rx queue: %r\n", Status));
+      TransmitCleanup (&UndiPrivateData->NicInfo);
+      return Status;
+    }
+
+    UndiPrivateData->NicInfo.UndiEnabled = TRUE;
   }
 
   UndiPrivateData->AltMacAddrSupported = IsAltMacAddrSupported (UndiPrivateData);
@@ -1832,20 +1860,17 @@ StopController (
   }
 
   // Free DMA resources: Tx & Rx descriptors, Rx buffers
-  UndiDmaFreeCommonBuffer (
-    UndiPrivateData->NicInfo.PciIo,
-    &UndiPrivateData->NicInfo.TxRing
-    );
+  Status = TransmitCleanup (&UndiPrivateData->NicInfo);
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("TransmitCleanup returned %r\n", Status));
+    return Status;
+  }
 
-  UndiDmaFreeCommonBuffer (
-    UndiPrivateData->NicInfo.PciIo,
-    &UndiPrivateData->NicInfo.RxRing
-    );
-
-  UndiDmaFreeCommonBuffer (
-    UndiPrivateData->NicInfo.PciIo,
-    &UndiPrivateData->NicInfo.RxBufferMapping
-    );
+  Status = ReceiveCleanup (&UndiPrivateData->NicInfo);
+  if (EFI_ERROR (Status)) {
+    DEBUGPRINT (CRITICAL, ("ReceiveCleanup returned %r\n", Status));
+    return Status;
+  }
 
   DEBUGPRINT (INIT, ("Attributes"));
   Status = UndiPrivateData->NicInfo.PciIo->Attributes (

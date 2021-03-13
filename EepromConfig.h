@@ -83,6 +83,76 @@ typedef enum {
 #define LAN2_BASE_ADDRESS_82580           0xC0
 #define LAN3_BASE_ADDRESS_82580           0x100
 
+/** Reads SR buffer.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[in]   Length           Number of words to read.
+   @param[out]  Data             Pointer to location with data to be read to.
+
+   @retval    EFI_SUCCESS            Buffer successfully read.
+   @retval    EFI_INVALID_PARAMETER  UndiPrivateData or Data is NULL.
+   @retval    EFI_DEVICE_ERROR       Failed to read buffer.
+**/
+EFI_STATUS
+ReadSrBuffer16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  IN  UINT16             Length,
+  OUT UINT16             *Data
+  );
+
+/** Reads SR word.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[out]  Data             Pointer to location with data to be read to.
+
+   @retval    EFI_SUCCESS     Word successfully read.
+   @retval    !EFI_SUCCESS    Word not read, failure of underlying function.
+**/
+EFI_STATUS
+ReadSr16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  OUT UINT16             *Data
+  );
+
+/** Writes SR buffer.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[in]   Length           Number of words to write.
+   @param[in]   Data             Pointer to location with words to be written.
+
+   @retval    EFI_SUCCESS            Buffer successfully written.
+   @retval    EFI_INVALID_PARAMETER  UndiPrivateData or Data is NULL.
+   @retval    EFI_DEVICE_ERROR       Failed to write buffer.
+**/
+EFI_STATUS
+WriteSrBuffer16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  IN  UINT16             Length,
+  IN  UINT16             *Data
+  );
+
+/** Writes SR word.
+
+   @param[in]   UndiPrivateData  Points to the driver information.
+   @param[in]   Offset           Offset in words from module start.
+   @param[in]   Data             Word to be written.
+
+   @retval    EFI_SUCCESS    Word successfully written.
+   @retval    !EFI_SUCCESS   Word not written, failure of underlying function.
+**/
+EFI_STATUS
+WriteSr16 (
+  IN  UNDI_PRIVATE_DATA  *UndiPrivateData,
+  IN  UINT16             Offset,
+  IN  UINT16             Data
+  );
+
 
 
 /** Gets LAN speed setting for port

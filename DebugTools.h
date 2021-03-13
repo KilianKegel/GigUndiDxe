@@ -188,7 +188,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     // DEBUGWAITs should be disabled with external logging.
     #define DEBUGWAIT(Lvl)
 
-#elif defined (DBG_LVL) && defined (SERIAL_DEBUG) /* !defined(DBG_LOG_ENABLED) */
+#elif defined (DBG_LVL) /* !defined(DBG_LOG_ENABLED) */
     // Debug macros enabled, output goes to the standard UEFI debug macros.
     #include <Library/DebugLib.h>
 
@@ -200,27 +200,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     **/
     #define DEBUGDUMP(Lvl, Msg) \
               if ((DBG_LVL & (Lvl)) != 0) { \
-                DebugPrint (EFI_D_UNDI, NO_PARENTH Msg); \
+                DEBUG ((EFI_D_INFO, NO_PARENTH Msg)); \
               }
-
-    // Generic DEBUGPRINT/DEBUGPRINTTIME/DEBUGWAIT macros are used.
-
-#elif defined (DBG_LVL) /* !defined(DBG_LOG_ENABLED) && !defined(SERIAL_DEBUG) */
-    // Debug macros enabled, output goes to the screen.
-    #include <Library/UefiLib.h>
-
-    /** Print a debug message (with no extras) if a given debug level is set.
-
-       @param[in]   Lvl   Debug level
-       @param[in]   Msg   Debug message
-    **/
-    #define DEBUGDUMP(Lvl, Msg) \
-              if ((DBG_LVL & (Lvl)) != 0) { \
-                AsciiPrint Msg; \
-              }
-
-    // Generic DEBUGPRINT/DEBUGPRINTTIME/DEBUGWAIT macros are used.
-#endif /* DBG_LVL/DBG_LOG_ENABLED/SERIAL_DEBUG */
+#endif /* DBG_LVL/DBG_LOG_ENABLED */
 
 
 #if defined (DBG_LVL) && !defined (DEBUGPRINT)
@@ -271,6 +253,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                   gST->ConIn->ReadKeyStroke (gST->ConIn, &Key); \
                 } while (Key.UnicodeChar != 0xD); \
               }
+#else /* !DBG_LVL || DEBUGWAIT */
+    #undef  DEBUGWAIT
+    #define DEBUGWAIT(Lvl)
 #endif /* End generic DEBUGWAIT */
 
 #if defined (DBG_LVL) && !defined (DEBUGPRINTWAIT)
